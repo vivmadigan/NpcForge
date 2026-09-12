@@ -47,7 +47,12 @@ Finished code handed to me is worth nothing here.
 - No Clean Architecture layering. Two interfaces earn their place:
   `IChatModel` and `IToolSource`.
 
-## Not yet true
+## Build and run
 
-No code exists yet, so there are no build, run or test commands to record
-here. Add them at build step 1 and keep them accurate.
+```
+dotnet build
+dotnet run --project NpcForge.Console                                        # OpenAI, default model
+dotnet run --project NpcForge.Console -- --provider anthropic --model claude-opus-5
+```
+
+API keys live in user-secrets as `OpenAI:ApiKey` and `Anthropic:ApiKey`. No tests yet.
