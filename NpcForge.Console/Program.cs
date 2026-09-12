@@ -1,9 +1,13 @@
+using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Hosting;
 using NpcForge;
 
+var config = new ConfigurationBuilder()
+    .AddUserSecrets<Program>()
+    .Build();
+
 string provider = "openai";
-string model = "gpt-5.4-mini";
+string model = "gpt-5.6-terra";
 
 for (int i = 0; i < args.Length; i++)
 {
@@ -13,10 +17,13 @@ for (int i = 0; i < args.Length; i++)
         model = args[i + 1].ToLower();
 }
 
-var builder = Host.CreateApplicationBuilder(args);
-builder.Configuration.AddUserSecrets<Program>();
+IChatClient client = ModelClients.Create(provider, model, config);
 
-Startup.ConfigureServices(builder, provider, model);
-var host = builder.Build();
+var options = new ChatOptions
+{
+    ModelId = model,
+    // No Temperature: claude-opus-5 and claude-sonnet-5 reject it with a 400.
+    MaxOutputTokens = 5000,
+};
 
-await ChatAgent.RunAsync(host.Services);
+await ChatAgent.RunAsync(client, options);

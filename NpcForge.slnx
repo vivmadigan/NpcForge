@@ -3,6 +3,7 @@
     <File Path="AGENTS.md" />
     <File Path="BUILD.md" />
     <File Path="CLAUDE.md" />
+    <File Path="PLAN.md" />
     <File Path="README.md" />
   </Folder>
   <Project Path="NpcForge.Console/NpcForge.Console.csproj" />

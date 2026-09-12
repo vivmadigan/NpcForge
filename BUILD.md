@@ -39,7 +39,7 @@ stdio or HTTP, so the boundary is enforced by the operating system and no
 project structure is going to make it tighter.
 
 ```
-NpcForge.sln
+NpcForge.slnx
 ├── NpcForge.Console    the loop, the questions, the MCP client
 └── NpcForge.Server     tool definitions, trait tables, rolling, storage
 ```

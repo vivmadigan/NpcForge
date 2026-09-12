@@ -45,7 +45,10 @@ Finished code handed to me is worth nothing here.
 - Modern C# where it names things. Not where it only compresses.
 - No abstraction until there are two things to abstract.
 - No Clean Architecture layering. Two interfaces earn their place:
-  `IChatModel` and `IToolSource`.
+  `IChatClient` (Microsoft.Extensions.AI, standing in for BUILD.md's
+  `IChatModel`) and `IToolSource`.
+- No host or DI container. `Program.cs` wires things by hand so the order of
+  events stays readable: connect, roll, run.
 
 ## Build and run
 
