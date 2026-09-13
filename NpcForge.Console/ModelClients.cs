@@ -1,6 +1,12 @@
 using Anthropic;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Configuration;
+using OpenAI.Responses;
+
+// The Responses endpoint is still marked experimental in the OpenAI SDK (OPENAI001).
+// It is used anyway: Chat Completions rejects function tools on models that reason
+// by default (HTTP 400, "use /v1/responses or set reasoning_effort to 'none'").
+#pragma warning disable OPENAI001
 
 namespace NpcForge;
 
@@ -10,8 +16,8 @@ public static class ModelClients
 {
     public static IChatClient Create(string provider, string model, IConfiguration config) => provider switch
     {
-        "openai" => new OpenAI.Chat.ChatClient(model, RequireSecret(config, "OpenAI:ApiKey"))
-            .AsIChatClient(),
+        "openai" => new ResponsesClient(RequireSecret(config, "OpenAI:ApiKey"))
+            .AsIChatClient(model),
 
         "anthropic" => new AnthropicClient { ApiKey = RequireSecret(config, "Anthropic:ApiKey") }
             .AsIChatClient(model),

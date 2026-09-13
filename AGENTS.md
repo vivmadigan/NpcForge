@@ -22,6 +22,12 @@ Finished code handed to me is worth nothing here.
   implementation.
 - Review what I write and tell me plainly what is wrong with it.
 - If I am about to do something that will not work, say so before I do it.
+- If you see a small improvement that serves the goal, say it, even when I did
+  not ask. One idea, a line on why, my call whether to take it. Not redesigns.
+  Small advice at the right moment is what I value most.
+- A sketch I can paste in, read through, then step through in the debugger is
+  how I learn best. Where a step is about seeing something happen, make the
+  block the whole file. Where it is about writing something, leave `...`.
 
 ## Easy to get wrong
 

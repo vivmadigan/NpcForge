@@ -6,14 +6,15 @@ Same step numbers, so the two line up. Tick things off here.
 
 Tags: 🧩 you write · 📖 reference code from Claude, you adapt it · 🤝 pair on it in chat
 
-The code blocks are sketches of the shape, not files to paste. The lines that
-matter are real; `...` is yours. Type and member names were checked against the
-installed packages, but the compiler is the final word — if a name is off it
-will say so in seconds.
+Where a step is about *seeing* something happen, the code block is the whole
+file and pastes in. Where it is about *writing* something, `...` marks the part
+that is yours. Read it through either way. Type and member names were checked
+against the installed packages, but the compiler is the final word — if a name
+is off it will say so in seconds.
 
 ## Decisions already made
 
-Settled in the step 1 session so they are not re-decided later. The two marked
+Settled in the step 1 and 2 sessions so they are not re-decided later. The two marked
 *assumed* are Claude's reading of the README — say so if wrong.
 
 | Decision | Choice | Why |
@@ -27,6 +28,7 @@ Settled in the step 1 session so they are not re-decided later. The two marked
 | Skills *(assumed)* | `SKILL.md` files in the repo, read by the app into the system prompt | Works with both providers. Anthropic's server-side Skills feature would tie the app to one. |
 | Storage *(assumed)* | One JSON file, in the server | BUILD.md allows file or SQLite. A file is less to learn and the brief is already JSON. |
 | Tests | Small xUnit project, first appears at step 4 | The cap and the exit condition are the first things worth a test. Nothing before that is testable without spending money. |
+| OpenAI endpoint | Responses (`OpenAI.Responses.ResponsesClient`), not Chat Completions. Decided 2026-09-13. | `gpt-5.6-terra` rejects function tools on Chat Completions when reasoning is on (HTTP 400: "use /v1/responses or set reasoning_effort to 'none'"). Forcing effort to none would put a vendor workaround on options shared with Claude and switch off reasoning. Responses is marked experimental (`OPENAI001`), suppressed in `ModelClients.cs`. |
 
 ## Names you will meet
 
@@ -48,22 +50,64 @@ Settled in the step 1 session so they are not re-decided later. The two marked
 
 OpenAI and both Claude models reply. `Program.cs` builds the client with `ModelClients.Create`; `ChatAgent.RunAsync(client, options)` sends one hardcoded message.
 
-### 2. See a tool request 🧩
+### ✅ 2. See a tool request — done 2026-09-13, OpenAI only
+
+The model returned a `FunctionCallContent` with a `CallId`, `Name` and `Arguments`
+instead of prose, and `LookupArchetype` never ran. `ChatAgent.RunAsync` sends one
+hardcoded question with the fake tool in `ChatOptions.Tools` and prints every
+content item by type. **Still owed:** the same run against Anthropic. Do it at the
+start of step 3, same breakpoints, before changing any code.
+
+**Changed**
+- `ChatAgent.cs` — the step 2 sketch, plus a `-- {message.Role}` line per message.
+- `ModelClients.cs` — OpenAI now uses the Responses endpoint (`ResponsesClient`),
+  not Chat Completions. See the decisions table. `#pragma warning disable OPENAI001`
+  because the SDK marks Responses experimental.
+
+**Seen in the debugger, worth remembering**
+- `FinishReason` is `null` on the Responses endpoint, and `response.Text` is `""`
+  when the model sends only a tool call. Neither is a signal. The loop's exit is
+  the absence of `FunctionCallContent` — BUILD.md's rule, now seen for real.
+- `response.ConversationId` comes back set. Do **not** pass it into
+  `ChatOptions.ConversationId`: that lets OpenAI keep the history server-side.
+  History stays in your `List<ChatMessage>`. Claude has no equivalent anyway.
+- `CallId` is fresh every request (`call_...`). Step 3's `FunctionResultContent`
+  must echo it exactly; it is how the model pairs answers to calls.
+- `call.Arguments` is `IDictionary<string, object?>` with `JsonElement` values,
+  not a typed object. `AIFunctionArguments` bridges it to the method in step 3.
+- `FunctionCallContent.Exception` is where the adapter records a failure to parse
+  the model's arguments. `InformationalOnly == false` means a real request, not
+  a hosted tool the provider already ran itself.
+- The tool name the model sees is the method name, `LookupArchetype`. Step 5's
+  server calls it `lookup_archetype`. Expected mismatch, not a bug.
+- `response.Usage` has the token counts. `CachedInputTokenCount` is the number to
+  watch in step 7, where the system message has to stay first and unchanged.
+- Swapping endpoints changed `client` from `OpenAIChatClient` to
+  `OpenAIResponsesChatClient` with no edit to `ChatAgent.cs`. That is `IChatClient`
+  earning its place.
+- `AIFunctionFactory` is library code from Microsoft.Extensions.AI. Nothing to write.
+
+### 3. Close the circle by hand 🧩
 
 **What**
-- One fake tool: a static method returning a hardcoded sentence. Wrap it with `AIFunctionFactory.Create` and put it in `ChatOptions.Tools`.
-- Ask something that needs it.
-- Print every content item the model sends back, by type. Print `FinishReason`.
-- Do **not** execute anything.
+- First, before anything else: move step 2's printing loop into a
+  `PrintResponse(ChatResponse)` method. You are about to have two responses to
+  look at, so it is the first abstraction in this project with two callers.
+- Take the `FunctionCallContent` from step 2 and run the function yourself.
+- Put the answer in a `ChatMessage` with `ChatRole.Tool` containing a `FunctionResultContent`.
+- History is now: your question, the assistant's messages, your tool message. Call `GetResponseAsync` again with that list.
+- Straight-line code. No `while` yet.
 
-**Why** — This is the moment the rest of the project rests on: the model returns a structured `FunctionCallContent` instead of prose. Until you have seen that with your own eyes, the loop is theory.
+**Why** — Proves the three rules under "The loop" in BUILD.md: history is the state, every call gets a result, the model uses the result. Writing it flat first means you see each rule as a line of code before it disappears into a loop.
 
-**Shape — `ChatAgent.cs`**
+**Shape — `ChatAgent.cs`, whole file**
 
 ```csharp
 using System.ComponentModel;
 using System.Text.Json;
 using Microsoft.Extensions.AI;
+
+namespace NpcForge;
 
 public static class ChatAgent
 {
@@ -74,14 +118,39 @@ public static class ChatAgent
 
     public static async Task RunAsync(IChatClient client, ChatOptions options)
     {
-        options.Tools = [AIFunctionFactory.Create(LookupArchetype)];
+        var tool = AIFunctionFactory.Create(LookupArchetype);
+        options.Tools = [tool];
 
-        var response = await client.GetResponseAsync(
-            "How does an innkeeper usually behave? Use the tool.", options);
+        var history = new List<ChatMessage>
+        {
+            new(ChatRole.User, "How does an innkeeper usually behave? Use the tool."),
+        };
 
+        var first = await client.GetResponseAsync(history, options);
+        history.AddRange(first.Messages);                   // the assistant's turn goes in as-is
+        PrintResponse(first);
+
+        var call = first.Messages
+            .SelectMany(m => m.Contents)
+            .OfType<FunctionCallContent>()
+            .First();
+
+        var result = await tool.InvokeAsync(new AIFunctionArguments(call.Arguments));   // you run it
+
+        history.Add(new ChatMessage(ChatRole.Tool,
+            [new FunctionResultContent(call.CallId, result)]));   // your answer, keyed by the call's id
+
+        var second = await client.GetResponseAsync(history, options);
+        PrintResponse(second);
+    }
+
+    // Step 2's printing loop, now called once per turn.
+    static void PrintResponse(ChatResponse response)
+    {
         Console.WriteLine($"FinishReason: {response.FinishReason}");
         foreach (var message in response.Messages)
         {
+            Console.WriteLine($"-- {message.Role}");
             foreach (var content in message.Contents)
             {
                 switch (content)
@@ -104,58 +173,14 @@ public static class ChatAgent
 ```
 
 **New here**
-- `[Description]` on the method and on the parameter is what the model reads. `AIFunctionFactory.Create` turns the method's signature into the JSON schema the model needs. No schema by hand.
-- `response.Messages` is a list, not one message. A tool request is one content item inside one of those messages. The `switch` on type is the whole skill of this step.
-- `FinishReason` will say `ToolCalls` when the model stopped to ask for a tool. Look at it.
-
-**Done when** you see a `FunctionCallContent` with a `CallId`, `Name` and `Arguments` printed. Run it against both providers — the shape is the same, and that is the point of `IChatClient`.
-
-**Watch for** — `UseFunctionInvocation` must stay out. With it in, this step is invisible.
-
-### 3. Close the circle by hand 🧩
-
-**What**
-- Take the `FunctionCallContent` from step 2 and run the function yourself.
-- Put the answer in a `ChatMessage` with `ChatRole.Tool` containing a `FunctionResultContent`.
-- History is now: your question, the assistant's messages, your tool message. Call `GetResponseAsync` again with that list.
-- Straight-line code. No `while` yet.
-
-**Why** — Proves the three rules under "The loop" in BUILD.md: history is the state, every call gets a result, the model uses the result. Writing it flat first means you see each rule as a line of code before it disappears into a loop.
-
-**Shape — inside `RunAsync`, replacing the printing from step 2**
-
-```csharp
-var tool = AIFunctionFactory.Create(LookupArchetype);
-options.Tools = [tool];
-
-var history = new List<ChatMessage>
-{
-    new(ChatRole.User, "How does an innkeeper usually behave? Use the tool."),
-};
-
-var first = await client.GetResponseAsync(history, options);
-history.AddRange(first.Messages);                       // the assistant's turn goes in as-is
-
-var call = first.Messages
-    .SelectMany(m => m.Contents)
-    .OfType<FunctionCallContent>()
-    .First();
-
-var result = await tool.InvokeAsync(new AIFunctionArguments(call.Arguments));   // you run it
-
-history.Add(new ChatMessage(ChatRole.Tool,
-    [new FunctionResultContent(call.CallId, result)]));  // your answer, keyed by the call's id
-
-var second = await client.GetResponseAsync(history, options);
-Console.WriteLine(second.Text);
-```
-
-**New here**
 - `history` is a plain `List<ChatMessage>` and *you* own it. The model keeps nothing between calls. Every `GetResponseAsync` resends the whole list.
 - You could call `LookupArchetype(...)` directly. `tool.InvokeAsync` is used instead because it works for *any* `AIFunction` — including the MCP ones in step 5 — which is exactly what step 4's `IToolSource` needs.
 - The order matters: assistant messages first, then your `Tool` message. The `CallId` on the result must be the `CallId` on the call.
+- `PrintResponse` shows both turns in the same shape. The first has a call and no text; the second has text and no call. That difference is what step 4's exit condition tests for.
 
 **Done when** the second reply clearly uses the tool's output.
+
+**Watch for** — On the Responses endpoint, a reasoning model may refuse the second call with a 400 saying a `function_call` item was sent without its `reasoning` item. If that appears it is an endpoint quirk, not your history. Pair on it in chat.
 
 ### 4. Generalise into the loop 🧩 loop, interface, fake source, tests · 📖 the fake `IChatClient`
 
