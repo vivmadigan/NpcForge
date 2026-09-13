@@ -29,6 +29,7 @@ Settled in the step 1 and 2 sessions so they are not re-decided later. The two m
 | Storage *(assumed)* | One JSON file, in the server | BUILD.md allows file or SQLite. A file is less to learn and the brief is already JSON. |
 | Tests | Small xUnit project, first appears at step 4 | The cap and the exit condition are the first things worth a test. Nothing before that is testable without spending money. |
 | OpenAI endpoint | Responses (`OpenAI.Responses.ResponsesClient`), not Chat Completions. Decided 2026-09-13. | `gpt-5.6-terra` rejects function tools on Chat Completions when reasoning is on (HTTP 400: "use /v1/responses or set reasoning_effort to 'none'"). Forcing effort to none would put a vendor workaround on options shared with Claude and switch off reasoning. Responses is marked experimental (`OPENAI001`), suppressed in `ModelClients.cs`. |
+| Traces | stderr, with a bracketed prefix: `[tool]` from the app's tool source, `[server]` from the MCP server. Decided 2026-09-13. | Stdout is the answer, and on the server it is the transport. Same channel and a prefix per side, so the two read as one trace. |
 
 ## Names you will meet
 
@@ -124,139 +125,46 @@ reply used the tool's sentence on both providers.
 - `history.Count` went 2, then 3: question, assistant call, tool result. Every
   `GetResponseAsync` resent all of it.
 
-### 4. Generalise into the loop 🧩 loop, interface, fake source, tests · 📖 the fake `IChatClient`
+### ✅ 4. Generalise into the loop — done 2026-09-13, both providers
 
-**What**
-- `AgentLoop` — BUILD.md's loop in M.E.AI types. Step 3's lines inside a `for`.
-- `IToolSource` — `ListAsync` gives the tools for `ChatOptions.Tools`; `InvokeAsync` runs one call and returns a string.
-- `FakeToolSource` — returns the step 2 tool.
-- `NpcForge.Tests` — two tests: the loop returns when the model sends no calls; the loop throws at `maxTurns` when a fake model asks for a tool every time.
-- `ChatAgent.RunAsync` shrinks to: build the loop, call it, print.
+Step 3's lines inside a `for`, behind `IToolSource`. `AgentLoop.RunAsync` asks the
+source for tools, calls the model, appends its messages, and either returns the text
+when there are no calls or runs every call and appends a `Tool` message per result.
+Out of turns, it throws. `ChatAgent.RunAsync` is now three things: build the loop,
+run it, print. The real run terminates on its own on both vendors and the runaway
+test hits the cap at three turns.
 
-**Where it's used** — `AgentLoop` is the whole app from here on. Everything later is either a tool source it is given or text it is given.
+**Changed**
+- `AgentLoop.cs` — the loop, commented against the rules in BUILD.md "The loop".
+- `IToolSource.cs` — the seam. `ListAsync` and `InvokeAsync`, nothing else.
+- `FakeToolSource.cs` — `LookupArchetype` moved here from `ChatAgent`, wrapped once
+  and shared by both methods. `InvokeAsync` catches everything and returns the error
+  as text. One `[tool]` trace line on stderr per call, so a plain run shows the round
+  trip without the debugger.
+- `ChatAgent.cs` — shrunk to build the loop, run it, print. `PrintResponse` deleted.
+- `Program.cs` — comments on the order of events. No code change.
+- `NpcForge.Tests` — new xUnit project. Two fakes of `IChatClient`, one that always
+  asks for a tool and one that never does, and two tests: the exit returns the text,
+  the cap throws. No network; both run in under a second.
 
-**Why** — `IToolSource` is what lets step 5 swap in MCP without the loop changing. The cap test is the one that saves your bill: a confused model loops until stopped.
-
-**Shape — `IToolSource.cs`**
-
-```csharp
-public interface IToolSource
-{
-    Task<IReadOnlyList<AITool>> ListAsync(CancellationToken ct);
-    Task<string> InvokeAsync(FunctionCallContent call, CancellationToken ct);
-}
-```
-
-**Shape — `AgentLoop.cs`**
-
-```csharp
-public sealed class AgentLoop(IChatClient model, IToolSource tools, ChatOptions options, int maxTurns = 8)
-{
-    public async Task<string> RunAsync(List<ChatMessage> history, CancellationToken ct)
-    {
-        options.Tools = [.. await tools.ListAsync(ct)];
-
-        for (var turn = 0; turn < maxTurns; turn++)
-        {
-            var response = await model.GetResponseAsync(history, options, ct);
-            history.AddRange(response.Messages);
-
-            var calls = response.Messages
-                .SelectMany(m => m.Contents)
-                .OfType<FunctionCallContent>()
-                .ToList();
-
-            if (calls.Count == 0)
-                return response.Text;                     // the exit: no tool calls
-
-            foreach (var call in calls)
-            {
-                var result = await tools.InvokeAsync(call, ct);
-                history.Add(new ChatMessage(ChatRole.Tool,
-                    [new FunctionResultContent(call.CallId, result)]));
-            }
-        }
-
-        throw new InvalidOperationException($"No answer after {maxTurns} turns.");
-    }
-}
-```
-
-**Shape — `FakeToolSource.cs`** 🧩
-
-```csharp
-public sealed class FakeToolSource : IToolSource
-{
-    private readonly AIFunction _lookup = AIFunctionFactory.Create(LookupArchetype);   // moved here from ChatAgent
-
-    public Task<IReadOnlyList<AITool>> ListAsync(CancellationToken ct) => ...;   // just the one
-
-    public async Task<string> InvokeAsync(FunctionCallContent call, CancellationToken ct)
-    {
-        try
-        {
-            ...   // step 3's InvokeAsync line, then ?.ToString() ?? ""
-        }
-        catch (Exception ex)
-        {
-            return $"Tool failed: {ex.Message}";          // a result, not an exception
-        }
-    }
-}
-```
-
-**Shape — the fake model, in the test project** 📖
-
-```csharp
-// A model that asks for a tool every single time. Exists to prove the cap fires.
-sealed class AlwaysCallsToolChatClient : IChatClient
-{
-    public Task<ChatResponse> GetResponseAsync(
-        IEnumerable<ChatMessage> messages, ChatOptions? options = null, CancellationToken cancellationToken = default)
-    {
-        var call = new FunctionCallContent("call-1", "LookupArchetype",
-            new Dictionary<string, object?> { ["occupation"] = "innkeeper" });
-        return Task.FromResult(new ChatResponse(new ChatMessage(ChatRole.Assistant, [call])));
-    }
-
-    public IAsyncEnumerable<ChatResponseUpdate> GetStreamingResponseAsync(
-        IEnumerable<ChatMessage> messages, ChatOptions? options = null, CancellationToken cancellationToken = default)
-        => throw new NotSupportedException();
-
-    public object? GetService(Type serviceType, object? serviceKey = null) => null;
-    public void Dispose() { }
-}
-```
-
-**Shape — the cap test** 🧩
-
-```csharp
-[Fact]
-public async Task Throws_when_the_model_never_stops_asking_for_tools()
-{
-    var loop = new AgentLoop(new AlwaysCallsToolChatClient(), new FakeToolSource(), new ChatOptions(), maxTurns: 3);
-
-    await Assert.ThrowsAsync<InvalidOperationException>(
-        () => loop.RunAsync([new(ChatRole.User, "hi")], CancellationToken.None));
-}
-```
-
-The second test is the same shape with a fake that returns `new ChatMessage(ChatRole.Assistant, "Done.")` and asserts the text comes back.
-
-**Setting up the test project** (one line each, from the repo root)
-
-```
-dotnet new xunit -n NpcForge.Tests -o NpcForge.Tests
-dotnet add NpcForge.Tests reference NpcForge.Console
-dotnet sln NpcForge.slnx add NpcForge.Tests
-```
-
-**New here**
-- `IChatClient` is just an interface. A test fake that returns whatever you want is fifteen lines, and it costs nothing to run. That is the payoff of depending on the abstraction.
-- Only `GetResponseAsync` matters for the fake. The other three members exist because the interface says so.
-- `InvokeAsync` catches everything and returns the error as text. The model can often recover from "tool failed: ..."; it cannot recover from your process dying.
-
-**Done when** the real run terminates on its own, and the runaway test hits the cap.
+**Seen in the debugger, worth remembering**
+- `this` in `AgentLoop` shows the four constructor parameters as fields. `model` is
+  typed `IChatClient` with `OpenAIResponsesChatClient` behind it; `tools` is typed
+  `IToolSource` with `FakeToolSource` behind it. The loop only ever sees the left
+  half. Step 5 changes the right half of `tools` and nothing on the left moves.
+- `result` in the loop is a `string`, not step 3's `JsonElement`. The unwrap moved
+  into `FakeToolSource`; the loop never meets a `JsonElement`.
+- `ct` is `CancellationToken.None` from `ChatAgent`: `CanBeCanceled == false`. Nothing
+  stops a run but the cap. Wiring Ctrl+C to it is a later nicety, not a step.
+- The exit check is false on turn 0 and true on turn 1. `history.Count` goes 2, 3, 4
+  across the two turns: user, assistant call, tool result, assistant text.
+- The tests compiled unchanged against the loop, the fake source and the interface.
+  The first small proof the interface has the right shape.
+- From outside, the tool round trip disappears: a plain run prints only what the
+  loop returned, where step 3 printed both turns. That silence is what "generalise
+  into the loop" looks like. The `[tool]` trace exists to make it visible again.
+- Sonnet still expands on exactly the three traits and names the lookup as the
+  source. Same behaviour as step 3, now through the loop.
 
 ### 5. Replace the stub with MCP 🧩 server · 🤝 client
 
