@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(dotnet build*)",
+      "PowerShell(dotnet build*)",
+      "Bash(dotnet test*)",
+      "PowerShell(dotnet test*)",
+      "Bash(git diff*)",
+      "PowerShell(git diff*)",
+      "Bash(git status*)",
+      "PowerShell(git status*)",
+      "Bash(git log*)",
+      "PowerShell(git log*)"
+    ]
+  }
+}

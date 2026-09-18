@@ -1,0 +1,8 @@
+{
+  "name": "crew",
+  "description": "A portable team of specialist agents: reviewer, challenger, step-gate, test-runner and librarian, plus the skills and hooks that keep decisions versioned and hard-earned lessons from being lost.",
+  "version": "0.1.0",
+  "author": {
+    "name": "Viv Madigan"
+  }
+}

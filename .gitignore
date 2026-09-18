@@ -361,3 +361,7 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+
+# Claude Code: personal overrides and local agent memory, never shared
+.claude/settings.local.json
+.claude/agent-memory-local/
