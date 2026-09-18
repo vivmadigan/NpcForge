@@ -10,3 +10,5 @@ Why this exists alongside the "Seen in the debugger, worth remembering" notes in
 
 ## Inbox (uncurated; run /crew:curate)
 
+- [VS Code chat treats the repo as untrusted because it spells the drive c:](inbox/2026-09-18-vscode-lowercase-drive-untrusted.md) — applies to: .claude/skills/crew/**, .claude/settings.json, ~/.claude.json
+
