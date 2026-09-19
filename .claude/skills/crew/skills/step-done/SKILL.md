@@ -18,7 +18,7 @@ Delegate to `crew:reviewer` for the files this step touched. Wait for its report
 - PASS or PASS WITH WARNINGS: continue. Carry the warnings and "Lessons spotted" forward.
 
 ## 3. Lessons
-For each item under the reviewer's "Lessons spotted", and for anything in this conversation that qualifies (something failed first, then was understood), run `/crew:lesson` so it lands in `docs/lessons/inbox/`. If there is at least one entry in the inbox, delegate to `crew:librarian` with the task `curate`. If the inbox is empty, skip the librarian.
+For each item under the reviewer's "Lessons spotted", and for anything in this conversation that qualifies, decide which kind it is. Something that failed first and was then understood has a dead end: run `/crew:lesson` so it lands in `docs/lessons/inbox/`. A plain fact with no dead end is not a lesson: add it as a note under the step's "worth remembering" notes in the plan instead. If there is at least one entry in the inbox, delegate to `crew:librarian` with the task `curate`. If the inbox is empty, skip the librarian.
 
 ## 4. Plan
 Only now update the plan file: mark the step done with today's date, and add the step's notes in the plan's own style (look at how earlier finished steps are written and match it). This is the living document; edit it directly.

@@ -22,7 +22,7 @@ If there is no team rule, say so in your report and review against general good 
 
 ## Procedure
 
-1. Establish what changed. Run `git diff` (and `git diff --cached`, `git status`) if the working tree has changes; otherwise review the files or area the delegation prompt names.
+1. Establish what changed. Run `git diff`, `git diff --cached` and `git status --untracked-files=all` if the working tree has changes. New files appear only in `git status` (as `??`), never in `git diff`: read each of them in full. Otherwise review the files or area the delegation prompt names.
 2. Read the project's coding rules named in the team rule before reading the code. Review against those rules, not your own taste. When a rule and your taste disagree, the rule wins and you say nothing.
 3. Check `docs/lessons/INDEX.md` and any path-scoped lesson rules for lessons that apply to the changed files. A change that repeats a recorded mistake is a Critical finding and you cite the lesson.
 4. Run the build and test commands from the team rule. A red build or failing test is a Critical finding with the exact error text.
