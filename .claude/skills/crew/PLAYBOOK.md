@@ -4,7 +4,7 @@ The README says what each agent is. This says how to use them together. Read the
 
 ## The shape of it
 
-You are the lead. The main conversation plans, sketches, and talks to you. Agents are people you send out with a narrow job and get a report back from. Nothing is ever delegated to an agent that the main conversation could do in two lines, and no agent ever writes your code.
+You are the supervisor. The main conversation is the lead: it plans and sketches, sends agents out with a narrow job, and reads their reports. Agents report to the lead; the lead reports to you. Nothing is ever delegated to an agent that the main conversation could do in two lines, and no agent ever writes your code.
 
 | Situation | Reach for | Why this one |
 | --- | --- | --- |
@@ -18,7 +18,39 @@ Rule of thumb for the models: the reviewer and challenger are on the strongest m
 
 ## A normal session
 
-Most of a session is you and the main conversation, exactly as before. The crew changes four moments.
+Most of a session is you and the main conversation, exactly as before. The crew changes four moments. The whole of a step, start to finish:
+
+```text
+"We're on step N"
+        │
+        ▼
+Main conversation sketches ──▶ crew:challenger (in the background, while you read)
+        │                         └─▶ HOLDS: go · WEAKENED: your call · REFUTED: sketch reworked
+        │  wait for the verdict before you type
+        ▼
+You type it ──▶ "run the tests" ──▶ crew:test-runner ──▶ build errors and failing tests only
+        ▲                                                     │
+        └─────────────────────── you fix ◀────────────────────┘
+        │ green                  optional: "review it" ──▶ crew:reviewer
+        ▼
+Run it, step through it. Surprised? Say what you saw
+        ├─ there was a dead end ──▶ /crew:lesson ──▶ docs/lessons/inbox/
+        └─ just a fact ───────────▶ a note under the step in PLAN.md
+        │
+        ▼
+/crew:step-done N
+  1 crew:step-gate   PASS: on · FAIL: stop, the gap is listed · NEEDS HUMAN: you confirm, then on
+  2 crew:reviewer    a Critical: stop and fix · otherwise on, warnings carried to the report
+  3 lessons          /crew:lesson for each one spotted · crew:librarian curates if the inbox has entries
+  4 PLAN.md          the main conversation ticks step N with the date and writes its notes
+  5 two questions    a decision worth a record? a new version? only on a yes: crew:librarian
+  6 report           verdicts, what was recorded, warnings, a suggested commit message
+        │
+        ▼
+You commit, then git tag step-N
+```
+
+The four moments, one at a time:
 
 **1. Before you build on a sketch.** When the main conversation gives you a sketch or an approach for something non-trivial (a new class, a seam, a way of wiring two things), say "challenge that" before you type it. You get one strongest objection and a verdict. HOLDS means go. WEAKENED means read the objection and decide. REFUTED means the main conversation reworks it. This is the two-minds-not-one mechanism, and it costs one agent call.
 

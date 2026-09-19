@@ -16,7 +16,7 @@ This file is the one place where the crew's generic agents learn about THIS proj
 - Lessons: `docs/lessons/` (curated) and `docs/lessons/inbox/` (drop new ones here). `docs/lessons/INDEX.md` is imported into every session.
 
 ## Who writes the code
-The user writes the code. Agents explain, sketch, and review. See `AGENTS.md` "What this project is for": a full implementation handed over is worth nothing here. Day-to-day advice ("one idea, a line on why") stays in the main conversation; `crew:reviewer` is for when the user asks for a review or a step is being finished, not for every edit.
+The user writes the code. Agents explain, sketch, and review. Agents may build throwaway code outside the repo to prove one claim, never the whole proposal. It is never shown to the user or copied in. See `AGENTS.md` "What this project is for": a full implementation handed over is worth nothing here. Day-to-day advice ("one idea, a line on why") stays in the main conversation; `crew:reviewer` is for when the user asks for a review or a step is being finished, not for every edit.
 
 ## What "done" means for a step
 The step's "Done when" line in `PLAN.md` (or `BUILD.md` "Build steps") holds, shown by evidence; `crew:reviewer` returns PASS or PASS WITH WARNINGS; anything learned in the step is in `docs/lessons/inbox/` or under the step's "worth remembering" notes; the step is marked ✅ with the date in `PLAN.md`. Some steps' conditions need a paid run or the user's eyes (three different innkeepers, levers that differ). The gate checks what it can and lists what the user must confirm; the user's confirmation closes it.
