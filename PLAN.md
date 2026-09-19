@@ -169,15 +169,21 @@ test hits the cap at three turns.
 ### 5. Replace the stub with MCP 🧩 server · 🤝 client
 
 **What**
-- New project `NpcForge.Server`: console app, packages `ModelContextProtocol` and `Microsoft.Extensions.Hosting`. One tool, `lookup_archetype`, same hardcoded answer as step 2.
+- New project `NpcForge.Server`, created from the MCP Server App template (Visual Studio, or `dotnet new mcpserver`), then trimmed. The template is built for publishing a server to NuGet; this one is only ever started by the console app. Delete `.mcp/server.json`, `README.md` and `Tools/RandomNumberTools.cs`. In the csproj, delete the `<None>` items and every property that is about packing or publishing: `RuntimeIdentifiers`, `PackAsTool`, `PackageType`, `SelfContained`, `PublishSelfContained`, `PublishSingleFile`, the `Package*` lines and `Description`. `SelfContained` matters most: it copies the whole .NET runtime into `bin` on every build and moves the output under a runtime folder. What is left should read like `NpcForge.Console.csproj`. It keeps `ModelContextProtocol` and `Microsoft.Extensions.Hosting`.
+- `ModelContextProtocol` at the same version in both projects; the console app needs it for the client. The template pins 2.1.0; 2.2.0 is current (checked 2026-09-19).
+- `NpcForge.Console.csproj` gets `<ProjectReference Include="..\NpcForge.Server\NpcForge.Server.csproj" ReferenceOutputAssembly="false" />`. It only orders the build: building the console app builds the server first, so `dotnet run`, F5 and the tests never start a stale server through `--no-build`. No types cross, so there is still no shared contracts project. Without it, every server edit in steps 6 and 8 would run whichever server was last built.
+- One tool, `lookup_archetype`, same hardcoded answer as step 2.
 - All server logging to stderr.
 - In the console app, `McpToolSource : IToolSource` — starts the server as a child process over stdio, lists its tools, forwards calls.
 - `Program.cs`: `var tools = new McpToolSource(); await tools.ConnectAsync(ct);` then hand it to `ChatAgent`. Two lines, in the open — this is why there is no DI container.
 - `FakeToolSource` stays for the tests.
+- One new test: the loop, a scripted fake model, and the real server. It proves the done condition without a paid run. Shape below. The test count goes from two to three, so the comment at the top of `AgentLoopTests.cs` and the test line in AGENTS.md "Build and run" change with it.
 
 **Why** — Two processes is the point. The operating system enforces the boundary, and the loop running unchanged is the proof that `IToolSource` was the right seam.
 
-**Shape — `NpcForge.Server/Program.cs`** 🧩
+**Shape — `NpcForge.Server/Program.cs`** 📖
+
+The template generates this almost line for line; the difference is that it registers its sample class with `WithTools<RandomNumberTools>()`. Read what it made against this shape rather than typing it.
 
 ```csharp
 var builder = Host.CreateApplicationBuilder(args);
@@ -231,13 +237,24 @@ public sealed class McpToolSource : IToolSource
     public Task<IReadOnlyList<AITool>> ListAsync(CancellationToken ct)
         => Task.FromResult<IReadOnlyList<AITool>>([.. _tools]);
 
+    // Same contract as FakeToolSource: one [tool] trace line, and every failure comes back as
+    // text. An unknown name, a dead server and a closed pipe all land in the catch.
     public async Task<string> InvokeAsync(FunctionCallContent call, CancellationToken ct)
     {
-        var tool = _tools.First(t => t.Name == call.Name);
-        var args = call.Arguments?.ToDictionary(kv => kv.Key, kv => kv.Value);
+        try
+        {
+            ...;   // the [tool] trace line, as in FakeToolSource
 
-        var result = await tool.CallAsync(args, cancellationToken: ct);
-        return string.Join("\n", result.Content.OfType<TextContentBlock>().Select(c => c.Text));
+            var tool = _tools.First(t => t.Name == call.Name);
+            var args = call.Arguments?.ToDictionary(kv => kv.Key, kv => kv.Value);
+
+            var result = await tool.CallAsync(args, cancellationToken: ct);
+            return string.Join("\n", result.Content.OfType<TextContentBlock>().Select(c => c.Text));
+        }
+        catch (Exception ex)
+        {
+            ...   // a result, not an exception, as in FakeToolSource
+        }
     }
 }
 ```
@@ -247,10 +264,65 @@ public sealed class McpToolSource : IToolSource
 - `McpClientTool` is an `AIFunction`, so `[.. _tools]` drops straight into `ChatOptions.Tools`. Nothing to translate.
 - `CallAsync` returns MCP's own result shape — a list of content blocks. Text tools give one `TextContentBlock`. Joining them is enough for now.
 - `WithToolsFromAssembly` finds every `[McpServerToolType]` class by reflection. Add a class, get a tool.
+- `First` throws `InvalidOperationException` on a name it cannot find. That is the same type the loop's cap throws, so without the catch a runaway test against this source would go green without the cap ever firing. Found by the challenger, 2026-09-19.
 
-**Done when** the loop runs unchanged against the real server.
+**Shape — one new test in `NpcForge.Tests`** 🧩
+
+The two step 4 tests use `FakeToolSource`, so they stay green whatever happens to MCP. This one uses the real server with a scripted fake model: no network, no cost, just a child process. The fake echoes the tool's answer as its reply, so the loop's return value *is* the server's sentence, and one `Assert.Equal` covers the whole trip: fake model → loop → `McpToolSource` → stdio → server → back again.
+
+```csharp
+// NpcForge.Tests/CallsToolOnceChatClient.cs
+// A model that asks for lookup_archetype once, then replies with whatever the tool sent back.
+sealed class CallsToolOnceChatClient : IChatClient
+{
+    public Task<ChatResponse> GetResponseAsync(
+        IEnumerable<ChatMessage> messages, ChatOptions? options = null, CancellationToken cancellationToken = default)
+    {
+        var last = messages.Last();
+
+        // Second turn: the loop has appended the tool's answer. Reply with it.
+        if (last.Role == ChatRole.Tool)
+        {
+            var answer = ...;   // the FunctionResultContent in last.Contents, its Result as text
+            return Task.FromResult(new ChatResponse(new ChatMessage(ChatRole.Assistant, answer)));
+        }
+
+        // First turn: ask for the server's tool, by the server's name.
+        var call = ...;   // as in AlwaysCallsToolChatClient, but "lookup_archetype"
+        return Task.FromResult(new ChatResponse(new ChatMessage(ChatRole.Assistant, [call])));
+    }
+
+    // GetStreamingResponseAsync, GetService, Dispose: as in AlwaysCallsToolChatClient.
+}
+```
+
+```csharp
+// In AgentLoopTests
+[Fact]
+public async Task Runs_a_tool_call_through_the_real_server()
+{
+    var tools = new McpToolSource();
+    await tools.ConnectAsync(CancellationToken.None);    // starts NpcForge.Server as a child process
+
+    var loop = new AgentLoop(new CallsToolOnceChatClient(), tools, new ChatOptions());
+
+    var text = await loop.RunAsync([new(ChatRole.User, "hi")], CancellationToken.None);
+
+    Assert.Equal(..., text);   // the server's sentence for "innkeeper", word for word
+}
+```
+
+**Done when** the loop runs unchanged against the real server. Evidence, cheapest first:
+- `git diff step-4 -- NpcForge.Console/AgentLoop.cs` is empty (tag `step-4` on 5946ead).
+- `Runs_a_tool_call_through_the_real_server` passes. Free.
+- One real run per provider: `[server]` lines on stderr, and an answer that uses the server's sentence. Costs a call each; yours to run and confirm.
 
 **Watch for** — No `Console.WriteLine` anywhere in the server. Stdout is the transport; one stray line produces baffling parse errors on the client side. `Console.Error.WriteLine` is fine.
+
+**Watch for, in the test**
+- `dotnet test` runs the test from `NpcForge.Tests/bin/Debug/net10.0/`, not from the repo root. A server path worked out from the current directory is found by `dotnet run` and missed by the test. Pick the 🤝 path with both in mind.
+- `--no-build` means the server must already be built. The build-order reference in `NpcForge.Console.csproj` sees to that, through the tests' reference to the console app. If the server ever behaves like old code, check that reference first. The server still belongs in `NpcForge.slnx`; Visual Studio adds it when you create the project with the solution open.
+- It starts a process, so it takes a second or two where the other tests take milliseconds.
 
 ### 6. Rolling up characters 🧩
 
