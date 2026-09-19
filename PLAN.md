@@ -286,6 +286,7 @@ not change. A fourth free test checks the two doors against the real server.
 ### 7. Skills 🧩 the file · 🤝 loading it
 
 **What**
+- First, a carry-over from the step 6 review. `McpToolSource.InvokeAsync` finds the tool in the unfiltered `_tools`, so the model could still run `roll_character` by naming it, even though `ListAsync` hides it. Look the name up in the same filtered list `ListAsync` returns. An app-only name then fails as `Tool failed:` in the existing catch. It matters more at step 8, when `save_character` and `load_character` join `AppOnly`.
 - `skills/npc-writer/SKILL.md`: the fixed output order from the README ("What comes back"), the rule that levers and anti-levers trace back to the brief, and "show the trait, never state it".
 - The app reads the file at startup and puts it in a `ChatRole.System` message at index 0 of the history. It is never repeated.
 
