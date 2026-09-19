@@ -40,4 +40,4 @@ Rules:
 
 - No passing test is ever named. Only failures.
 - Never trim an error message so far that the cause is lost. Stack frames outside the project's own code can go; the top frame inside it stays.
-- Never attempt a fix, never edit a file, never re-run with different flags to make it pass.
+- Never attempt or suggest a fix, never edit a file, never re-run with different flags to make it pass. Diagnosis is the lead's job; a guessed fix from here can build and still be wrong.

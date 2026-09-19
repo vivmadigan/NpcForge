@@ -4,6 +4,14 @@ Every change to the crew's agents, skills and hooks, and to the instructions aro
 
 Each entry says what to watch for. If a change turns out bad, revert it and add a new entry saying why; do not edit or delete the old one.
 
+## 2026-09-19 — during step 6 (NpcForge)
+
+### test-runner: report errors, do not prescribe fixes
+- **File:** `agents/test-runner.md`, rules
+- **Change:** "never attempt a fix" becomes "never attempt or suggest a fix", with a line on why.
+- **Why:** a build failed because a new `ListAsync` was pasted over the `tools/list` lines inside `ConnectAsync`. The runner added an "Issue" section telling the user to close `ConnectAsync` after the `_client` line. That builds, but it drops `_tools = await _client.ListToolsAsync(...)`, so the model would silently get no tools. The report format already said "nothing else"; that was not enough.
+- **Judge it by:** the next failed build comes back as errors and file:line only, with no advice.
+
 ## 2026-09-19 — retro after step 5 (NpcForge)
 
 ### step-done: facts go to the plan, not to /crew:lesson
@@ -44,4 +52,6 @@ Each entry says what to watch for. If a change turns out bad, revert it and add 
 ## Known, not changed
 - `reviewer` and `librarian` have `memory: project`, which gives them Write and Edit. So "read-only" for the reviewer is an instruction, not a wall. On step 5 it wrote only to `.claude/agent-memory/crew-reviewer/`. Revisit if it ever writes anywhere else.
 - Reviewer cost on step 5: 86k tokens, 44 tool calls, about 4.5 minutes. Watch step 6 before cutting anything.
+- Reviewer at step 6's step-done: 80k tokens, 32 tool calls, 3.6 minutes, close to step 5. It was given no file list and still reviewed the untracked `McpToolSourceTests.cs`, so the "read untracked files" tweak held. Not cut.
+- Challenger on the whole step 6 plan: 70k tokens, 21 tool calls, 3.3 minutes. That is over the 40k line in "throwaway code proves one claim only". `maxTurns` was not lowered. The one throwaway (a server and client on MCP 2.2.0) was the evidence for the strongest objection: a failed roll reaching the model as the brief. Any cut deep enough to matter would have stopped the run before that. Judge the line again on a single sketch, not a whole step.
 - The protect-docs hook and the Stop hook were never triggered on step 5. Untested until they fire, or until PLAYBOOK "First session" steps 2 and 6 are run.

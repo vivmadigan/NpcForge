@@ -1,3 +1,3 @@
 - [False positives to skip](review-false-positives.md): template usings, dll-less server exe in bins, empty template folders
 - [Review environment](review-environment.md): git via PowerShell only, build with --no-incremental for real warnings, check for leftover server processes
-- [Recurring patterns](review-recurring-patterns.md): stale "Step N" comments, AGENTS.md test lines drifting, `--` in csproj comments
+- [Recurring patterns](review-recurring-patterns.md): stale "Step N" comments, counts drifting, `--` in csproj, cut-off comments, AppOnly invoke gap (step 8)
