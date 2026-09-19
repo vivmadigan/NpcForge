@@ -31,6 +31,7 @@ Settled in the step 1 and 2 sessions so they are not re-decided later. The two m
 | OpenAI endpoint | Responses (`OpenAI.Responses.ResponsesClient`), not Chat Completions. Decided 2026-09-13. | `gpt-5.6-terra` rejects function tools on Chat Completions when reasoning is on (HTTP 400: "use /v1/responses or set reasoning_effort to 'none'"). Forcing effort to none would put a vendor workaround on options shared with Claude and switch off reasoning. Responses is marked experimental (`OPENAI001`), suppressed in `ModelClients.cs`. |
 | Traces | stderr, with a bracketed prefix: `[tool]` from the app's tool source, `[server]` from the MCP server. Decided 2026-09-13. | Stdout is the answer, and on the server it is the transport. Same channel and a prefix per side, so the two read as one trace. |
 | Starting the server | `dotnet run --project <server> --no-build`, the path built from `AppContext.BaseDirectory`, the build order set by a `ProjectReference` with `ReferenceOutputAssembly="false"`. Decided 2026-09-19. | Works the same from the app and the tests, never starts a stale server, and shares no types. Dropping `--no-build` would rebuild on every launch and risk build output on stdout, which is the wire. |
+| Occupation | Supplied like the setting: `--occupation`, default `"innkeeper"` next to the setting default in `Program.cs`. Not rolled. Decided 2026-09-19. See [ADR-002](docs/decisions/ADR-002-occupation-in-the-brief.md). | Three live runs let the model choose who the character is (an innkeeper twice, a patron once), and the README's success test asks for innkeepers. A table on the server cannot see the setting, so a rolled default would put "innkeeper" into a farm's brief as settled fact (the challenger). Departs from the README ("not one of the questions") and from BUILD.md's brief, which is step 8's save format. |
 
 ## Names you will meet
 
@@ -223,110 +224,64 @@ scripted fake model, and both paid runs answered with the server's sentence.
   copy cannot run and is never used: the server that runs is the one in
   `NpcForge.Server\bin`, through `dotnet run --project`. Found by the reviewer.
 
-### 6. Rolling up characters 🧩
+### ✅ 6. Rolling up characters — done 2026-09-19, OpenAI
 
-**What**
-- First, two carry-overs from the step 5 review. Both matter once `roll_character` runs real logic on the server:
-  - `McpToolSource` becomes `IAsyncDisposable`: `DisposeAsync` disposes `_client`, and `Program.cs` and the real-server test create it with `await using`. The server then stops on purpose, not only because the app exited and the pipe closed.
-  - In `InvokeAsync`, when `result.IsError` is true, prefix the text with `"Tool failed: "`. A failure inside the server then reaches the model in the same shape as a failure in the app.
-- In the server: `CharacterBrief` and the two enums — copy them from BUILD.md "The brief as a type". Trait tables as static arrays, each entry tagged with the difficulties it fits. A `roll_character` tool that takes optionals and rolls only what is missing.
-- In the console app: before the loop, call `roll_character` directly through the MCP client and put the returned JSON into the first user message with the three answers.
-- `McpToolSource.ListAsync` filters `roll_character` *out* of what the model sees.
-- The three questions become `--setting`, `--want`, `--difficulty` flags for now.
+The app rolls the character in code before the model's first turn. The server holds the
+brief, the trait tables and `roll_character`, and the model never sees that tool. `Program.cs`
+connects, rolls through `McpToolSource.CallDirectAsync`, and hands the brief's JSON to
+`ChatAgent` as the first message. After the occupation change, three live runs at `Wall` gave
+three different innkeepers (the user's eyes, 2026-09-19). `IToolSource` and `AgentLoop.cs` did
+not change. A fourth free test checks the two doors against the real server.
 
-**Why** — The model never guesses; it is told or it rolls. Rolling in code gives variety the model cannot collapse. Keeping `roll_character` off the model's list means it cannot skip the roll. Same server, two audiences.
+**Changed**
+- `McpToolSource.cs` — the two carry-overs from the step 5 review: `IAsyncDisposable`, created
+  with `await using` in `Program.cs` and the real-server test, so the server stops on purpose;
+  and a failure inside the server reaches the model as `Tool failed:`, like one in the app.
+  New: `AppOnly` keeps `roll_character` off the model's list, and `CallDirectAsync` is the
+  app's own door, which throws on `IsError` instead of returning text.
+- `NpcForge.Server` — `CharacterBrief.cs` (BUILD.md's record plus `Occupation`; both enums
+  carry `JsonStringEnumConverter`), `Tables.cs` (wants tagged with the difficulties they fit,
+  six tables), and `roll_character` in `CharacterTools.cs`: the difficulty filter in code,
+  Easy never rolls `Wont`, and any rolled trait can be handed in instead.
+- `Program.cs` — connect, roll, run, in that order. Flags `--setting`, `--want`,
+  `--difficulty` and `--occupation`, with defaults so a bare run works.
+- `ChatAgent.cs` — takes the brief's JSON and puts it in the first user message. No
+  `CharacterBrief` type on the console side.
+- `NpcForge.Tests` — `McpToolSourceTests.Rolls_a_brief_the_model_cannot_see`: the model's list
+  leaves out `roll_character`, and the direct call returns a brief at `Wall`. Four tests, still
+  free. With the `AppOnly` filter removed, it fails.
+- `Occupation` joined the brief after run 3 came back a patron. Supplied, not rolled: see the
+  decisions table.
+- Before any code was typed, the challenger found that the first sketch handed a failed roll
+  to the model as the brief, and rolled inside `ChatAgent`, which only has an `IToolSource`.
+  Both were fixed in the plan first. On the occupation sketch, it found that a rolled default
+  of "innkeeper or tavern owner" was a constant dressed as dice, and wrong for any setting but
+  an inn.
 
-**Shape — `NpcForge.Server/Tables.cs`**
-
-```csharp
-public static class Tables
-{
-    public record Want(string Text, params Difficulty[] Fits);
-
-    public static readonly Want[] Wants =
-    [
-        new("a bit of company",                Difficulty.Easy),
-        new("to be paid what they are owed",   Difficulty.SomeWork),
-        new("to be left alone to work",        Difficulty.SomeWork, Difficulty.Wall),
-        new("to keep a secret buried",         Difficulty.Wall),
-        ...
-    ];
-
-    public static readonly string[] Attitudes = ["greedy", "rushed off their feet", "distrustful", "frightened", ...];
-    public static readonly string[] Mannerisms = [...];
-    ...
-}
-```
-
-**Shape — the tool, in `CharacterTools.cs`**
-
-```csharp
-[McpServerTool(Name = "roll_character"), Description("Roll up a character brief inside what the difficulty allows.")]
-public static CharacterBrief RollCharacter(
-    string setting,
-    string playersWant,
-    Difficulty difficulty,
-    string? attitude = null,          // any rolled field can be handed in instead
-    string? mannerism = null,
-    ...)
-{
-    var wants = Tables.Wants.Where(w => w.Fits.Contains(difficulty)).ToArray();   // the difficulty filter, in code
-
-    return new CharacterBrief
-    {
-        Setting = setting,
-        PlayersWant = playersWant,
-        Difficulty = difficulty,
-        CharacterWants = Pick(wants).Text,
-        Obstacle = ...,                                    // Easy never rolls Wont
-        Attitude = attitude ?? Pick(Tables.Attitudes),
-        Mannerism = mannerism ?? Pick(Tables.Mannerisms),
-        ...
-    };
-}
-
-static T Pick<T>(IReadOnlyList<T> table) => table[Random.Shared.Next(table.Count)];
-```
-
-Put `[JsonConverter(typeof(JsonStringEnumConverter))]` on both enums so the brief's JSON says `"Wall"`, not `2`. The model reads that JSON.
-
-**Shape — the app-only door, in `McpToolSource.cs`**
-
-```csharp
-private static readonly string[] AppOnly = ["roll_character"];      // grows at step 8
-
-public Task<IReadOnlyList<AITool>> ListAsync(CancellationToken ct)
-    => Task.FromResult<IReadOnlyList<AITool>>([.. _tools.Where(t => !AppOnly.Contains(t.Name))]);
-
-public async Task<string> CallDirectAsync(string name, Dictionary<string, object?> args, CancellationToken ct)
-{
-    var result = await _client!.CallToolAsync(name, args, cancellationToken: ct);
-    return string.Join("\n", result.Content.OfType<TextContentBlock>().Select(c => c.Text));
-}
-```
-
-**Shape — the start of `ChatAgent.RunAsync`**
-
-```csharp
-var briefJson = await tools.CallDirectAsync("roll_character", new()
-{
-    ["setting"] = setting,
-    ["playersWant"] = want,
-    ["difficulty"] = difficulty,
-}, ct);
-
-var history = new List<ChatMessage>
-{
-    new(ChatRole.User, $"Write this character. The brief is settled; do not change it.\n\n{briefJson}"),
-};
-```
-
-**New here**
-- A tool that returns an object comes back as JSON text. The console app never deserialises it — it hands the text to the model. No `CharacterBrief` type on the console side, no shared project.
-- `ListAsync` and `CallDirectAsync` are the two audiences from BUILD.md, in code. One list for the model, one door for the app.
-- `Random.Shared` is the dice. That is the entire mechanism for variety, and the model cannot reach it.
-
-**Done when** three runs at the same difficulty produce three different people.
+**Seen in the debugger, worth remembering**
+- First live run, OpenAI, `Wall`. The roll shows only as a `[server]` `tools/call` with no
+  `[tool]` line: that trace lives in `InvokeAsync`, the model's door, and the app's own call has
+  none. The model then called `lookup_archetype` for "innkeeper" unprompted; it was the only
+  tool it could see.
+- Every rolled trait reached the writing: the want (avoiding someone owed a favour) became why
+  he will not give the name, and the wrong-about became rats as "venomous tunnel-wolves". Some
+  traits were stated rather than shown ("In truth, he has a soft spot for animals"). That is
+  step 7's "show the trait, never state it".
+- Run 2, `Wall`: a different innkeeper, but he gave the fence's name ("ask after Pell") in his
+  first reply. The brief says `"difficulty":"Wall"` and nothing tells the model what that means
+  for the players. Step 7's skill has to.
+- Names converge across runs: Merrit Vane, Sella Quill, Vell Marrow, Sella Vane. The name is
+  not in the brief, so the model picks it and falls back on favourites, which is the reason the
+  traits are rolled. Run 3 was a patron, not an innkeeper, for the same reason; that is why
+  `Occupation` joined the brief. The name is still the model's.
+- To stop inside the server: stop the app on the `CallDirectAsync` line, then Debug → Attach to
+  Process → `NpcForge.Server.exe`. In time means the log shows `tools/list` completed and no
+  `tools/call` yet. Attach after the roll and a bound breakpoint in `RollCharacter` never hits.
+  Every run starts a new server process, so attach every run (Shift+Alt+P reattaches).
+- A tool parameter typed `string` takes JSON `null` without complaint: `string` against
+  `string?` is only checked by the compiler. `roll_character` then returned a brief with no
+  `occupation` in it. The enum parameter `difficulty` does fail on null. Found on a scratch
+  copy; the app always sends a value.
 
 ### 7. Skills 🧩 the file · 🤝 loading it
 

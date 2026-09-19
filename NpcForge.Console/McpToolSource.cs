@@ -21,6 +21,11 @@ namespace NpcForge
         // reference to the client, which is how tool.CallAsync below reaches the server.
         private IList<McpClientTool> _tools = [];
 
+        // Tools only the app calls. A tool the model can see is a tool it can skip, so these
+        // never reach its list. Grows at step 8 with save and load.
+        private static readonly string[] AppOnly = ["roll_character"];
+
+
         // Start the server, shake hands, ask what tools it has.
         public async Task ConnectAsync(CancellationToken ct)
         {
@@ -49,9 +54,12 @@ namespace NpcForge
             _tools = await _client.ListToolsAsync(cancellationToken: ct);
         }
 
-        // A new list each time, holding the same tool objects, so the loop cannot change _tools.
+
+        // What the model may ask for: everything the server has, minus the app-only tools. A new
+        // list each time, holding the same tool objects, so the loop cannot change _tools.
         public Task<IReadOnlyList<AITool>> ListAsync(CancellationToken ct)
-            => Task.FromResult<IReadOnlyList<AITool>>([.. _tools]);
+                => Task.FromResult<IReadOnlyList<AITool>>([.. _tools.Where(t => !AppOnly.Contains(t.Name))]);
+
 
         // Same contract as FakeToolSource: one [tool] trace line, and every failure comes back as
         // text. An unknown name, a dead server and a closed pipe all land in the catch.
@@ -88,6 +96,22 @@ namespace NpcForge
                 return $"Tool failed: {ex.Message}";          // a result, not an exception
             }
         }
+
+        // The app's own door to the server, for the app-only tools. The model is not part of this
+        // call, so a failure throws instead of coming back as text.
+        public async Task<string> CallDirectAsync(string name, Dictionary<string, object?> args, CancellationToken ct)
+        {
+            var result = await _client!.CallToolAsync(name, args, cancellationToken: ct);
+            var text = string.Join("\n", result.Content.OfType<TextContentBlock>().Select(c => c.Text));
+
+            // No model has been asked anything yet. A failed roll handed on as "the settled brief"
+            // would have the model invent the character, so stop the run here.
+            if (result.IsError is true)
+                throw new InvalidOperationException($"{name} failed: {text}");
+
+            return text;
+        }
+
 
         // Closes the connection, and with it the server process, on purpose. Without this the
         // server stops only because the app exited and the pipe closed under it.
