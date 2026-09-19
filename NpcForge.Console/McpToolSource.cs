@@ -1,0 +1,88 @@
+using Microsoft.Extensions.AI;
+using ModelContextProtocol.Client;      // McpClient, McpClientTool, StdioClientTransport
+using ModelContextProtocol.Protocol;    // TextContentBlock
+using System;
+using System.Collections.Generic;
+using System.Text;
+using System.Text.Json;
+
+namespace NpcForge
+{
+    // The real tool source. Starts NpcForge.Server as a child process and talks MCP to it over
+    // the server's stdin and stdout. The loop cannot tell this from FakeToolSource: same two
+    // methods, same contract. That is what step 5 sets out to prove.
+    public sealed class McpToolSource : IToolSource
+    {
+        // Owns the connection and, through its transport, the server process. Null until
+        // ConnectAsync, which is why Program.cs connects before anything else runs.
+        private McpClient? _client;
+
+        // What the server said it has, asked for once at connect. Each McpClientTool keeps a
+        // reference to the client, which is how tool.CallAsync below reaches the server.
+        private IList<McpClientTool> _tools = [];
+
+        // Start the server, shake hands, ask what tools it has.
+        public async Task ConnectAsync(CancellationToken ct)
+        {
+            // Start from this program's bin folder and go up four levels to the repo root. Works for
+            // both the app and the tests, whatever folder they were started from.
+            var serverProject = Path.GetFullPath(Path.Combine(
+                AppContext.BaseDirectory, "..", "..", "..", "..", "NpcForge.Server"));
+
+            // Nothing starts yet: this only describes the process. The server's stdout is the
+            // wire, so its logs go to stderr, and they arrive here with a [server] prefix.
+            var transport = new StdioClientTransport(new StdioClientTransportOptions
+            {
+                Name = "NpcForge.Server",
+                Command = "dotnet",
+                Arguments = ["run", "--project", serverProject, "--no-build"],
+                StandardErrorLines = line => Console.Error.WriteLine($"[server] {line}"),
+            });
+
+            // Library code from the ModelContextProtocol package. It starts the process, then runs
+            // MCP's handshake (the server logs it as 'server/discover'). A factory method rather
+            // than a constructor, because a constructor cannot await the server's reply.
+            _client = await McpClient.CreateAsync(transport, cancellationToken: ct);
+
+            // tools/list: names, descriptions and schemas, built on the server from the
+            // attributes in CharacterTools.
+            _tools = await _client.ListToolsAsync(cancellationToken: ct);
+        }
+
+        // A new list each time, holding the same tool objects, so the loop cannot change _tools.
+        public Task<IReadOnlyList<AITool>> ListAsync(CancellationToken ct)
+            => Task.FromResult<IReadOnlyList<AITool>>([.. _tools]);
+
+        // Same contract as FakeToolSource: one [tool] trace line, and every failure comes back as
+        // text. An unknown name, a dead server and a closed pipe all land in the catch.
+        public async Task<string> InvokeAsync(FunctionCallContent call, CancellationToken ct)
+        {
+            try
+            {
+                // On stderr so it never mixes with the answer. The server's own lines arrive on
+                // the same channel with a [server] prefix, so the two read as one trace.
+                Console.Error.WriteLine($"[tool] {call.Name} {JsonSerializer.Serialize(call.Arguments)}");
+
+                // call.Name picks the tool. A name the server does not have throws here.
+                var tool = _tools.First(t => t.Name == call.Name);
+
+                // The call's arguments, parameter name to value. Here one pair: occupation ->
+                // "innkeeper", as a JsonElement (step 2). Copied because CallAsync takes an
+                // IReadOnlyDictionary and call.Arguments is an IDictionary.
+                var args = call.Arguments?.ToDictionary(kv => kv.Key, kv => kv.Value);
+
+                // tools/call, over the wire. The server runs LookupArchetype and sends back a list
+                // of content blocks; a text tool sends one text block.
+                var result = await tool.CallAsync(args, cancellationToken: ct);
+
+                // A tool that throws on the server does not throw here. The SDK sends back
+                // result.IsError with a generic message, so that arrives as text too.
+                return string.Join("\n", result.Content.OfType<TextContentBlock>().Select(c => c.Text));
+            }
+            catch (Exception ex)
+            {
+                return $"Tool failed: {ex.Message}";          // a result, not an exception
+            }
+        }
+    }
+}

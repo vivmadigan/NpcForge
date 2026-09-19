@@ -1,0 +1,1 @@
+- [Lesson clusters](lesson_clusters.md) — how NpcForge's curated lessons group by area, rule-file threshold status, and the PLAN.md inbox-link gotcha

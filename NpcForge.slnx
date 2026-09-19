@@ -7,5 +7,6 @@
     <File Path="README.md" />
   </Folder>
   <Project Path="NpcForge.Console/NpcForge.Console.csproj" />
+  <Project Path="NpcForge.Server/NpcForge.Server.csproj" Id="1895d6e1-6089-47d1-952f-e8a426119016" />
   <Project Path="NpcForge.Tests/NpcForge.Tests.csproj" />
 </Solution>

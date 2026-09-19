@@ -30,6 +30,7 @@ Settled in the step 1 and 2 sessions so they are not re-decided later. The two m
 | Tests | Small xUnit project, first appears at step 4 | The cap and the exit condition are the first things worth a test. Nothing before that is testable without spending money. |
 | OpenAI endpoint | Responses (`OpenAI.Responses.ResponsesClient`), not Chat Completions. Decided 2026-09-13. | `gpt-5.6-terra` rejects function tools on Chat Completions when reasoning is on (HTTP 400: "use /v1/responses or set reasoning_effort to 'none'"). Forcing effort to none would put a vendor workaround on options shared with Claude and switch off reasoning. Responses is marked experimental (`OPENAI001`), suppressed in `ModelClients.cs`. |
 | Traces | stderr, with a bracketed prefix: `[tool]` from the app's tool source, `[server]` from the MCP server. Decided 2026-09-13. | Stdout is the answer, and on the server it is the transport. Same channel and a prefix per side, so the two read as one trace. |
+| Starting the server | `dotnet run --project <server> --no-build`, the path built from `AppContext.BaseDirectory`, the build order set by a `ProjectReference` with `ReferenceOutputAssembly="false"`. Decided 2026-09-19. | Works the same from the app and the tests, never starts a stale server, and shares no types. Dropping `--no-build` would rebuild on every launch and risk build output on stdout, which is the wire. |
 
 ## Names you will meet
 
@@ -166,167 +167,68 @@ test hits the cap at three turns.
 - Sonnet still expands on exactly the three traits and names the lookup as the
   source. Same behaviour as step 3, now through the loop.
 
-### 5. Replace the stub with MCP 🧩 server · 🤝 client
+### ✅ 5. Replace the stub with MCP — done 2026-09-19, both providers
 
-**What**
-- New project `NpcForge.Server`, created from the MCP Server App template (Visual Studio, or `dotnet new mcpserver`), then trimmed. The template is built for publishing a server to NuGet; this one is only ever started by the console app. Delete `.mcp/server.json`, `README.md` and `Tools/RandomNumberTools.cs`. In the csproj, delete the `<None>` items and every property that is about packing or publishing: `RuntimeIdentifiers`, `PackAsTool`, `PackageType`, `SelfContained`, `PublishSelfContained`, `PublishSingleFile`, the `Package*` lines and `Description`. `SelfContained` matters most: it copies the whole .NET runtime into `bin` on every build and moves the output under a runtime folder. What is left should read like `NpcForge.Console.csproj`. It keeps `ModelContextProtocol` and `Microsoft.Extensions.Hosting`.
-- `ModelContextProtocol` at the same version in both projects; the console app needs it for the client. The template pins 2.1.0; 2.2.0 is current (checked 2026-09-19).
-- `NpcForge.Console.csproj` gets `<ProjectReference Include="..\NpcForge.Server\NpcForge.Server.csproj" ReferenceOutputAssembly="false" />`. It only orders the build: building the console app builds the server first, so `dotnet run`, F5 and the tests never start a stale server through `--no-build`. No types cross, so there is still no shared contracts project. Without it, every server edit in steps 6 and 8 would run whichever server was last built.
-- One tool, `lookup_archetype`, same hardcoded answer as step 2.
-- All server logging to stderr.
-- In the console app, `McpToolSource : IToolSource` — starts the server as a child process over stdio, lists its tools, forwards calls.
-- `Program.cs`: `var tools = new McpToolSource(); await tools.ConnectAsync(ct);` then hand it to `ChatAgent`. Two lines, in the open — this is why there is no DI container.
-- `FakeToolSource` stays for the tests.
-- One new test: the loop, a scripted fake model, and the real server. It proves the done condition without a paid run. Shape below. The test count goes from two to three, so the comment at the top of `AgentLoopTests.cs` and the test line in AGENTS.md "Build and run" change with it.
+The loop ran unchanged against a real server in a second process. `NpcForge.Server`
+exposes `lookup_archetype` over stdio. `McpToolSource` in the console app starts it with
+`dotnet run`, shakes hands, lists its tools and forwards each call. `Program.cs` connects
+before the model's first turn and hands the source to `ChatAgent`. `AgentLoop.cs` has no
+diff since `step-4`. A new free test runs a tool call through the real server with a
+scripted fake model, and both paid runs answered with the server's sentence.
 
-**Why** — Two processes is the point. The operating system enforces the boundary, and the loop running unchanged is the proof that `IToolSource` was the right seam.
+**Changed**
+- `NpcForge.Server` — new project from the MCP Server App template, trimmed of its NuGet
+  packing and self-contained settings. `Program.cs` logs to stderr and registers tools with
+  `WithToolsFromAssembly()`. `CharacterTools.cs` holds `lookup_archetype`, same sentence
+  as step 2.
+- `McpToolSource.cs` — the MCP `IToolSource`. The server path is built from
+  `AppContext.BaseDirectory`, four folders up, so the app and the tests find it the same
+  way. `InvokeAsync` keeps `FakeToolSource`'s contract: one `[tool]` trace line, failures
+  as text.
+- `NpcForge.Console.csproj` — `ModelContextProtocol` 2.2.0, the same version as the
+  server, and a build-order `ProjectReference` to the server with
+  `ReferenceOutputAssembly="false"`, so the no-build launch never starts a stale server.
+- `ChatAgent.cs` — takes an `IToolSource` instead of creating the fake itself.
+- `Program.cs` — creates and connects `McpToolSource` before the run.
+- `NpcForge.Tests` — `CallsToolOnceChatClient` and `Runs_a_tool_call_through_the_real_server`:
+  the loop, a scripted fake model, the real server. Three tests, about 2 s, still free.
+- Before any code was typed, the challenger found that the first `InvokeAsync` sketch had
+  no catch, which broke `IToolSource`'s contract, and that `--no-build` would run a stale
+  server. Both were fixed in the plan first.
 
-**Shape — `NpcForge.Server/Program.cs`** 📖
-
-The template generates this almost line for line; the difference is that it registers its sample class with `WithTools<RandomNumberTools>()`. Read what it made against this shape rather than typing it.
-
-```csharp
-var builder = Host.CreateApplicationBuilder(args);
-
-// stdout is the transport. Every log line goes to stderr instead.
-builder.Logging.AddConsole(o => o.LogToStandardErrorThreshold = LogLevel.Trace);
-
-builder.Services
-    .AddMcpServer()
-    .WithStdioServerTransport()
-    .WithToolsFromAssembly();
-
-await builder.Build().RunAsync();
-```
-
-**Shape — `NpcForge.Server/CharacterTools.cs`** 🧩
-
-```csharp
-[McpServerToolType]
-public static class CharacterTools
-{
-    [McpServerTool(Name = "lookup_archetype"), Description("Look up how a given kind of person usually behaves.")]
-    public static string LookupArchetype(
-        [Description("An occupation, such as innkeeper or farmer")] string occupation)
-        => ...;   // same sentence as step 2
-}
-```
-
-**Shape — `NpcForge.Console/McpToolSource.cs`** 🤝
-
-```csharp
-public sealed class McpToolSource : IToolSource
-{
-    private McpClient? _client;
-    private IList<McpClientTool> _tools = [];
-
-    public async Task ConnectAsync(CancellationToken ct)
-    {
-        var transport = new StdioClientTransport(new StdioClientTransportOptions
-        {
-            Name = "NpcForge.Server",
-            Command = "dotnet",
-            Arguments = ["run", "--project", "<path to NpcForge.Server>", "--no-build"],   // 🤝 path
-            StandardErrorLines = line => Console.Error.WriteLine($"[server] {line}"),
-        });
-
-        _client = await McpClient.CreateAsync(transport, cancellationToken: ct);
-        _tools = await _client.ListToolsAsync(cancellationToken: ct);
-    }
-
-    public Task<IReadOnlyList<AITool>> ListAsync(CancellationToken ct)
-        => Task.FromResult<IReadOnlyList<AITool>>([.. _tools]);
-
-    // Same contract as FakeToolSource: one [tool] trace line, and every failure comes back as
-    // text. An unknown name, a dead server and a closed pipe all land in the catch.
-    public async Task<string> InvokeAsync(FunctionCallContent call, CancellationToken ct)
-    {
-        try
-        {
-            ...;   // the [tool] trace line, as in FakeToolSource
-
-            var tool = _tools.First(t => t.Name == call.Name);
-            var args = call.Arguments?.ToDictionary(kv => kv.Key, kv => kv.Value);
-
-            var result = await tool.CallAsync(args, cancellationToken: ct);
-            return string.Join("\n", result.Content.OfType<TextContentBlock>().Select(c => c.Text));
-        }
-        catch (Exception ex)
-        {
-            ...   // a result, not an exception, as in FakeToolSource
-        }
-    }
-}
-```
-
-**New here**
-- `StdioClientTransport` *launches* the server. The console app is the parent process; the server's stdin/stdout are the wire. `StandardErrorLines` is how you see the server's logs without them corrupting the wire.
-- `McpClientTool` is an `AIFunction`, so `[.. _tools]` drops straight into `ChatOptions.Tools`. Nothing to translate.
-- `CallAsync` returns MCP's own result shape — a list of content blocks. Text tools give one `TextContentBlock`. Joining them is enough for now.
-- `WithToolsFromAssembly` finds every `[McpServerToolType]` class by reflection. Add a class, get a tool.
-- `First` throws `InvalidOperationException` on a name it cannot find. That is the same type the loop's cap throws, so without the catch a runaway test against this source would go green without the cap ever firing. Found by the challenger, 2026-09-19.
-
-**Shape — one new test in `NpcForge.Tests`** 🧩
-
-The two step 4 tests use `FakeToolSource`, so they stay green whatever happens to MCP. This one uses the real server with a scripted fake model: no network, no cost, just a child process. The fake echoes the tool's answer as its reply, so the loop's return value *is* the server's sentence, and one `Assert.Equal` covers the whole trip: fake model → loop → `McpToolSource` → stdio → server → back again.
-
-```csharp
-// NpcForge.Tests/CallsToolOnceChatClient.cs
-// A model that asks for lookup_archetype once, then replies with whatever the tool sent back.
-sealed class CallsToolOnceChatClient : IChatClient
-{
-    public Task<ChatResponse> GetResponseAsync(
-        IEnumerable<ChatMessage> messages, ChatOptions? options = null, CancellationToken cancellationToken = default)
-    {
-        var last = messages.Last();
-
-        // Second turn: the loop has appended the tool's answer. Reply with it.
-        if (last.Role == ChatRole.Tool)
-        {
-            var answer = ...;   // the FunctionResultContent in last.Contents, its Result as text
-            return Task.FromResult(new ChatResponse(new ChatMessage(ChatRole.Assistant, answer)));
-        }
-
-        // First turn: ask for the server's tool, by the server's name.
-        var call = ...;   // as in AlwaysCallsToolChatClient, but "lookup_archetype"
-        return Task.FromResult(new ChatResponse(new ChatMessage(ChatRole.Assistant, [call])));
-    }
-
-    // GetStreamingResponseAsync, GetService, Dispose: as in AlwaysCallsToolChatClient.
-}
-```
-
-```csharp
-// In AgentLoopTests
-[Fact]
-public async Task Runs_a_tool_call_through_the_real_server()
-{
-    var tools = new McpToolSource();
-    await tools.ConnectAsync(CancellationToken.None);    // starts NpcForge.Server as a child process
-
-    var loop = new AgentLoop(new CallsToolOnceChatClient(), tools, new ChatOptions());
-
-    var text = await loop.RunAsync([new(ChatRole.User, "hi")], CancellationToken.None);
-
-    Assert.Equal(..., text);   // the server's sentence for "innkeeper", word for word
-}
-```
-
-**Done when** the loop runs unchanged against the real server. Evidence, cheapest first:
-- `git diff step-4 -- NpcForge.Console/AgentLoop.cs` is empty (tag `step-4` on 5946ead).
-- `Runs_a_tool_call_through_the_real_server` passes. Free.
-- One real run per provider: `[server]` lines on stderr, and an answer that uses the server's sentence. Costs a call each; yours to run and confirm.
-
-**Watch for** — No `Console.WriteLine` anywhere in the server. Stdout is the transport; one stray line produces baffling parse errors on the client side. `Console.Error.WriteLine` is fine.
-
-**Watch for, in the test**
-- `dotnet test` runs the test from `NpcForge.Tests/bin/Debug/net10.0/`, not from the repo root. A server path worked out from the current directory is found by `dotnet run` and missed by the test. Pick the 🤝 path with both in mind.
-- `--no-build` means the server must already be built. The build-order reference in `NpcForge.Console.csproj` sees to that, through the tests' reference to the console app. If the server ever behaves like old code, check that reference first. The server still belongs in `NpcForge.slnx`; Visual Studio adds it when you create the project with the solution open.
-- It starts a process, so it takes a second or two where the other tests take milliseconds.
+**Seen in the debugger, worth remembering**
+- Lesson: A csproj comment that mentions a CLI flag stops the project loading (docs/lessons/003-csproj-comment-double-hyphen-load-failed.md)
+- The handshake is `server/discover`, not `initialize`: that is what the server logs on
+  protocol version `2026-07-28` (`_client.NegotiatedProtocolVersion`).
+- The server's content root is whatever folder the app was started from: the console's `bin`
+  under F5, the repo root from a terminal. The child process inherits the parent's working
+  directory. Why `serverProject` is built from `AppContext.BaseDirectory`, and why step 8's
+  save path must not be relative.
+- First real run, OpenAI, 2026-09-19: the whole trip in one console. `[server]` lines for
+  `server/discover` and `tools/list`, then `[tool] lookup_archetype {"occupation":"innkeeper"}`,
+  then `[server]` `tools/call` and `"lookup_archetype" completed. IsError = False.` The answer
+  was the sentence verbatim, as in step 3.
+- Claude (`claude-sonnet-5`), same day, from a terminal: the same trace, line for line. Sonnet
+  bolded the three traits and expanded on them, exactly as it did in step 3. Both providers
+  now run against the real server.
+- `calls.Count` was 1, then 0: the same exit as step 4, through a different tool source.
+- On the client, `tool.UnderlyingMethod` is `null`. The client has no code for the tool, only
+  what came over the wire: `Name`, `Description` and `JsonSchema`, built from the server's
+  attributes.
+- `First` throws `InvalidOperationException` on an unknown tool name, the same type the
+  loop's cap throws. Without the catch, a runaway test against `McpToolSource` would pass
+  without the cap ever firing. Found by the challenger before any code was typed.
+- `ReferenceOutputAssembly="false"` still copies `NpcForge.Server.exe`, `.deps.json` and
+  `.runtimeconfig.json` into the console's and the tests' `bin`, but not the `.dll`. That
+  copy cannot run and is never used: the server that runs is the one in
+  `NpcForge.Server\bin`, through `dotnet run --project`. Found by the reviewer.
 
 ### 6. Rolling up characters 🧩
 
 **What**
+- First, two carry-overs from the step 5 review. Both matter once `roll_character` runs real logic on the server:
+  - `McpToolSource` becomes `IAsyncDisposable`: `DisposeAsync` disposes `_client`, and `Program.cs` and the real-server test create it with `await using`. The server then stops on purpose, not only because the app exited and the pipe closed.
+  - In `InvokeAsync`, when `result.IsError` is true, prefix the text with `"Tool failed: "`. A failure inside the server then reaches the model in the same shape as a failure in the app.
 - In the server: `CharacterBrief` and the two enums — copy them from BUILD.md "The brief as a type". Trait tables as static arrays, each entry tagged with the difficulties it fits. A `roll_character` tool that takes optionals and rolls only what is missing.
 - In the console app: before the loop, call `roll_character` directly through the MCP client and put the returned JSON into the first user message with the three answers.
 - `McpToolSource.ListAsync` filters `roll_character` *out* of what the model sees.

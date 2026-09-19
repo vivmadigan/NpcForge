@@ -28,6 +28,11 @@ Finished code handed to me is worth nothing here.
 - A sketch I can paste in, read through, then step through in the debugger is
   how I learn best. Where a step is about seeing something happen, make the
   block the whole file. Where it is about writing something, leave `...`.
+- A sketch starts with its `using` lines. When a namespace comes from a package
+  the project does not reference yet, say which package and which project it
+  goes in. Pasting a sketch should leave only the `...` as errors.
+- Once new code builds, suggest where to put breakpoints and what I should see
+  at each one. Stepping through it in the debugger is part of every step.
 
 ## Easy to get wrong
 
@@ -60,15 +65,16 @@ Finished code handed to me is worth nothing here.
 
 ```
 dotnet build
-dotnet test                                                                  # free: fakes only, no network
+dotnet test                                                                  # free: no network, no model calls
 dotnet run --project NpcForge.Console                                        # OpenAI, default model
 dotnet run --project NpcForge.Console -- --provider anthropic --model claude-opus-5
 ```
 
 API keys live in user-secrets as `OpenAI:ApiKey` and `Anthropic:ApiKey`.
 
-`NpcForge.Tests` (xUnit) holds two tests of `AgentLoop`, one per rule in
-BUILD.md "The loop": it returns when the model sends no tool calls, and it
-throws when the turn cap is hit. Both use local fake chat clients, so they
-cost nothing to run. A build fails while the app is running or paused in the
-debugger, because the running app locks `NpcForge.Console.dll`.
+`NpcForge.Tests` (xUnit) holds three tests of `AgentLoop`. Two cover the rules
+in BUILD.md "The loop": it returns when the model sends no tool calls, and it
+throws when the turn cap is hit. The third runs a tool call through the real
+MCP server. All use local fake chat clients, so they cost nothing to run. A
+build fails while the app is running or paused in the debugger, because the
+running app locks `NpcForge.Console.dll`.

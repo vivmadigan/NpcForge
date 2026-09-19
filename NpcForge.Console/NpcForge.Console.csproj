@@ -15,6 +15,15 @@
     <PackageReference Include="Microsoft.Extensions.AI" Version="10.10.0" />
     <PackageReference Include="Microsoft.Extensions.AI.OpenAI" Version="10.10.0" />
     <PackageReference Include="Microsoft.Extensions.Configuration.UserSecrets" Version="10.0.12" />
+    <PackageReference Include="ModelContextProtocol" Version="2.2.0" />
   </ItemGroup>
+
+	<ItemGroup>
+		<!-- Build order only. McpToolSource starts the server with dotnet run and the no-build flag,
+         so the server has to be built whenever this project is. ReferenceOutputAssembly="false" means
+         no types cross: the two processes still share nothing. -->
+		<ProjectReference Include="..\NpcForge.Server\NpcForge.Server.csproj" ReferenceOutputAssembly="false" />
+	</ItemGroup>
+
 
 </Project>

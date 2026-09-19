@@ -3,8 +3,8 @@ using Microsoft.Extensions.Configuration;
 using NpcForge;
 
 // No host, no DI container. Everything is wired by hand, in the order it happens:
-// config, then the client, then the options, then the run. Step 5 adds "connect to
-// the server" and step 6 adds "roll the character" here, both before the model's
+// config, then the client, then the options, then connect to the server, then the run.
+// Step 6 adds "roll the character" between connect and run, also before the model's
 // first turn, which is why the order has to stay visible.
 
 var config = new ConfigurationBuilder()
@@ -34,4 +34,8 @@ var options = new ChatOptions
     MaxOutputTokens = 5000,
 };
 
-await ChatAgent.RunAsync(client, options);
+// Start the server and connect, before the model's first turn.
+var tools = new McpToolSource();
+await tools.ConnectAsync(CancellationToken.None);
+
+await ChatAgent.RunAsync(client, options, tools);
