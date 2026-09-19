@@ -25,6 +25,7 @@ The next extension log shows `Found 3 plugins`, `Total plugin agents loaded: 5`,
 
 ## Why it works here, specifically
 VS Code hands the extension the folder as `c:\Users\...` with a lowercase drive, and the trust lookup keys on that exact spelling. Trust for this repo had only been accepted in terminal sessions, which recorded `C:\...` and `C:/...`. No trust dialog appeared in the VS Code panel. The crew is a project-scope `@skills-dir` plugin, which loads only in a trusted workspace, and the same gate drops the project's `permissions.allow` rules. So both vanished without a message in the chat.
+It fails the other way too. With only the lowercase entry for a new repo (HarnessLab), `plugin list` from a terminal said "1 project-scope directory under ./.claude/skills/ that may load as a plugin was skipped because this workspace was not trusted". Each spelling needs its own entry: `c:/...` for VS Code, `C:/...` for the terminal.
 
 ## How to tell it is happening again
 `this workspace has not been trusted` in `%APPDATA%\Code\logs\<timestamp>\window1\exthost\Anthropic.claude-code\Claude VSCode.log`, or `/reload-plugins` reporting `0 hooks`.
