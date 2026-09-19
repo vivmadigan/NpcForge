@@ -11,7 +11,7 @@ namespace NpcForge
     // The real tool source. Starts NpcForge.Server as a child process and talks MCP to it over
     // the server's stdin and stdout. The loop cannot tell this from FakeToolSource: same two
     // methods, same contract. That is what step 5 sets out to prove.
-    public sealed class McpToolSource : IToolSource
+    public sealed class McpToolSource : IToolSource, IAsyncDisposable
     {
         // Owns the connection and, through its transport, the server process. Null until
         // ConnectAsync, which is why Program.cs connects before anything else runs.
@@ -75,14 +75,27 @@ namespace NpcForge
                 // of content blocks; a text tool sends one text block.
                 var result = await tool.CallAsync(args, cancellationToken: ct);
 
-                // A tool that throws on the server does not throw here. The SDK sends back
-                // result.IsError with a generic message, so that arrives as text too.
-                return string.Join("\n", result.Content.OfType<TextContentBlock>().Select(c => c.Text));
+                var text = string.Join("\n", result.Content.OfType<TextContentBlock>().Select(c => c.Text));
+
+                // A tool that throws on the server does not throw here: the SDK sends back
+                // IsError with a generic message. Same prefix as the catch below, so the model
+                // sees one shape for a failure, wherever it happened.
+                return result.IsError is true ? $"Tool failed: {text}" : text;
+
             }
             catch (Exception ex)
             {
                 return $"Tool failed: {ex.Message}";          // a result, not an exception
             }
         }
+
+        // Closes the connection, and with it the server process, on purpose. Without this the
+        // server stops only because the app exited and the pipe closed under it.
+        public async ValueTask DisposeAsync()
+        {
+            if (_client is not null)
+                await _client.DisposeAsync();
+        }
+
     }
 }

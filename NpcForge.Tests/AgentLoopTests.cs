@@ -30,7 +30,7 @@ public class AgentLoopTests
     [Fact]
     public async Task Runs_a_tool_call_through_the_real_server()
     {
-        var tools = new McpToolSource();
+        await using var tools = new McpToolSource();
         await tools.ConnectAsync(CancellationToken.None);    // starts NpcForge.Server as a child process
 
         var loop = new AgentLoop(new CallsToolOnceChatClient(), tools, new ChatOptions());

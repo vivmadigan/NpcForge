@@ -35,7 +35,7 @@ var options = new ChatOptions
 };
 
 // Start the server and connect, before the model's first turn.
-var tools = new McpToolSource();
+await using var tools = new McpToolSource();
 await tools.ConnectAsync(CancellationToken.None);
 
 await ChatAgent.RunAsync(client, options, tools);
