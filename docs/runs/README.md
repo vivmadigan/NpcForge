@@ -28,3 +28,26 @@ trace lines in the paste.
 Under the step in `PLAN.md`, as they already do. There is deliberately no index here: one
 observation should have one home, and `PLAN.md` is imported into every session. If this folder
 ever grows past the point where that works, revisit it then.
+
+## Why not, for the three obvious alternatives
+
+Each of these was the first design, and each was dropped for a reason that is not visible from
+the outcome. Written down so they are not quietly reinstated.
+
+**Why not redirect the run to a file instead of pasting?** Because PowerShell reorders the two
+streams, and the ordering is the information. Full account, including what the throwaway
+experiment showed: [lesson 005](../lessons/005-powershell-redirect-reorders-trace.md).
+
+**Why "commit first" rather than letting `git diff` between two runs' SHAs say what changed?**
+That was the original plan, and the challenger killed it. Tuning a skill happens against a dirty
+tree — that is the normal state, not an edge case — so two runs made an hour apart carry the same
+SHA and `git diff <sha1> <sha2>` is empty. Worse at the time: `SKILL.md` was untracked, so a SHA
+pair said nothing about the only file being changed. The fix is that a run file has to stand on
+its own. Commit before a paid run so the SHA means something, and let the `[skill]` line carry a
+content fingerprint so the run names its own guidance whatever git says. A char count alone is
+not enough for that: two same-length edits give the same count and different hashes.
+
+**Why no `INDEX.md` here?** Because the observations already have a home in `PLAN.md`'s step
+notes, which is imported into every session, and an index would be a second place for the same
+sentence to live. Two homes for one observation drift apart; one that nobody reads is worse than
+none. The folder listing is the index until it stops being enough.

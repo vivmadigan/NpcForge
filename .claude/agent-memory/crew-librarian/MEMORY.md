@@ -1,1 +1,2 @@
 - [Lesson clusters](lesson_clusters.md) — how NpcForge's curated lessons group by area, rule-file threshold status, and the PLAN.md inbox-link gotcha
+- [Inbox has no backlinks yet](inbox-has-no-backlinks-yet.md) — repo-wide link search for inbox paths has come back empty every time so far; still worth doing, just do not over-search

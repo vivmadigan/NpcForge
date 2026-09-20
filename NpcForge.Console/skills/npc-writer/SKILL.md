@@ -1,4 +1,4 @@
-﻿---
+---
 name: npc-writer
 description: Writes one non-player character from a settled character brief, in a fixed order.
 ---
@@ -12,9 +12,11 @@ The brief is settled. Do not add, drop or soften a trait.
 `difficulty` is how far `characterWants` pulls against `playersWant`. It is not
 how rude they are.
 
-- **Easy** — it costs them nothing. They give it easily usually without a favour or financial cost. 
-  If there is a cost it is small, financial or otherwise.
-- **SomeWork** — there is a price, favour or a hesitation to talk past first.
+- **Easy** — the character still asks for something; nobody hands things to
+  strangers for free. But the ask is small, and almost any reasonable attempt
+  clears it. Give the players something to do, then let them succeed at it.
+- **SomeWork** — the ask is real. The players have to offer the right sort of
+  thing, or talk past a hesitation first. A wrong approach can fail.
 - **Wall** — the two wants are in direct opposition. Nothing in the opening
   hands it over. The players have to work a lever, and it costs the character
   something to yield.

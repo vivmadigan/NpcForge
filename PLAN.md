@@ -31,6 +31,7 @@ Settled in the step 1 and 2 sessions so they are not re-decided later. The two m
 | OpenAI endpoint | Responses (`OpenAI.Responses.ResponsesClient`), not Chat Completions. Decided 2026-09-13. | `gpt-5.6-terra` rejects function tools on Chat Completions when reasoning is on (HTTP 400: "use /v1/responses or set reasoning_effort to 'none'"). Forcing effort to none would put a vendor workaround on options shared with Claude and switch off reasoning. Responses is marked experimental (`OPENAI001`), suppressed in `ModelClients.cs`. |
 | Traces | stderr, with a bracketed prefix: `[tool]` from the app's tool source, `[server]` from the MCP server. Decided 2026-09-13. Step 7 adds three more on the same channel: `[app]` for the provider, model and the rolled brief, `[skill]` for which file was loaded, `[loop]` for one line per model turn. | Stdout is the answer, and on the server it is the transport. Same channel and a prefix per side, so the two read as one trace. With the step 7 lines a plain run explains itself: every trait in the writing can be checked against the `[app] brief` line without a debugger. |
 | Starting the server | `dotnet run --project <server> --no-build`, the path built from `AppContext.BaseDirectory`, the build order set by a `ProjectReference` with `ReferenceOutputAssembly="false"`. Decided 2026-09-19. | Works the same from the app and the tests, never starts a stale server, and shares no types. Dropping `--no-build` would rebuild on every launch and risk build output on stdout, which is the wire. |
+| Recording paid runs | One file per run in `docs/runs/`, captured by pasting the console, each standing on its own: commit before the run, and the `[skill]` line carries a content fingerprint. No index; observations live in `PLAN.md`'s step notes. Decided 2026-09-20. See [docs/runs/README.md](docs/runs/README.md) "Why not". | Runs cost money and are the only evidence for whether a skill edit helped. Redirecting reorders the trace against the answer, and a `git diff` between two SHAs is empty in the normal case, because tuning happens against a dirty tree. No record in `docs/decisions/`: this shapes a working practice rather than the code, so the reasoning lives with the practice. |
 | Occupation | Supplied like the setting: `--occupation`, default `"innkeeper"` next to the setting default in `Program.cs`. Not rolled. Decided 2026-09-19. See [ADR-002](docs/decisions/ADR-002-occupation-in-the-brief.md). | Three live runs let the model choose who the character is (an innkeeper twice, a patron once), and the README's success test asks for innkeepers. A table on the server cannot see the setting, so a rolled default would put "innkeeper" into a farm's brief as settled fact (the challenger). Departs from the README ("not one of the questions") and from BUILD.md's brief, which is step 8's save format. |
 
 ## Names you will meet
@@ -290,7 +291,7 @@ not change. A fourth free test checks the two doors against the real server.
   `occupation` in it. The enum parameter `difficulty` does fail on null. Found on a scratch
   copy; the app always sends a value.
 
-### 7. Skills 🧩 the file · 🤝 loading it
+### ✅ 7. Skills — done 2026-09-20, OpenAI and Anthropic
 
 **What**
 - First, a carry-over from the step 6 review. `McpToolSource.InvokeAsync` finds the tool in the unfiltered `_tools`, so the model could still run `roll_character` by naming it, even though `ListAsync` hides it. Look the name up in the same filtered list `ListAsync` returns. An app-only name then fails as `Tool failed:` in the existing catch. It matters more at step 8, when `save_character` and `load_character` join `AppOnly`.
@@ -414,8 +415,9 @@ sections. Every run since has had all six, so the difference is the whole of wha
   This is README "How difficulty works" seen for real.
 - **Editing the file changes the output with no code change.** That is the test of whether it is a
   skill rather than a prompt, and it passes.
-- **Formatting is a tendency, not a guarantee.** All twelve runs produced the six sections in order
-  with levers traced to brief entries, but the markup differed every way it could: numbered
+- **Formatting is a tendency, not a guarantee.** All eleven runs *with* the skill produced the six
+  sections in order with levers traced to brief entries — run 01, before it, produced none of them
+  — but the markup differed every way it could: numbered
   headings on OpenAI, inline bold labels on Sonnet, renamed sections on Opus, `[field: value]`
   brackets on luna. If anything ever parses this output, that is what will break it.
 - **A model may skip a tool it can see.** `gpt-5.6-luna` returned on turn 1 with no tool call at
@@ -430,6 +432,25 @@ sections. Every run since has had all six, so the difference is the whole of wha
   the per-vendor dictionary, because `UsageDetails` only names the counts every vendor shares.
 - The server's content root is the folder the app was started from: `bin` under F5, the repo root
   from a terminal. Confirmed again across twelve runs. Step 8's save path must not be relative.
+- **`SKILL.md` changed after the twelve runs, at the step-done review.** Its `Easy` bullet said
+  both "it costs them nothing" and "if there is a cost it is small", and nothing parses the file,
+  so the model would have resolved that silently and differently per run. `Easy` and `SomeWork`
+  also had no evidence at all: every one of the twelve runs was `Wall`. Both bullets were rewritten
+  onto the axis that actually matters — not what it costs the *character*, but how hard the ask is
+  for the *players* to clear. At `Easy` the character still asks for something, because nobody
+  hands things to strangers for free; the ask is just small enough that any reasonable attempt
+  passes. An `Easy` that simply hands the thing over is not a scene at all, and a GM gets nothing
+  to run. README's ladder was changed to match. So the `2097 chars` recorded in the run headers is
+  the version those runs used, not the one at HEAD. Run 06 then covered the whole ladder for the
+  first time: at `Easy` the character asks the players to buy an unwanted warming-pan and the
+  lever says "even a modest one" clears it; at `SomeWork` the ask is a real task a wrong approach
+  would fail; at `Wall` only a brief-derived lever moves her. Three rungs that read differently.
+- **A char count is not a fingerprint.** The `[skill]` line now carries a short SHA-256 of the
+  text the model is sent as well as the length, because the twelve runs and run 06 could
+  otherwise have been told apart only by luck — the rewrite happened to change the length.
+  Swapping `Wont` for `Cant` in the obstacle bullet is `2239 chars, 70057667` against the real
+  `2239 chars, 6b58d7c2`: same count, different skill. Comparing output across skill versions is
+  the whole premise of `docs/runs/`, and it rested on a number that cannot see half the edits.
 
 ### 8. Saving 🧩
 

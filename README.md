@@ -48,10 +48,11 @@ Difficulty is friction between two wants. The players want something. The
 character wants something of their own. How far those two pull apart is the
 difficulty, so setting it is really setting what the character wants.
 
-- **Easy.** What the players want costs the character nothing to give. They
-  may still want something of their own, but it does not get in the way.
-- **Some work.** The two wants pull against each other. There is a price, or
-  a hesitation to talk past.
+- **Easy.** The character still asks for something — nobody hands things to
+  strangers for free — but the ask is small and almost any reasonable attempt
+  clears it. The players get something to do, and then they succeed at it.
+- **Some work.** The ask is real. The players have to offer the right sort of
+  thing, or talk past a hesitation first. A wrong approach can fail.
 - **A wall.** The character's want runs directly against the players'.
 
 Difficulty on its own is too flat, though. Left there, every hard character
@@ -150,9 +151,10 @@ traits instead.
 
 **Skills** are the writing guidance. The fixed order above, what a difficulty
 obliges the writer to do, how to turn a trait into something the character
-does, and the rule that levers trace back to the brief. A gambler should be shown rolling a knucklebone while he talks,
-never saying "I have a gambling problem." The brief is raw material for the
-writer. The character never announces it.
+does, and the rule that levers trace back to the brief. A gambler should be
+shown rolling a knucklebone while he talks, never saying "I have a gambling
+problem." The brief is raw material for the writer. The character never
+announces it.
 
 **The MCP server** holds the reference material and does the rolling. What a
 typical innkeeper or farmer is like, the trait tables, the code that rolls on
