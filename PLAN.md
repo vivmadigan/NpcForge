@@ -29,7 +29,7 @@ Settled in the step 1 and 2 sessions so they are not re-decided later. The two m
 | Storage *(assumed)* | One JSON file, in the server | BUILD.md allows file or SQLite. A file is less to learn and the brief is already JSON. |
 | Tests | Small xUnit project, first appears at step 4 | The cap and the exit condition are the first things worth a test. Nothing before that is testable without spending money. |
 | OpenAI endpoint | Responses (`OpenAI.Responses.ResponsesClient`), not Chat Completions. Decided 2026-09-13. | `gpt-5.6-terra` rejects function tools on Chat Completions when reasoning is on (HTTP 400: "use /v1/responses or set reasoning_effort to 'none'"). Forcing effort to none would put a vendor workaround on options shared with Claude and switch off reasoning. Responses is marked experimental (`OPENAI001`), suppressed in `ModelClients.cs`. |
-| Traces | stderr, with a bracketed prefix: `[tool]` from the app's tool source, `[server]` from the MCP server. Decided 2026-09-13. | Stdout is the answer, and on the server it is the transport. Same channel and a prefix per side, so the two read as one trace. |
+| Traces | stderr, with a bracketed prefix: `[tool]` from the app's tool source, `[server]` from the MCP server. Decided 2026-09-13. Step 7 adds three more on the same channel: `[app]` for the provider, model and the rolled brief, `[skill]` for which file was loaded, `[loop]` for one line per model turn. | Stdout is the answer, and on the server it is the transport. Same channel and a prefix per side, so the two read as one trace. With the step 7 lines a plain run explains itself: every trait in the writing can be checked against the `[app] brief` line without a debugger. |
 | Starting the server | `dotnet run --project <server> --no-build`, the path built from `AppContext.BaseDirectory`, the build order set by a `ProjectReference` with `ReferenceOutputAssembly="false"`. Decided 2026-09-19. | Works the same from the app and the tests, never starts a stale server, and shares no types. Dropping `--no-build` would rebuild on every launch and risk build output on stdout, which is the wire. |
 | Occupation | Supplied like the setting: `--occupation`, default `"innkeeper"` next to the setting default in `Program.cs`. Not rolled. Decided 2026-09-19. See [ADR-002](docs/decisions/ADR-002-occupation-in-the-brief.md). | Three live runs let the model choose who the character is (an innkeeper twice, a patron once), and the README's success test asks for innkeepers. A table on the server cannot see the setting, so a rolled default would put "innkeeper" into a farm's brief as settled fact (the challenger). Departs from the README ("not one of the questions") and from BUILD.md's brief, which is step 8's save format. |
 
@@ -274,6 +274,13 @@ not change. A fourth free test checks the two doors against the real server.
   not in the brief, so the model picks it and falls back on favourites, which is the reason the
   traits are rolled. Run 3 was a patron, not an innkeeper, for the same reason; that is why
   `Occupation` joined the brief. The name is still the model's.
+  **Corrected at step 7:** "falls back on favourites" was drawn from OpenAI runs only and does
+  not generalise. Eight OpenAI-family runs across three models (`terra`, `sol`, `luna`) all gave
+  a `Mar-`/`Mer-` first name, with Venn, Pell and Voss recurring; four Anthropic runs gave Bartho
+  Quill, Mira Colbeck, Hessa Dunmore and Halbrecht Onnow, sharing nothing. Anthropic converges
+  too, but on backstory — both Sonnet runs gave eleven years at the inn and a brother-in-law. Each
+  vendor has its own unrolled field it falls back on, so the argument for rolling holds while the
+  evidence for it is vendor-shaped. See `docs/runs/2026-09-20-05-eight-models.md`.
 - To stop inside the server: stop the app on the `CallDirectAsync` line, then Debug → Attach to
   Process → `NpcForge.Server.exe`. In time means the log shows `tools/list` completed and no
   `tools/call` yet. Attach after the roll and a bound breakpoint in `RollCharacter` never hits.
@@ -375,7 +382,54 @@ impressed by confident people), the want (out of an arrangement with the fence).
 did not. Merrin Voss gave up the fence's name — *"It's Sella Marrow — 'Silk,' they call her"* — to
 "little more than an authoritative assumption". The lever was drawn from the brief; it simply cost
 nothing. And with no skill there was no fixed order at all: no Levers, Anti-levers or Afterwards
-sections. Run the same command once SKILL.md lands and put the difference here.
+sections. Every run since has had all six, so the difference is the whole of what follows.
+
+**Changed**
+- `NpcForge.Console/skills/npc-writer/SKILL.md` — new. The fixed order from the README, the rule
+  that levers trace back to the brief, "show the trait, never state it", and a section on what
+  `difficulty` and `obstacle` oblige the writer to do. The user added the line saying a Games
+  Master will role-play the character, which nothing else told the model.
+- `NpcForge.Console.csproj` — `<None Include="skills\**" CopyToOutputDirectory="PreserveNewest" />`,
+  so the file travels to `bin` and the app reads it from beside the exe.
+- `ChatAgent.cs` — reads the file at startup and puts it in a `ChatRole.System` message at index 0,
+  above the brief. No parsing: whatever the file says is what the model is told.
+- `McpToolSource.cs` — the carry-over from the step 6 review. `ModelTools` is the filtered list, and
+  both `ListAsync` and `InvokeAsync` read it, so an app-only name cannot be reached by naming it.
+  The lookup throws with the name in the message rather than `First`'s "sequence contains no
+  matching element".
+- `Program.cs`, `AgentLoop.cs` — three more trace prefixes, see the decisions table.
+- `NpcForge.Tests` — `Refuses_an_app_only_tool_the_model_names`. Five tests, still free.
+- `docs/runs/` — new. One file per paid run, plus `README.md` on how a run gets there.
+- PLAN.md — before any code was typed, the challenger found that the plan had dropped a carry-over
+  step 6 had explicitly assigned to step 7 (what a `Wall` obliges the writer to do), and that the
+  "Done when" could not have caught it. Both were fixed in the plan first, as at steps 5 and 6.
+
+**Seen in the debugger, worth remembering**
+- The skill works, and the evidence is the `Wall`. Before it, a `Wall` innkeeper handed over the
+  fence's name in his first reply. After it, across three runs, none did. See `docs/runs/`.
+- **The rule had to be per-obstacle, not per-difficulty.** Runs 02–04 drew `Wont`, `ForAPrice` and
+  `Cant` in turn, and each produced a structurally different scene: refuses it, sells it, does not
+  have it. A rule saying "at a `Wall`, withhold what the players want" would have broken two of the
+  three — `Cant` worst of all, since that character stonewalls over information she never had.
+  This is README "How difficulty works" seen for real.
+- **Editing the file changes the output with no code change.** That is the test of whether it is a
+  skill rather than a prompt, and it passes.
+- **Formatting is a tendency, not a guarantee.** All twelve runs produced the six sections in order
+  with levers traced to brief entries, but the markup differed every way it could: numbered
+  headings on OpenAI, inline bold labels on Sonnet, renamed sections on Opus, `[field: value]`
+  brackets on luna. If anything ever parses this output, that is what will break it.
+- **A model may skip a tool it can see.** `gpt-5.6-luna` returned on turn 1 with no tool call at
+  all, writing the character straight from the brief; every other run called `lookup_archetype`
+  once. Nothing broke — the loop's exit is the absence of calls — but it is the first time the
+  single-turn path has been seen against a real model rather than the step 4 fake. It is also the
+  stated reason `roll_character` is kept off the model's list entirely.
+- **Prompt caching never engages at this size.** No `CachedInputTokenCount` appears in
+  `AdditionalCounts`: input is about 680 tokens, under the threshold. The step 2 note pointed here;
+  the answer is that there is nothing to see until the prompt is much bigger.
+- `CachedInputTokenCount` is not a property on `UsageDetails`. It arrives in `AdditionalCounts`,
+  the per-vendor dictionary, because `UsageDetails` only names the counts every vendor shares.
+- The server's content root is the folder the app was started from: `bin` under F5, the repo root
+  from a terminal. Confirmed again across twelve runs. Step 8's save path must not be relative.
 
 ### 8. Saving 🧩
 

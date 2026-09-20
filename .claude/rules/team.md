@@ -13,6 +13,7 @@ This file is the one place where the crew's generic agents learn about THIS proj
 - Documents that define how code here should read: `AGENTS.md` "Code" and "Easy to get wrong"; `BUILD.md` "How the code should read" and "Things that will bite"
 - Decisions register (the live list, one line each): the "Decisions already made" table in `PLAN.md`. Full records with alternatives and consequences: `docs/decisions/` (immutable; a new record supersedes an old one). The table links to the record when one exists.
 - Plan versions: `docs/plans/` (immutable snapshots; `PLAN.md` itself is live and edited freely)
+- Paid runs: `docs/runs/`, one file per run with what was asked, what came back and what it showed; `docs/runs/README.md` says how a run gets there. Evidence for anything about model behaviour lives here; the conclusions drawn from it live in `PLAN.md`'s step notes.
 - Lessons: `docs/lessons/` (curated) and `docs/lessons/inbox/` (drop new ones here). `docs/lessons/INDEX.md` is imported into every session.
 
 ## Who writes the code
