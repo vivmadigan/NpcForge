@@ -24,6 +24,13 @@
          no types cross: the two processes still share nothing. -->
 		<ProjectReference Include="..\NpcForge.Server\NpcForge.Server.csproj" ReferenceOutputAssembly="false" />
 	</ItemGroup>
+	
+	<ItemGroup>
+		<!-- The skill is content, not code. It travels to bin so the app reads it from next to
+         the exe, and so editing it changes the writing without touching any C#. -->
+		<None Include="skills\**" CopyToOutputDirectory="PreserveNewest" />
+	</ItemGroup>
+
 
 
 </Project>

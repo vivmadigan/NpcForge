@@ -25,6 +25,10 @@ namespace NpcForge
         // never reach its list. Grows at step 8 with save and load.
         private static readonly string[] AppOnly = ["roll_character"];
 
+        // The model's half of _tools. One place, so ListAsync and InvokeAsync can never
+        // disagree about what the model may reach: a tool that is not on the list it was
+        // given is not a tool it can call by naming it.
+        private IEnumerable<McpClientTool> ModelTools => _tools.Where(t => !AppOnly.Contains(t.Name));
 
         // Start the server, shake hands, ask what tools it has.
         public async Task ConnectAsync(CancellationToken ct)
@@ -58,7 +62,7 @@ namespace NpcForge
         // What the model may ask for: everything the server has, minus the app-only tools. A new
         // list each time, holding the same tool objects, so the loop cannot change _tools.
         public Task<IReadOnlyList<AITool>> ListAsync(CancellationToken ct)
-                => Task.FromResult<IReadOnlyList<AITool>>([.. _tools.Where(t => !AppOnly.Contains(t.Name))]);
+                                => Task.FromResult<IReadOnlyList<AITool>>([.. ModelTools]);
 
 
         // Same contract as FakeToolSource: one [tool] trace line, and every failure comes back as
@@ -71,8 +75,12 @@ namespace NpcForge
                 // the same channel with a [server] prefix, so the two read as one trace.
                 Console.Error.WriteLine($"[tool] {call.Name} {JsonSerializer.Serialize(call.Arguments)}");
 
-                // call.Name picks the tool. A name the server does not have throws here.
-                var tool = _tools.First(t => t.Name == call.Name);
+                // call.Name picks the tool, out of the same list ListAsync handed the model.
+                // An app-only name and a name the server never had fail the same way here,
+                // and the catch below turns both into text the model can read.
+                var tool = ModelTools.FirstOrDefault(t => t.Name == call.Name)
+                    ?? throw new InvalidOperationException($"No tool named '{call.Name}'.");
+
 
                 // The call's arguments, parameter name to value. Here one pair: occupation ->
                 // "innkeeper", as a JsonElement (step 2). Copied because CallAsync takes an

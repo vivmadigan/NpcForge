@@ -64,5 +64,10 @@ var briefJson = await tools.CallDirectAsync("roll_character", new()
     ["occupation"] = occupation,
 }, CancellationToken.None);
 
+// The dice, made visible. Every trait in the writing should trace back to a value on this line,
+// and any that does not was invented by the model.
+Console.Error.WriteLine($"[app] {provider} {model}");
+Console.Error.WriteLine($"[app] brief {briefJson}");
+
 // Run.
 await ChatAgent.RunAsync(client, options, tools, briefJson);

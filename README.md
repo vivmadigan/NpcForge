@@ -148,9 +148,9 @@ runs the back and forth with the model. Because the rolling happens first, the
 brief arrives as settled fact. The model cannot skip it or quietly pick its own
 traits instead.
 
-**Skills** are the writing guidance. The fixed order above, how to turn a
-trait into something the character does, and the rule that levers trace back
-to the brief. A gambler should be shown rolling a knucklebone while he talks,
+**Skills** are the writing guidance. The fixed order above, what a difficulty
+obliges the writer to do, how to turn a trait into something the character
+does, and the rule that levers trace back to the brief. A gambler should be shown rolling a knucklebone while he talks,
 never saying "I have a gambling problem." The brief is raw material for the
 writer. The character never announces it.
 

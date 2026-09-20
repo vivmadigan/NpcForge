@@ -12,5 +12,4 @@ Why this exists alongside the "Seen in the debugger, worth remembering" notes in
 
 ## Inbox (uncurated; run /crew:curate)
 
-(empty)
-
+- [A test asserting on "Tool failed:" can pass for the wrong reason](inbox/2026-09-20-tool-failed-prefix-hides-why.md) — applies to: NpcForge.Tests/**, NpcForge.Console/McpToolSource.cs

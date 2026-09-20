@@ -300,8 +300,26 @@ name: npc-writer
 description: Writes one non-player character from a settled character brief, in a fixed order.
 ---
 
-You are writing one character for a tabletop game from the brief in the first message.
+You are writing one character for a tabletop game from the brief you have been given.
 The brief is settled. Do not add, drop or soften a trait.
+
+## What the difficulty means for the scene
+
+`difficulty` is how far `characterWants` pulls against `playersWant`. It is not
+how rude they are.
+
+- **Easy** — it costs them nothing. They give it.
+- **SomeWork** — there is a price or a hesitation to talk past first.
+- **Wall** — the two wants are in direct opposition. Nothing in the opening
+  hands it over. The players have to work a lever, and it costs the character
+  something to yield.
+
+`obstacle` says what kind of hard it is, and it changes what yielding means:
+
+- **Wont** — they could and they will not. Distrust, fear, or loyalty to someone else.
+- **Cant** — they do not know, or may not say. No lever produces the answer; a
+  lever gets the players what this character *can* give instead.
+- **ForAPrice** — they will, once the price in `characterWants` is met. Name the price.
 
 ## Output, in this order
 1. **Who they are** — a name and one line of history. A line, not a backstory.
@@ -341,9 +359,23 @@ And in the console csproj, so the file travels to the output folder:
 - A `System` message is just another `ChatMessage`. Both providers map it to their system prompt.
 - `ChatOptions.Instructions` does the same job as a property instead of a message. The message is used here so the guidance is visible in the history you already own.
 
-**Done when** the levers differ between the three step 6 runs. Generic levers mean the brief is not reaching the writing.
+**Done when**, in one run: the six sections appear in order, every lever and anti-lever names the
+entry in the brief it came from, and at `Wall` nothing is handed over until a lever lands and costs
+the character something. Then, across three runs, the levers differ — generic levers mean the brief
+is not reaching the writing.
 
-**Watch for** — The system message stays first and unchanged across turns. Move it or edit it and prompt caching stops working.
+**Watch for** — `response.Usage.CachedInputTokenCount`, the number step 2 flagged for this step. The
+loop only ever appends, so the system message cannot move or be edited: this is a number to look at,
+not a rule you could break.
+
+**Before the skill — the baseline run.** OpenAI, `Wall`, 2026-09-20, with the carry-over in and
+no SKILL.md yet. Every rolled trait reached the writing: the mannerism (nods before people have
+finished speaking), the wrong-about (believes they are an excellent liar), the weakness (easily
+impressed by confident people), the want (out of an arrangement with the fence). The difficulty
+did not. Merrin Voss gave up the fence's name — *"It's Sella Marrow — 'Silk,' they call her"* — to
+"little more than an authoritative assumption". The lever was drawn from the brief; it simply cost
+nothing. And with no skill there was no fixed order at all: no Levers, Anti-levers or Afterwards
+sections. Run the same command once SKILL.md lands and put the difference here.
 
 ### 8. Saving 🧩
 

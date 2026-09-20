@@ -30,6 +30,17 @@ namespace NpcForge
                     .OfType<FunctionCallContent>()
                     .ToList();
 
+                // One line per turn, on stderr beside [tool] and [server] so a plain run reads
+                // as one trace. history.Count is the number to watch: it only ever grows.
+                Console.Error.WriteLine($"[loop] turn {turn + 1}: {calls.Count} tool call(s), history {history.Count}, "
+                    + $"{response.Usage?.InputTokenCount} in / {response.Usage?.OutputTokenCount} out");
+
+                // The provider's own counters. CachedInputTokenCount arrives here rather than as
+                // a property, because UsageDetails only names the counts every vendor shares.
+                foreach (var extra in response.Usage?.AdditionalCounts ?? [])
+                    Console.Error.WriteLine($"[loop]   {extra.Key} = {extra.Value}");
+
+
                 if (calls.Count == 0)
                     return response.Text;                     // the exit: no tool calls
 
