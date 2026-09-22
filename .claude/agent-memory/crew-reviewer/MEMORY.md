@@ -1,4 +1,4 @@
-- [False positives to skip](review-false-positives.md): template usings, dll-less server exe in bins, empty template folders
-- [Review environment](review-environment.md): git via PowerShell only, build with --no-incremental for real warnings, check for leftover server processes
-- [Recurring patterns](review-recurring-patterns.md): stale "Step N" comments, counts drifting, `--` in csproj, cut-off comments, AppOnly invoke gap (step 8)
+- [False positives to skip](review-false-positives.md): template usings, dll-less server exe in bins, whitespace, characters.json is data
+- [Review environment](review-environment.md): git via PowerShell, --no-incremental build, leftover servers, save-file hash, scratch-copy lesson-004 proof
+- [Recurring patterns](review-recurring-patterns.md): stale comments (incl. reasons from superseded choices), drifting counts, `--` in csproj, silent default changes
 - [Bash PATH is unusable as given](env-bash-path-broken.md) — re-export PATH at the top of every Bash call or git/dotnet/ls all exit 127

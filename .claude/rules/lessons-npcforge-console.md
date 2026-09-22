@@ -3,6 +3,7 @@ paths:
   - "NpcForge.Console/**"
   - "NpcForge.Tests/**"
   - "docs/runs/**"
+  - "NpcForge.Server/**"
 ---
 
 # Lessons: NpcForge.Console
@@ -28,3 +29,10 @@ same way twice — this matters because the ordering of `[loop]`/`[app]` traces 
 is the information docs/runs/ exists to capture.
 Capture through `cmd /c "... > file 2>&1"` instead, or paste the console buffer for runs watched
 live under F5.
+
+## [006 A run and its --load look different in a console paste when the save is exact](../../docs/lessons/006-console-paste-not-byte-exact.md)
+Visual Studio's debug console flattens typographic punctuation to ASCII and a terminal paste can
+silently drop trailing Markdown hard-break spaces, so a run and its `--load` can look different
+by eye even when `characters.json` holds the run byte for byte.
+Diff the printed text line by line against the saved file (or trust the round-trip test); don't
+compare two consoles by eye.

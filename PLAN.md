@@ -26,10 +26,10 @@ Settled in the step 1 and 2 sessions so they are not re-decided later. The one m
 | Host / DI container | None. `Program.cs` wires by hand: config → client → options → run. Stripped 2026-09-12. | Step 5's `ConnectAsync` is async setup, and step 6's "roll before the model's first turn" has to be visible, in order. A container hides both. |
 | `AgentLoop.RunAsync` | Takes `List<ChatMessage>`, not `string opening` as in BUILD.md. `ChatOptions` comes in through the constructor. | Step 7 puts a system message at index 0. The caller builds the history; the loop never changes. |
 | Skills *(assumed)* | `SKILL.md` files in the repo, read by the app into the system prompt | Works with both providers. Anthropic's server-side Skills feature would tie the app to one. |
-| Storage | One JSON file in the server, `characters.json`, holding every run's brief and written character, numbered in order. Decided 2026-09-22. | BUILD.md allows file or SQLite; a file is less to learn and the brief is already JSON. The text is saved as well as the brief because the brief has no name and the model writes differently every run. A database later changes only the server: the app never sees the file. |
+| Storage | One JSON file in the server, `characters.json`, holding every run's brief and written character, numbered in order. Decided 2026-09-22. | BUILD.md allows file or SQLite; a file is less to learn and the brief is already JSON. The text is saved as well as the brief because the brief has no name and the model writes differently every run. A database later changes only the server: the app never sees the file. Departs from README build order 4 and BUILD.md step 8 ("load them again by name"): every run is saved, not only the ones worth keeping, and a save is loaded by number, because the name lives inside the model's text. See [ADR-003](docs/decisions/ADR-003-saved-character-is-brief-and-text.md). |
 | Tests | Small xUnit project, first appears at step 4 | The cap and the exit condition are the first things worth a test. Nothing before that is testable without spending money. |
 | OpenAI endpoint | Responses (`OpenAI.Responses.ResponsesClient`), not Chat Completions. Decided 2026-09-13. | `gpt-5.6-terra` rejects function tools on Chat Completions when reasoning is on (HTTP 400: "use /v1/responses or set reasoning_effort to 'none'"). Forcing effort to none would put a vendor workaround on options shared with Claude and switch off reasoning. Responses is marked experimental (`OPENAI001`), suppressed in `ModelClients.cs`. |
-| Traces | stderr, with a bracketed prefix: `[tool]` from the app's tool source, `[server]` from the MCP server. Decided 2026-09-13. Step 7 adds three more on the same channel: `[app]` for the provider, model and the rolled brief, `[skill]` for which file was loaded, `[loop]` for one line per model turn. | Stdout is the answer, and on the server it is the transport. Same channel and a prefix per side, so the two read as one trace. With the step 7 lines a plain run explains itself: every trait in the writing can be checked against the `[app] brief` line without a debugger. |
+| Traces | stderr, with a bracketed prefix: `[tool]` from the app's tool source, `[server]` from the MCP server. Decided 2026-09-13. Step 7 adds three more on the same channel: `[app]` for the provider, model and the rolled brief, `[skill]` for which file was loaded, `[loop]` for one line per model turn. Step 8 adds `[app] saved as N` after a run and `[app] loaded N` on a load. | Stdout is the answer, and on the server it is the transport. Same channel and a prefix per side, so the two read as one trace. With the step 7 lines a plain run explains itself: every trait in the writing can be checked against the `[app] brief` line without a debugger. |
 | Starting the server | `dotnet run --project <server> --no-build`, the path built from `AppContext.BaseDirectory`, the build order set by a `ProjectReference` with `ReferenceOutputAssembly="false"`. Decided 2026-09-19. | Works the same from the app and the tests, never starts a stale server, and shares no types. Dropping `--no-build` would rebuild on every launch and risk build output on stdout, which is the wire. |
 | Recording paid runs | One file per run in `docs/runs/`, captured by pasting the console, each standing on its own: commit before the run, and the `[skill]` line carries a content fingerprint. No index; observations live in `PLAN.md`'s step notes. Decided 2026-09-20. See [docs/runs/README.md](docs/runs/README.md) "Why not". | Runs cost money and are the only evidence for whether a skill edit helped. Redirecting reorders the trace against the answer, and a `git diff` between two SHAs is empty in the normal case, because tuning happens against a dirty tree. No record in `docs/decisions/`: this shapes a working practice rather than the code, so the reasoning lives with the practice. |
 | Occupation | Supplied like the setting: `--occupation`, default `"innkeeper"` next to the setting default in `Program.cs`. Not rolled. Decided 2026-09-19. See [ADR-002](docs/decisions/ADR-002-occupation-in-the-brief.md). | Three live runs let the model choose who the character is (an innkeeper twice, a patron once), and the README's success test asks for innkeepers. A table on the server cannot see the setting, so a rolled default would put "innkeeper" into a farm's brief as settled fact (the challenger). Departs from the README ("not one of the questions") and from BUILD.md's brief, which is step 8's save format. |
@@ -452,7 +452,12 @@ sections. Every run since has had all six, so the difference is the whole of wha
   `2239 chars, 6b58d7c2`: same count, different skill. Comparing output across skill versions is
   the whole premise of `docs/runs/`, and it rested on a number that cannot see half the edits.
 
-### 8. Saving 🧩
+### ✅ 8. Saving — done 2026-09-22, OpenAI
+
+Every run saves its brief and its written character, numbered, and `--load <number>` prints one
+back with no roll and no model call. Run 3 (`ForAPrice`) and its `--load 3` printed the same
+character (the user's eyes, 2026-09-22; `docs/runs/2026-09-22-01-save-and-load.md`), and the free
+round-trip test proves it byte for byte. Eight tests, still free.
 
 **What**
 - Every run is saved: the brief and the written character together, numbered in order (1, 2, 3...).
@@ -494,10 +499,54 @@ later would open.
 **Done when** a reloaded character is identical to the original, brief and text: the round-trip
 test passes, and one paid run followed by `--load` of its number prints the same character.
 
-**Before any code** — the first plan saved only the brief, under a name, with nothing that ever
-called `save_character`. The challenger (WEAKENED, 2026-09-22) found that the brief is not the
-whole character, that a mistyped name would reach the model as an empty brief, and that tests
-would share your save file. The decisions above answer all four.
+**Before any code** — the first plan saved only the brief, under a name. The challenger
+(WEAKENED, 2026-09-22) found four things: the brief is not the whole character, nothing ever
+called `save_character`, a mistyped name would reach the model as an empty brief, and tests would
+share your save file. The decisions above answer all four.
+
+**Changed**
+- `NpcForge.Server/Storage.cs` — new. `SavedCharacter(Brief, Text)`, and a static `Storage` with
+  `Load` and `Save` on one indented, camelCase file keyed by number. A file that will not parse
+  comes back as an `McpException` naming the path.
+- `CharacterTools.cs` — `save_character` (the next number is one past the highest) and
+  `load_character` (an unknown number throws `McpException`).
+- `McpToolSource.cs` — save and load join `AppOnly`. An optional save-file path goes to the
+  server as `NPCFORGE_CHARACTERS`.
+- `Program.cs` — `--load <number>`: connect, load, print, return. A bare `--load` stops before
+  anything runs, instead of falling through to a paid run. After a run: save, then
+  `[app] saved as N`. `Program.cs` prints the answer itself, so a run and a load print the same
+  way. The default model is `gpt-6-luna` since `5157aae` (it was `gpt-5.6-terra`).
+- `ChatAgent.cs` — returns the answer instead of printing it.
+- `NpcForge.Tests` — `Loads_a_saved_character_back_unchanged`, `Stops_on_a_number_that_was_never_saved`,
+  `Refuses_save_and_load_when_the_model_names_them`, each on its own temp file. Eight tests. Each
+  new one fails with the code it guards removed: without the filter the model's save returns
+  `"2"`, and without the path the save lands in the server's own file.
+- The user wrote the server and console code from sketches. The lead wrote the tests and the
+  save-file path, at the user's request.
+- The challenger ran three times: on the plan (above), on the server sketch (WEAKENED: a brief
+  sent as text fails with no reason, and a broken save file says nothing), and on the console
+  sketch (HOLDS, but a bare `--load` fell through to a paid run).
+
+**Seen in the debugger, worth remembering**
+- Lesson: A run and its --load look different in a console paste when the save is exact (docs/lessons/006-console-paste-not-byte-exact.md)
+- **A brief sent as text fails with no reason.** `save_character` takes a `CharacterBrief`, and
+  the app holds the brief as the text the roll returned. Sent as that text, it comes back as
+  `save_character failed: An error occurred invoking 'save_character'.` Sent as
+  `JsonDocument.Parse(briefJson).RootElement`, it saves. The challenger's probe found this
+  before anyone hit it.
+- **Only `McpException` carries its message to the app.** Any other exception thrown in a tool
+  arrives as `An error occurred invoking '<tool>'.`, and a `null` return arrives as empty content
+  with `IsError` false. Both are in the MCP 2.2.0 docs, and both were confirmed on a scratch copy.
+- **Everything over MCP is text.** `save_character` returns an `int`, and `savedAs` in
+  `Program.cs` is the string `"1"`.
+- **The app's own calls leave no `[tool]` line.** Save and load, like the roll, show only
+  `[server]` lines. `[tool]` lives in `InvokeAsync`, the model's door.
+- **A number means something only inside one file.** Moving the save file started again at 1:
+  Merrit Vale is number 1 in `%LOCALAPPDATA%\NpcForge`, and Mara Venn is number 1 in the project folder.
+- **A load still builds the model client,** so it needs the provider's API key even though it
+  never calls the model. Left as it is.
+- Names converge on `gpt-6-luna` as they did on the step 7 OpenAI models: Merrit Vale, Mara Venn,
+  Mara Venn.
 
 ## Finish line
 

@@ -12,6 +12,17 @@ the project's first path-scoped rule, `.claude/rules/lessons-npcforge-console.md
 `NpcForge.Console/**`, `NpcForge.Tests/**`, and `docs/runs/**` (the union of the three lessons'
 "Applies to" paths).
 
+2026-09-22 curate added 006 (console-paste encoding vs. `characters.json` byte-exactness) to the
+same rule file — it touches `NpcForge.Console/Program.cs` and `docs/runs/**`, already in scope,
+plus `NpcForge.Server/characters.json`, which was not. Rather than start a separate
+`NpcForge.Server` rule at 1 lesson, folded `NpcForge.Server/**` into the existing console rule's
+`paths:` frontmatter — the rule already existed and covers the app-and-server-together story
+(step 7/8 saving work); a standalone rule for one lesson would be exactly the "ceremony" the task
+rule warns against. `NpcForge.Server/**` now sits inside an existing rule despite having only one
+lesson naming it directly. Watch for this pattern each curate: a new lesson can extend an
+*existing* rule's paths without needing 3 lessons of its own in the added path, as long as the
+lesson also touches a path already in that rule.
+
 Other areas seen so far sit below the threshold and should stay index-only until a third lesson
 lands in the same folder:
 - `.claude/skills/crew/**` / Claude Code trust config — only 002 (VS Code lowercase-drive trust).

@@ -12,6 +12,17 @@ in the repo — not PLAN.md's "worth remembering" notes, not BUILD.md, not docs/
 reference was the pointer line in `docs/lessons/INDEX.md` itself, which the curate step already
 rewrites.
 
+Correction from the 2026-09-22 curate: this is NOT the reliable default — it just happened twice.
+The inbox entry `2026-09-22-console-paste-not-byte-exact.md`, added via the "add a line under the
+step's own worth remembering notes" path (see team.md's Lessons section), DID have a real
+backlink: PLAN.md step 8's "Seen in the debugger, worth remembering" list had a line
+`- Lesson: <title> (docs/lessons/inbox/<filename>)` pointing straight at the inbox path. That
+needed repointing to `docs/lessons/006-console-paste-not-byte-exact.md` same as the INDEX.md line.
+So: the `/crew:lesson` path (writes inbox + INDEX.md pointer only) tends not to leave other
+backlinks; the "note it under the step's own notes in PLAN.md" path can and did leave one, because
+that note itself sometimes names the inbox file. Grep for the inbox filename (not just the slug)
+across the whole repo every time — do not skip it as a formality.
+
 **Why:** `team.md`'s workflow files a lesson via `/crew:lesson`, which (per its own description)
 writes to the inbox and, it seems, also adds the INDEX.md inbox pointer line at file time — it
 does not appear to also cross-link from PLAN.md step notes at that point. The user's alternative
