@@ -14,8 +14,8 @@ is off it will say so in seconds.
 
 ## Decisions already made
 
-Settled in the step 1 and 2 sessions so they are not re-decided later. The two marked
-*assumed* are Claude's reading of the README — say so if wrong.
+Settled in the step 1 and 2 sessions so they are not re-decided later. The one marked
+*assumed* is Claude's reading of the README — say so if wrong.
 
 | Decision | Choice | Why |
 | --- | --- | --- |
@@ -26,7 +26,7 @@ Settled in the step 1 and 2 sessions so they are not re-decided later. The two m
 | Host / DI container | None. `Program.cs` wires by hand: config → client → options → run. Stripped 2026-09-12. | Step 5's `ConnectAsync` is async setup, and step 6's "roll before the model's first turn" has to be visible, in order. A container hides both. |
 | `AgentLoop.RunAsync` | Takes `List<ChatMessage>`, not `string opening` as in BUILD.md. `ChatOptions` comes in through the constructor. | Step 7 puts a system message at index 0. The caller builds the history; the loop never changes. |
 | Skills *(assumed)* | `SKILL.md` files in the repo, read by the app into the system prompt | Works with both providers. Anthropic's server-side Skills feature would tie the app to one. |
-| Storage *(assumed)* | One JSON file, in the server | BUILD.md allows file or SQLite. A file is less to learn and the brief is already JSON. |
+| Storage | One JSON file in the server, `characters.json`, holding every run's brief and written character, numbered in order. Decided 2026-09-22. | BUILD.md allows file or SQLite; a file is less to learn and the brief is already JSON. The text is saved as well as the brief because the brief has no name and the model writes differently every run. A database later changes only the server: the app never sees the file. |
 | Tests | Small xUnit project, first appears at step 4 | The cap and the exit condition are the first things worth a test. Nothing before that is testable without spending money. |
 | OpenAI endpoint | Responses (`OpenAI.Responses.ResponsesClient`), not Chat Completions. Decided 2026-09-13. | `gpt-5.6-terra` rejects function tools on Chat Completions when reasoning is on (HTTP 400: "use /v1/responses or set reasoning_effort to 'none'"). Forcing effort to none would put a vendor workaround on options shared with Claude and switch off reasoning. Responses is marked experimental (`OPENAI001`), suppressed in `ModelClients.cs`. |
 | Traces | stderr, with a bracketed prefix: `[tool]` from the app's tool source, `[server]` from the MCP server. Decided 2026-09-13. Step 7 adds three more on the same channel: `[app]` for the provider, model and the rolled brief, `[skill]` for which file was loaded, `[loop]` for one line per model turn. | Stdout is the answer, and on the server it is the transport. Same channel and a prefix per side, so the two read as one trace. With the step 7 lines a plain run explains itself: every trait in the writing can be checked against the `[app] brief` line without a debugger. |
@@ -455,33 +455,69 @@ sections. Every run since has had all six, so the difference is the whole of wha
 ### 8. Saving 🧩
 
 **What**
-- Server tools `save_character(name, brief)` and `load_character(name)`, backed by one JSON file next to the server.
-- Add both names to `AppOnly`.
-- Console: `--load <name>` skips rolling and uses the saved brief.
+- Every run is saved: the brief and the written character together, numbered in order (1, 2, 3...).
+  Nothing is chosen or named at save time. Keeping only some can come later.
+- Server tools `save_character(brief, text)`, which returns the new number, and
+  `load_character(number)`, which returns the brief and the text. Both go in `AppOnly`: only the
+  app calls them.
+- One file, `characters.json`. The server takes its path from the environment variable
+  `NPCFORGE_CHARACTERS` if set, otherwise `%LOCALAPPDATA%\NpcForge\characters.json`: outside
+  `bin`, so deleting `bin` to fix a build keeps your saves. Never a relative path: the server's
+  working folder is wherever the app was started from (step 7).
+- Console: after the run, the app saves and prints `[app] saved as 3`. `--load 3` skips the roll
+  and the model: it prints the saved character exactly as it was. `ChatAgent.RunAsync` returns the
+  answer so `Program.cs` can save it.
+- A number that was never saved stops the run with an error. `load_character` throws
+  `McpException`, the one exception whose message reaches the app, and `CallDirectAsync` already
+  throws on `IsError`. Returning `null` would not do it: the SDK sends that back as empty content,
+  not an error, and the model would be handed an empty brief.
+- Tests: `McpToolSource` takes an optional file path and hands it to the server as
+  `NPCFORGE_CHARACTERS`. Each test uses its own temp file, so no test touches your saves.
 
-**Why** — The brief is the save format. Persist it and the character comes back identical.
+**Why** — README build order 4: store the character "along with the brief that produced them".
+The brief alone is not the character. It has no name, and the model writes differently every run,
+so reloading only the brief gives the same traits and a new innkeeper. Saving the text is what
+makes "load the second one back unchanged" true, and it is what someone working on a character
+later would open.
 
-**Shape — in `CharacterTools.cs`**
+**Shape** — sketched one change at a time, compiled and challenged before you type it.
 
-```csharp
-[McpServerTool(Name = "save_character"), Description("Keep a character worth keeping, by name.")]
-public static string SaveCharacter(string name, CharacterBrief brief)
-{
-    var all = Storage.Load();               // Dictionary<string, CharacterBrief> from the JSON file, or empty
-    all[name] = brief;
-    Storage.Save(all);
-    return $"Saved '{name}'.";
-}
+**Tests**, all free, against the real server:
+- Save, then load: the brief and the text come back identical.
+- Loading a number that was never saved throws from `CallDirectAsync`.
+- The model cannot reach `save_character` or `load_character` by naming them. Lesson 004: give
+  arguments that would otherwise succeed. The temp file makes a real save harmless if the filter
+  is ever removed.
 
-[McpServerTool(Name = "load_character"), Description("Load a kept character by name.")]
-public static CharacterBrief? LoadCharacter(string name)
-    => Storage.Load().GetValueOrDefault(name);
-```
+**Done when** a reloaded character is identical to the original, brief and text: the round-trip
+test passes, and one paid run followed by `--load` of its number prints the same character.
 
-`Storage` is a static class with `Load` and `Save`: `File.ReadAllText` / `WriteAllText` on `characters.json` next to the exe, through `JsonSerializer`. Ten lines.
-
-**Done when** a reloaded character is identical to the original.
+**Before any code** — the first plan saved only the brief, under a name, with nothing that ever
+called `save_character`. The challenger (WEAKENED, 2026-09-22) found that the brief is not the
+whole character, that a mistyped name would reach the model as an empty brief, and that tests
+would share your save file. The decisions above answer all four.
 
 ## Finish line
 
 The success test is in the README ("Success test"): same three answers, three runs, three genuinely different characters, load the second one back unchanged. Out of scope is listed there too — don't start any of it.
+
+## After the finish line — not planned yet
+
+Talked through on 2026-09-22, at the start of step 8. None of this is a step yet. Planning it
+changes the project's direction, so it gets a new plan version in `docs/plans/` and a challenge
+first.
+
+- **Saving is a proof of concept.** The long-term idea: a user logs in, sees the characters and
+  dialogue they made, and works on them further. The JSON file stays for now. A database later
+  changes only the server's storage, because the app only ever calls `save_character` and
+  `load_character`. That's the same kind of swap `IToolSource` allowed at step 5. README lists a real
+  database and any interface beyond the console as out of scope for this plan.
+- **Next: talk to the app instead of passing flags.** It covers two separate ideas:
+  - *Asking for the answers* (setting, want, difficulty, occupation). README says the console
+    app asks them. Plain `Console.ReadLine` does it with no model. If the model ever gathers
+    them, the app still does the roll: `roll_character` stays out of the model's reach.
+  - *Carrying on the conversation* after the character is written ("make him warier"). New for
+    the loop: a history that keeps growing over many turns. It is also where prompt caching should
+    finally show up, since step 7 found the prompt too small for it.
+- **Saving every run stands in for choosing what to keep.** Revisit it with the interactive
+  console, which is where a "Save as?" question or naming a character belongs.

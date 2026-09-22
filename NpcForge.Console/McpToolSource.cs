@@ -22,8 +22,9 @@ namespace NpcForge
         private IList<McpClientTool> _tools = [];
 
         // Tools only the app calls. A tool the model can see is a tool it can skip, so these
-        // never reach its list. Grows at step 8 with save and load.
-        private static readonly string[] AppOnly = ["roll_character"];
+        // never reach its list. Save and load are the app's too: the model never touches the file.
+        private static readonly string[] AppOnly = ["roll_character", "save_character", "load_character"];
+
 
         // The model's half of _tools. One place, so ListAsync and InvokeAsync can never
         // disagree about what the model may reach: a tool that is not on the list it was

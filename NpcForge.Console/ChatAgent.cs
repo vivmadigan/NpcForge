@@ -4,13 +4,13 @@ using System.Text;                      // Encoding
 
 namespace NpcForge;
 
-// Build the loop with the tool source it is given, run it, print the answer. It never
+// Build the loop with the tool source it is given, run it, return the answer. It never
 // knows whether the tools are fake or MCP; that is IToolSource's job. The brief arrives
 // already rolled: rolling is Program.cs's business, not the loop's.
 
 public static class ChatAgent
 {
-    public static async Task RunAsync(IChatClient client, ChatOptions options, IToolSource tools, string briefJson)
+    public static async Task<string> RunAsync(IChatClient client, ChatOptions options, IToolSource tools, string briefJson)
     {
         var loop = new AgentLoop(client, tools, options);
 
@@ -41,7 +41,8 @@ public static class ChatAgent
         };
 
         var answer = await loop.RunAsync(history, CancellationToken.None);
-        Console.WriteLine(answer);
+        // Returned, not printed: Program.cs prints it, the same way for a run and for a load.
+        return answer;
 
     }
 }
