@@ -1,0 +1,34 @@
+{
+  "1": {
+    "brief": {
+      "setting": "an inn in a major city",
+      "playersWant": "the name of a fence",
+      "difficulty": "Wall",
+      "occupation": "innkeeper",
+      "characterWants": "to keep a secret buried",
+      "obstacle": "Wont",
+      "attitude": "frightened",
+      "mannerism": "answers questions with questions",
+      "weakness": "has a soft spot for animals",
+      "willNotDiscuss": "an embarrassing superstition",
+      "wrongAbout": "thinks a common animal is much more dangerous than it is"
+    },
+    "text": "## Who they are\n**Mara Venn** has kept an inn in the city’s crowded east quarter for twelve years.\n\n## Where they stand\nMara knows the name of the fence the players are looking for. She is determined to keep it—and whatever it connects to—buried. She will not give the name away in the opening.\n\n## How they seem, and what is underneath\nShe is frightened, watchful, and turns questions back on the asker: “Why do you need to know?” Beneath that, she is guarding the secret, not merely being difficult. A rat in the pantry can make her visibly uneasy; she believes it’s far more dangerous than it is.\n\n## Levers\n- **Soft spot for animals:** Show real care for an animal in her keeping, and promise it won’t be put at risk by the fence. Mara hesitates, then gives the name—costing herself the secret she wanted buried. “You’d keep it safe? Then… the name is Rusk. Don’t make me regret this.”\n- **Frightened:** Make clear that the players aren’t there to threaten or expose her, and give her a reason to believe them. She may risk telling them, still afraid of what follows. “If I tell you, what happens to me?”\n- **Wrong about:** Convince her the rat is not the deadly threat she thinks it is. Her fear eases enough for her to listen, though it does not by itself win the name. “You’re sure? Then why does it keep coming back?”\n\n## Anti-levers\n- **Keep a secret buried:** Demand the name or threaten to expose what she’s hiding. She clamps down. “Why would I help you dig up something I’ve worked so hard to bury?”\n- **Frightened:** Raise your voice or make a show of force. Her fear turns to refusal. “What makes you think I’d tell you anything?”\n- **Will not discuss:** Press her about her embarrassing superstition. She shuts the subject down and won’t engage with it. “Why are you asking me that?”\n\n## Afterwards\n**Got it:** If the players earn her trust or protect an animal she cares about, she gives them Rusk’s name and regrets letting the secret out.  \n**Didn’t:** If they leave without winning her over, she keeps the name buried.  \n**Made an enemy:** If they threaten her or put an animal she cares about in danger, she refuses and remembers who did it."
+  },
+  "2": {
+    "brief": {
+      "setting": "an inn in a major city",
+      "playersWant": "the name of a fence",
+      "difficulty": "Wall",
+      "occupation": "innkeeper",
+      "characterWants": "to avoid someone they owe a favour to",
+      "obstacle": "Cant",
+      "attitude": "easily offended",
+      "mannerism": "answers before others finish speaking",
+      "weakness": "is easily flattered",
+      "willNotDiscuss": "their plans for later",
+      "wrongAbout": "thinks ignoring a problem usually makes it go away"
+    },
+    "text": "## Who they are\n**Nella Voss** runs a busy inn near the city’s main market; she learned the trade by keeping a sharp eye on who came through her doors.\n\n## Where they stand\nShe understands the players want the name of a fence, but she doesn’t know it. She can offer a lead to people who might make an introduction, but she won’t do so unless the players help her avoid someone she owes a favour to.\n\n## How they seem, and what is underneath\nNella is brisk and easily offended. She answers before anyone has finished speaking, then takes offence if they point it out. Beneath that, she’s watching the room for the person she owes—and convincing herself that if she ignores the problem, it will go away.\n\n## Levers\n- **Help her avoid someone she owes a favour to** *[characterWants]*: “Yes, yes, I heard you—keep that fellow by the front door occupied, and I’ll tell you which coachmen might know who can make an introduction.”\n- **Flatter her judgment** *[weakness]*: “You’ve clearly got a better eye for this than most. Well—there’s a discreet way to ask around among the market coachmen. I can point you to it.”\n- **Offer a practical lead instead of pressing for a name** *[obstacle: Cant]*: “I don’t know the fence’s name! But I can tell you where to start asking. Don’t interrupt—this part matters.”\n\n## Anti-levers\n- **Take offence at her manner or accuse her of being difficult** *[attitude]*: “Difficult? I’m answering you, aren’t I? Then listen when I do.”\n- **Demand the name again as if she’s hiding it** *[obstacle: Cant]*: “I told you, I don’t know it. Stop asking me for something I can’t give.”\n- **Ask about her plans for later** *[willNotDiscuss]*: “That’s none of your business. We’re talking about your question—or we’re not talking.”\n\n## Afterwards\n- **Got it:** If the players help her avoid the person she owes, she gives them the lead to the market coachmen, though not the fence’s name.\n- **Didn’t:** If they leave without helping, she returns to her work and hopes the problem will disappear if she ignores it.\n- **Made an enemy:** If they press her for a name she doesn’t know or insult her, she remembers the slight and is less willing to help them next time."
+  }
+}
