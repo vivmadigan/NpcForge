@@ -12,12 +12,12 @@ namespace NpcForge.Server
     public static class Storage
     {
         // Always absolute: a relative path depends on where the app was started (step 7). Tests
-        // set NPCFORGE_CHARACTERS to a temp file; otherwise it lives outside bin.
+        // set NPCFORGE_CHARACTERS to a temp file; otherwise it sits in the server's project
+        // folder, three up from bin\Debug\net10.0, where you can find it.
         private static string FilePath =>
             Environment.GetEnvironmentVariable("NPCFORGE_CHARACTERS")
-            ?? Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                "NpcForge", "characters.json");
+            ?? Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "characters.json"));
+
 
         // Same camelCase names as the [app] brief line, indented so you can read the file, and
         // apostrophes and dashes left as they are.

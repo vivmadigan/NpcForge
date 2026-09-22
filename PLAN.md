@@ -461,9 +461,11 @@ sections. Every run since has had all six, so the difference is the whole of wha
   `load_character(number)`, which returns the brief and the text. Both go in `AppOnly`: only the
   app calls them.
 - One file, `characters.json`. The server takes its path from the environment variable
-  `NPCFORGE_CHARACTERS` if set, otherwise `%LOCALAPPDATA%\NpcForge\characters.json`: outside
-  `bin`, so deleting `bin` to fix a build keeps your saves. Never a relative path: the server's
-  working folder is wherever the app was started from (step 7).
+  `NPCFORGE_CHARACTERS` if set, otherwise `NpcForge.Server\characters.json`: the server's
+  project folder, three up from its `bin\Debug\net10.0`, where you can find it and where
+  deleting `bin` does not touch it. (First `%LOCALAPPDATA%\NpcForge`, moved 2026-09-22 because
+  it was hard to find.) Never a relative path: the server's working folder is wherever the app
+  was started from (step 7).
 - Console: after the run, the app saves and prints `[app] saved as 3`. `--load 3` skips the roll
   and the model: it prints the saved character exactly as it was. `ChatAgent.RunAsync` returns the
   answer so `Program.cs` can save it.

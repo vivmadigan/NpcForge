@@ -31,6 +31,12 @@ namespace NpcForge
         // given is not a tool it can call by naming it.
         private IEnumerable<McpClientTool> ModelTools => _tools.Where(t => !AppOnly.Contains(t.Name));
 
+        // Which file the server saves characters in. Null leaves the server on its own default;
+        // the tests pass a temp file so they never touch your saves.
+        private readonly string? _charactersPath;
+
+        public McpToolSource(string? charactersPath = null) => _charactersPath = charactersPath;
+
         // Start the server, shake hands, ask what tools it has.
         public async Task ConnectAsync(CancellationToken ct)
         {
@@ -47,6 +53,12 @@ namespace NpcForge
                 Command = "dotnet",
                 Arguments = ["run", "--project", serverProject, "--no-build"],
                 StandardErrorLines = line => Console.Error.WriteLine($"[server] {line}"),
+
+                // Storage.cs reads this. An environment variable reaches the child process
+                // before any MCP message does, and survives the hop through dotnet run.
+                EnvironmentVariables = _charactersPath is null
+                    ? null
+                    : new Dictionary<string, string?> { ["NPCFORGE_CHARACTERS"] = _charactersPath },
             });
 
             // Library code from the ModelContextProtocol package. It starts the process, then runs
