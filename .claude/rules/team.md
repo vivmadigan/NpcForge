@@ -8,8 +8,8 @@ This file is the one place where the crew's generic agents learn about THIS proj
 - Run: `dotnet run --project NpcForge.Console` (OpenAI by default; `-- --provider anthropic --model claude-sonnet-5` for Claude). Runs cost money; agents do not run the app unless asked.
 
 ## Where things are
-- Plan with the step list and "Done when" conditions: `PLAN.md` (numbered steps, ✅ marks a finished one, each finished step has "Changed" and "Seen in the debugger, worth remembering" sections)
-- What each step proves and the stop condition in one line: `BUILD.md` "Build steps"
+- Plan with the step list and "Done when" conditions: `PLAN.md` (numbered steps, ✅ marks a finished one, each finished step has "Changed" and "Seen in the debugger, worth remembering" sections). It holds steps 9 to 13, from plan v04. Steps 1 to 8 and their notes are in `docs/plans/steps-1-to-8.md`; an older document that says "PLAN.md step N" for N ≤ 8 means that file.
+- What each step proves and the stop condition in one line: `BUILD.md` "Build steps" for steps 1 to 8; `PLAN.md` "The steps at a glance" and each step's "Done when" from step 9
 - Documents that define how code here should read: `AGENTS.md` "Code" and "Easy to get wrong"; `BUILD.md` "How the code should read" and "Things that will bite"
 - Decisions register (the live list, one line each): the "Decisions already made" table in `PLAN.md`. Full records with alternatives and consequences: `docs/decisions/` (immutable; a new record supersedes an old one). The table links to the record when one exists.
 - Plan versions: `docs/plans/` (immutable snapshots; `PLAN.md` itself is live and edited freely)

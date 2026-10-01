@@ -6,3 +6,9 @@ Snapshots of where the plan was headed and why it changed. `PLAN.md` is the livi
 - [v02 Steps 5 to 8 done — MCP, rolled briefs, a skill, and saving as brief-plus-text](v02-2026-09-22-save-brief-and-text.md) — 2026-09-22
 - [v03 Past the finish line — a replay safety net, Clean Architecture, tone and importance, and a scene interview](v03-2026-09-26-replay-layers-tone-interview.md) — 2026-09-26
 - [v04 v03 revised — layers only when they hold something, a re-record rule, two answer checks, a variety floor, and a checkpoint after the server layers](v04-2026-09-26-checks-floor-checkpoint.md) — 2026-09-26
+
+## Finished steps
+
+Not versions. When `PLAN.md` starts fresh, the finished steps and their notes move here unchanged.
+
+- [Steps 1 to 8, with their "Changed" and "Seen in the debugger" notes](steps-1-to-8.md) — archived 2026-10-01
