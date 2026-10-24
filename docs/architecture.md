@@ -135,8 +135,10 @@ One real run is recorded once, and the whole app replays against it for free (AD
 - **What forces a re-record.** Anything that changes what the model is sent: `SKILL.md`, a tool's
   description or schema, a `ChatOptions` field, the first message. Anything that changes the seeded
   brief: an entry in `Tables.cs`, the order of the picks, a .NET major version that changes
-  `new Random(seed)`. Re-record after a deliberate behavior change only, never for a restructure. The
-  command is in `docs/runs/README.md`.
+  `new Random(seed)`. And an upgrade of the AI, OpenAI or MCP libraries, because the recording is
+  their JSON. Re-record after a deliberate behavior change or such an upgrade only, never for a
+  restructure. A re-record with no tool call fails the test; ask the owner before paying again. The
+  command and the rules are in `docs/runs/README.md`.
 - **By hand, free.** `docs/runs/README.md` has the replay command. Give it `NPCFORGE_CHARACTERS`, or
   its save lands in the tracked `characters.json`.
 

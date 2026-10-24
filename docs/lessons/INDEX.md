@@ -16,3 +16,4 @@ not a lesson. Older lessons mention `PLAN.md` and plan versions; those are in gi
 - [004 A test asserting on "Tool failed:" can pass for the wrong reason](004-tool-failed-prefix-hides-why.md) — applies to: NpcForge.Tests/**, NpcForge.Console/McpToolSource.cs
 - [005 Redirecting a run to a file in PowerShell reorders the trace against the answer](005-powershell-redirect-reorders-trace.md) — applies to: docs/runs/**, NpcForge.Console/AgentLoop.cs, NpcForge.Console/Program.cs
 - [006 A run and its --load look different in a console paste when the save is exact](006-console-paste-not-byte-exact.md) — applies to: docs/runs/**, NpcForge.Console/Program.cs, NpcForge.Server/characters.json
+- [007 A launch profile puts a line on stdout above the answer](007-launch-profile-stdout-line.md) — applies to: `**/Properties/launchSettings.json`, NpcForge.Tests/ReplayTests.cs, docs/runs/**
