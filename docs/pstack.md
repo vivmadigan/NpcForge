@@ -36,8 +36,9 @@ Smaller tasks (one file, a question, a one-line edit) are done directly.
 `/pstack:poteto-mode`, `/pstack:how`, and so on. pstack's own examples write `/poteto-mode`; on
 Claude Code, use the prefixed form.
 
-**Your loop, start to finish:** push `master`, hand over a task card, approve any paid run when
-asked, review the PR it opens, merge it on GitHub, then pull `master`.
+**Your loop, start to finish:** push `master`, hand over an epic from `ROADMAP.md` (or a task with
+a goal, constraints and a done check), approve any paid run when asked, review the PR it opens,
+merge it on GitHub, then pull `master`.
 
 **Mid-chat**, start a message with "new task" when the subject changes. Otherwise `poteto-mode`
 treats your message as the next step of the last task.
@@ -48,8 +49,8 @@ NpcForge's rules" below.
 
 ## Writing a request
 
-pstack's own advice, in short. It matches AGENTS.md's task cards: the goal is the Task, the real
-constraints are the Constraints, and the done check is the Done when.
+pstack's own advice, in short. It matches how an epic is written in `ROADMAP.md`: the goal is the
+Goal, the real constraints are the Constraints, and the done check is the Done when.
 
 **Put in:**
 - the goal: what is wrong, or what you want;
@@ -121,22 +122,22 @@ outside it.
 
 These are illustrations built from pstack's own example prompts. Swap in the real details.
 
-**A feature card (step 9).**
+**An epic (Safety net).**
 ```text
-/pstack:poteto-mode Do the step 9 card in ROADMAP.md. Its "Done when" is the done check.
+/pstack:poteto-mode Do the Safety net epic in ROADMAP.md. Its "Done when" is the done check.
 Ask me before the paid recording run. Show me the real dotnet test output, and each of the
 three break-it checks failing and then passing.
 ```
 Expect the Feature playbook: a design pass, a delegate writing the code in its own worktree, then
 evidence and a PR for you to review. You decide the paid run.
 
-**A refactor (step 10).**
+**A restructure (Ready to grow).**
 ```text
-/pstack:poteto-mode Do the step 10 card. Zero behavior change: the replay test must pass
+/pstack:poteto-mode Do the Ready to grow epic. Zero behavior change: the replay test must pass
 unchanged and must not be re-recorded. Show me the test output before and after.
 ```
-The Refactoring playbook pins behavior before moving anything, and step 9's replay test is exactly
-that pin.
+The Refactoring playbook pins behavior before moving anything, and the Safety net's replay test is
+exactly that pin.
 
 **A bug.**
 ```text
@@ -149,10 +150,10 @@ that pin.
 /pstack:why why is a saved character the brief and the text together?
 ```
 
-**Design before building (step 11).**
+**Design before building (one task from Better characters).**
 ```text
-/pstack:poteto-mode We need step 11. /pstack:architect it first, and answer open questions
-with prototypes. Let me review before proceeding.
+/pstack:poteto-mode We need the tone task from the Better characters epic. /pstack:architect it
+first, and answer open questions with prototypes. Let me review before proceeding.
 ```
 
 **Review before you commit.**

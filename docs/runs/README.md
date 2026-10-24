@@ -13,9 +13,23 @@ against a changed skill or prompt, so a change can be judged instead of guessed 
    and the token counts. Most of it is on the `[app]`, `[skill]` and `[loop]` lines.
 5. End with what the run showed.
 
-`raw/` holds full pastes that a summary file here points at. From step 9, a run made with `--record`
-also has its transcript, kept beside the paste: it holds the model's side byte for byte, but none of
-the trace.
+`raw/` holds full pastes that a summary file here points at. Once the Safety net epic is built, a
+run made with `--record` also has its transcript, kept beside the paste: it holds the model's side
+byte for byte, but none of the trace.
+
+## The replay fixture
+
+The Safety net epic records one run, and the free replay test runs the whole app against it. This is
+the scene to record, with every answer spelled out so a changed default can't change it silently.
+It is paid: ask the owner first, and commit before running it.
+
+```text
+dotnet run --project NpcForge.Console -- --record NpcForge.Tests/Fixtures/replay.jsonl --seed 1 --provider openai --model gpt-6-luna --setting "an inn in a major city" --want "the name of a fence" --difficulty Wall --occupation innkeeper
+```
+
+Re-record only after a deliberate behavior change, once it has settled, in the same PR. Never
+re-record to make a restructure pass: a red replay there is the bug the test exists to catch. A
+feature that adds answers (tone, importance) adds their flags here.
 
 ## Why it is done this way
 

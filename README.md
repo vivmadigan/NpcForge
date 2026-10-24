@@ -80,15 +80,16 @@ call.
 
 Works end to end on OpenAI and Anthropic. The success test has passed: the same answers, three
 runs, three genuinely different characters whose levers differ, and a saved one loaded back
-unchanged. Next is a free replay of a recorded run, so a refactor can be proved without paying.
-See [ROADMAP.md](ROADMAP.md).
+unchanged. Next is the "Safety net": a free replay of a recorded run, so any later change can be
+checked without paying. After that: talking to the app instead of typing flags, better characters
+(tone, names that don't repeat), keeping and editing characters, and in time a website with logins
+and a database so friends can use it. See [ROADMAP.md](ROADMAP.md).
 
 ## Out of scope, for now
 
 - Anything tied to a specific campaign, factions and their politics included
 - Tracking how a character feels about the players over time
 - Use during a live session
-- Any interface beyond the console, and a real database
 
 The app has no world to ask about. Local trouble ("does not deal with the thieves' guild") has to
 arrive with the setting, or the model invents it. That is the seam where a real campaign would

@@ -1,241 +1,168 @@
 # Roadmap
 
-The next tasks, in order, one card each: Task, Constraints, Done when. `AGENTS.md` says how a card is
-worked. A finished card is deleted from here; what it decided goes into an ADR, and what it taught
-goes into a lesson.
+What's next, as epics, top to bottom. Each epic says what I want and how I'll know it works.
+pstack decides how to build it (`docs/pstack.md`), and `AGENTS.md` says how the work is done. When
+an epic is finished, its section shrinks to one line under **Done**.
 
-| Step | Task | Kind | Paid runs |
-| --- | --- | --- | --- |
-| 9 | A run you can replay for free | harness | 1, the recording |
-| 10 | The server in layers | refactor | none |
-| — | Checkpoint: did the server layers earn their place? | review | none |
-| 11 | Tone, importance and name dice | feature | about 7 |
-| 12 | The console in layers, and a harder harness | refactor | 1 |
-| 13 | The scene interview | feature | about 7, on two vendors |
+## Writing an epic
 
-Two rules for every step:
-- **A refactor and a feature never share a step.** Otherwise a refactoring bug and a feature bug
-  cannot be told apart.
-- **Refactor steps pass the replay test unchanged and never re-record.** Feature steps re-record once,
-  after the change has settled, in the same commit as the change.
+Copy this. Write it the way a user would describe the app, not the code.
 
-## 9. A run you can replay for free
+```text
+## <Name>
 
-**Task.** Make a whole run reproducible, and free to re-run.
-- `--seed <number>` fixes the dice. The server reads the seed from `NPCFORGE_SEED` and says which
-  it used on stderr: `[server] dice: seed N` or `[server] dice: random`.
-- `--record <file>` makes a normal paid run and also writes every model request and reply to a JSONL
-  file. Line 1 holds the flags the run actually used.
-- `--provider replay --recording <file>` answers from the file, free. If the app sends anything
-  different from what was recorded, it stops and names the first line that differs.
-- A test runs the whole app as a process against the recording and checks what it saved.
+**Goal.** What I want, in a sentence or two.
 
-Why: steps 10 and 12 each restructure a whole process, and "behaviour unchanged" has to be a test
-result, not a paid run judged by eye. Design: ADR-005.
+**Constraints.** What must not change, and any limits: cost, rules, style.
 
-**Constraints**
-- The seed is never a `roll_character` parameter. That tool's parameters are exactly the brief
-  fields a GM may set, and step 13 builds its interview from them.
-- The replay compares every message in order, the model's own included, plus the model id, the
-  output cap, and each tool's name, description and schema, with line endings normalised. ADR-005
-  says the model's messages are left out; that line is wrong, because leaving them out let a dropped
-  model turn pass every test.
-- Recording is `IChatClient` middleware (`DelegatingChatClient`), so nothing else knows it happens.
-- `--record` needs `--seed`. A replay must never write to the file it reads.
-- The test checks the save file, not stdout (lesson 006). What it expects comes from the recording.
-- Making the recording is one paid run: ask first. Commit before it, and record it in `docs/runs/`.
-- The fixture is `NpcForge.Tests/Fixtures/replay.jsonl`, committed. The run file in `docs/runs/`
-  names it as the run's transcript; it is not copied there.
-- A worked version of every file, built and run in a throwaway copy on 2026-10-01, is lines 70 to
-  680 of the old plan: `git show cd20b60:PLAN.md`.
+**Done when.** Checks that pass or fail: a test, a command, something I can see.
+Mark anything only I can judge as *needs my eyes*.
 
-**Done when**
-- `dotnet test` passes with no network, including a seed test (the same seed gives the same brief
-  from two separate servers) and the replay test.
-- Each of these makes the replay test fail, and is then undone: one word changed in `SKILL.md`; the
-  tool list emptied before the model call; the model's turn left out of the history.
-- The seed test fails without the line that passes the seed to the server.
-- The fixture is committed with its run file in `docs/runs/`.
-
-The recording command, paid. This is the only place it is written down:
-
-```
-dotnet run --project NpcForge.Console -- --record NpcForge.Tests/Fixtures/replay.jsonl --seed 1 --provider openai --model gpt-6-luna --setting "an inn in a major city" --want "the name of a fence" --difficulty Wall --occupation innkeeper
+**Tasks.** Optional. One line each, if I already know the pieces.
 ```
 
-## 10. The server in layers
+Every epic inherits AGENTS.md's "Rules that must not break", so they aren't repeated here.
 
-**Task.** Split the server into Domain, Application and Infrastructure projects behind the existing
-host, in three slices that each build and pass:
-- **10a. The roll.** `NpcForge.Server.Domain` holds the brief as a value object, the enums, the
-  tables and the roll rules. `NpcForge.Server.Application` holds the handler. Each MCP tool method
-  shrinks to "map the arguments, call the handler, return".
-- **10b. Save and load.** `NpcForge.Server.Infrastructure` holds the JSON file behind
-  `ICharacterRepository`, with a stored type of its own so the save format can outlive changes to the
-  brief. `load_character` becomes a query returning `SavedCharacterView`, a read model in Application,
-  filled through `ISavedCharacterReader`. A save writes the old entries back as stored.
-- **10c. MediatR.** Three handlers and one behaviour that earns the pipeline: a `[server]` line per
-  request with its name and duration. A new `NpcForge.Server.Tests` holds domain and handler tests
-  with a seeded `Random`, with no process.
+Two rules for every epic, once the Safety net exists:
+- **A restructure and a new behavior go in separate PRs.** Otherwise a bug can't be traced to one
+  or the other.
+- **A restructure passes the replay test unchanged and never re-records it.** A behavior change
+  re-records it once, after the change has settled, in the same PR.
 
-**Constraints**
-- An ADR first: Clean Architecture, DDD and CQRS, server first. It replaces AGENTS.md's "No Clean
-  Architecture layering" for the server. A second ADR at 10b for the stored shape, and one at 10c
-  for MediatR and its licence.
-- Write a `tools/list` snapshot test (names and input schemas) before moving anything. That JSON is
-  the only contract between the processes.
-- `Random` is passed in. Shared and seeded are the two kinds, so no `IDice` interface.
-- The view's brief serialises exactly as a rolled brief does: same names, same order, every value a
-  string. The round-trip test is not edited.
-- Decide whether rolling is a command or a query, and write down why.
-- Nothing on the server writes to stdout. MediatR's licence warning must go to stderr; then set the
-  key. Lesson 003 applies to every new `.csproj`.
+## The epics
 
-**Done when**
-- Every existing test and the replay test pass with no test edits.
-- The `tools/list` snapshot still matches.
-- The committed `characters.json` loads through the new query, and a save after it leaves the old
-  entries byte-identical.
-- `NpcForge.Server.Domain.csproj` has no package or project references.
-- The console has no diff.
+| # | Epic | In one line |
+| --- | --- | --- |
+| 1 | Safety net | Check for free that a change didn't break the app |
+| 2 | Talk to it | Describe the scene in a conversation instead of flags |
+| 3 | Better characters | Tone, names that don't repeat, and a writers' lab |
+| 4 | Keep and edit | Choose what to keep, and change it later |
+| 5 | Ready to grow | A structure that can sit behind a website and a database |
+| 6 | Friends can use it | A website with logins and a database, deployed |
 
-## Checkpoint: did the server layers earn their place?
+Epics 4 to 6 are drafts: sharpen each one before it starts.
 
-**Task.** A short review before step 11 builds on the layers. No code. Answer each from what
-happened in step 10, not from what layers promise:
-1. Did the dependency rule catch anything the old single project would have allowed?
-2. Did testing get easier: how many domain tests run with no process, and how fast?
-3. Does each part of step 11 (tone tags and filter, name dice, new stored fields) have one obvious
-   home?
-4. Can one roll be followed from the tool method to the domain in the debugger, and explained a day
-   later?
-5. Did MediatR pay for itself: one behaviour over three handlers, against three direct calls?
+## 1. Safety net
 
-**Done when** I have chosen one: keep everything; keep the projects and drop MediatR; fold
-Application and Infrastructure back into the host; or go back to the step 9 shape. Anything but
-"keep everything" is an ADR, and step 12 is re-planned to match. *Needs my eyes.*
+**Goal.** I want to check, for free, that a change hasn't broken the app. One real run is recorded
+once. After that, the whole app can be run against the recording at no cost, and the same dice
+setting gives the same character's traits every time.
 
-## 11. Tone, importance and name dice
+**Constraints.**
+- Making the recording is one paid run: ask me first. The scene to record is in
+  `docs/runs/README.md`.
+- `dotnet test` stays free: no network, no model calls.
+- Fixing the dice is an app setting. It is never one of the inputs to the roll, which stay the
+  brief fields a GM may set.
+- The design is already decided: ADR-005, with the correction noted in `docs/decisions/INDEX.md`.
+  A worked version from 2026-10-01 is in `git show cd20b60:PLAN.md`, lines 70 to 680.
 
-**Task.**
-- **Tone** (`Serious`, `Comic`, `Heartfelt`) joins the brief: set by the GM, rolled if left out.
-  Table entries that clash with a tone are tagged `NotFor` and never roll for it.
-- **Importance** (`Throwaway`, `Recurring`): set by the GM, default `Throwaway`, never rolled. A
-  `Recurring` character rolls one extra field (open question 1).
-- **Name dice** for every character: an initial and a syllable count (`One`, `Two`, `Three`), so
-  names stop converging. Either can be set by hand.
-- **Skill:** `SKILL.md` stays the core, plus a line that the name follows its dice. New files
-  `tones/{serious,comic,heartfelt}.md` and `importance/{throwaway,recurring}.md`. The app loads the
-  core plus the one tone and one importance file the brief names: code chooses, not the model.
-- **Console:** `--tone` and `--importance`.
+**Done when.**
+- `dotnet test` passes with no network, including a test that runs the whole app against the
+  recording and checks what it saved.
+- That test fails if the app sends the model anything different: a word changed in the writing
+  skill, the tool list emptied, or the model's turn left out of the history.
+- The same dice setting gives the same traits from two separate runs.
+- The recording is committed, and its run is written up in `docs/runs/`.
 
-**Constraints**
-- An ADR first: tone, importance and name dice join the brief.
-- **Variety floor of six.** Every table keeps at least six entries in every difficulty × tone
-  combination, after filtering. Wall has five wants today, so it needs at least one more, plus one for
-  each Wall want the most-excluding tone removes. Tag first, then count. `obstacle`, `tone` and the
-  syllable count are fixed kinds, exempt by name. The floor test calls the roll's own filter code.
-- **Old saves read as "unknown"** for every field added here. The domain brief requires them; the
-  stored type has them optional; the reader writes "unknown" into the view; a save writes old entries
-  back untouched and never writes "unknown". An old save is read-only history.
-- The console reads two properties from the brief's JSON to pick files. Still no `CharacterBrief`
-  type there. The `[skill]` line lists the files and fingerprints the combined text.
-- Re-record the fixture once, after the skill files settle, with `--tone` and `--importance` added.
+## 2. Talk to it
 
-**Done when**, free:
-- The variety floor test passes for every difficulty × tone.
-- Unit tests show a given tone is kept and a missing one rolled; clashing entries never roll for
-  their tone; every character gets name dice; `Recurring` rolls its extra field and `Throwaway` does
-  not.
-- A copy of the committed `characters.json` loads with the new fields as "unknown", and a save after
-  it leaves the old entries byte-identical.
-- The replay test passes against the re-recorded fixture.
+**Goal.** I start the app and describe the scene in plain words instead of typing flags. It asks
+for whatever is missing, shows me what it understood next to the words I used, and rolls only after
+I say yes. Once the character is written, I can ask for changes, like "make him warier".
 
-And paid, on OpenAI, *needs my eyes*: three runs at the same answers and one tone give three different
-characters whose levers differ, the names follow their dice, and the second loads back unchanged; one
-run at each other tone reads as that tone; one `Recurring` run shows the extra field.
+**Constraints.**
+- The model only gathers my answers. The roll still happens in code, after I confirm, and
+  `roll_character` stays out of the model's reach.
+- Every answer it records has to quote words I actually typed. An answer that adds words of its own
+  is flagged at the confirmation. The detailed checks were decided on 2026-09-26: step 13 in
+  `git show eddc444:ROADMAP.md`.
+- Flags keep working, so the replay test is unchanged.
+- A conversation can't run up a bill: a spending cap per session stops it, and Ctrl+C stops the
+  run without killing the app.
 
-## 12. The console in layers, and a harder harness
+**Done when.**
+- With no flags, the app holds a conversation, asks for what's missing, shows each answer beside my
+  words, and waits for my yes before rolling.
+- An answer that quotes words I never typed is rejected, and the model can't reach the roll (free
+  tests).
+- A follow-up like "make him warier" rewrites the character from the same brief.
+- The replay test passes unchanged.
+- A few real conversations on OpenAI and Claude behave as above (*needs my eyes*, paid).
 
-**Task.** If the checkpoint changed the server's shape, follow it here.
-- **12a. Write a character.** `NpcForge.Console.Application` holds `AgentLoop`, `IToolSource` and the
-  `WriteCharacter` use case (roll, run, save). `NpcForge.Console.Infrastructure` holds
-  `McpToolSource`, `ModelClients` and the record and replay clients. `NpcForge.Console` keeps
-  `Program.cs`, the flags and the console output.
-- **12b. Load a character**, the second use case. MediatR on the console once there are two.
-- **12c. Harness.** Ctrl+C cancels the run, not the app. A session token budget as `IChatClient`
-  middleware, counting across every call. Each `AgentLoop` gets its own `ChatOptions` (`Clone()`), so
-  step 13's interviewer cannot overwrite the writer's tools.
+**Tasks.**
+- The scene interview
+- Follow-up changes after the character is written
+- A spending cap and Ctrl+C
+- Open question: is occupation a question in the interview, or does it stay "innkeeper" by default?
 
-**Constraints**
-- Application cannot reference `ModelContextProtocol`, OpenAI or Anthropic.
-- `ServiceCollection` with no Host, so `Program.cs` still reads in order. This replaces AGENTS.md's
-  "No host or DI container" for the console, in the step 10 ADR or one of its own.
-- No console Domain project: `SceneDraft` (step 13) lives in Application until there is a second
-  console domain type.
+## 3. Better characters
 
-**Done when**
-- The replay test passes unchanged. It compares the tool list, so a `Clone()` that loses the tools
-  fails it.
-- A fake client that waits on the token shows Ctrl+C ends the run and stops the server.
-- A fake client that reports usage shows the budget stops the run.
-- The Application project has no reference to the MCP or vendor packages.
-- One paid OpenAI smoke run, because replay cannot prove the real provider is still wired up.
+**Goal.** Characters that vary more and fit the mood I ask for: a tone (serious, comic or
+heartfelt), names that stop repeating, and a way to try different writing styles side by side.
 
-## 13. The scene interview
+**Constraints.**
+- Variety comes from dice, not the model. Tone and name hints are rolled, or set by me, and never
+  invented. Each trait table keeps at least six entries for every difficulty and tone, so three runs
+  usually differ.
+- Characters saved before this epic still load. Fields they lack show as "unknown".
+- A writing-style experiment uses the same brief for each style, so only the writing changes.
+- The details decided on 2026-09-26 are in step 11 of `git show eddc444:ROADMAP.md`.
 
-**Task.** The model asks for the scene in conversation instead of flags; code keeps the answers.
-- `SceneDraft` holds each answer with the words I typed that support it.
-- The questions come from `roll_character`'s input schema, which the console already has from
-  `tools/list`, so a field added on the server reaches the interview with no console change. Each
-  `roll_character` parameter gets a `[Description]`: the one server change, which updates the
-  snapshot on purpose.
-- The model sees one tool, `set_answer(field, value, quote)`, handled in the app. A rejection goes
-  back to the model as a tool result.
-- The model cannot end the interview. When every required answer is filled, code prints the draft and
-  asks me to confirm. Only then does the app roll; anything unfilled is rolled.
-- A new skill, `skills/scene-interviewer/SKILL.md`: ask for what is missing, never offer a value,
-  quote exactly.
-- With every required answer on the command line there is no interview, so the replay is unchanged.
+**Done when.**
+- Three runs at the same answers and tone give three different characters with different levers,
+  and each name follows its dice (*needs my eyes*, paid).
+- One run at each other tone reads as that tone (*needs my eyes*, paid).
+- An old save loads with the new fields as "unknown" (free test).
+- I can run two writing styles on the same brief and compare them side by side.
 
-**Constraints**
-- An ADR first: the interview.
-- `roll_character` stays app-only, and a test proves the interview cannot reach it.
-- **One normalising function**, used the same way on my messages and on the model's quote and value:
-  lowercase; curly quotes made straight; every punctuation character becomes a space, except an
-  apostrophe between two letters; runs of spaces collapsed, and trimmed.
-- **The quote check rejects**, in this order, each with its own reason: an unknown field; an enum value
-  not in the list; a quote that is empty after normalising (its own check); a quote not found in any of
-  my messages as whole words (pad both with a space, so `inn` does not match inside `dinner`).
-- **The drift flag warns and never rejects**, on free-text fields only: a value with a word not in its
-  quote is kept and marked at the confirmation. It cannot see a dropped word (`a castle` from
-  `the setting is not a castle`); the quote printed beside the value is where I catch that. Enum
-  values are never flagged.
-- Tests follow lesson 004: arguments that would otherwise succeed, and every rejection asserts its
-  reason.
+**Tasks.**
+- Tone: set or rolled, with clashing traits left out of each tone
+- Name dice: a starting letter and a number of syllables
+- Throwaway or recurring characters. Open question: what extra does a recurring character get?
+- Writers' lab: compare writing styles (skills) on the same brief. Temperature can be one
+  experiment.
 
-**Done when**, free:
-- An honest quote differing only by case, a full stop, a curly apostrophe and extra spaces is
-  accepted (typed `We're at an inn.`, quoted `we’re at an  inn`), and so is one typed in single
-  quotation marks (typed `'an inn'`, quoted `an inn`).
-- A quote never typed is rejected, and so is one found only inside a longer word.
-- An empty quote and a quote of only `...` are rejected, with a bare Enter and a lone "?" among my
-  messages.
-- An unknown field and an enum value outside the list are each rejected, with a quote I typed.
-- A value with a word not in its quote is accepted and flagged. A value that reorders or drops words,
-  including `a castle`, is accepted and not flagged. An enum value is never flagged.
-- The model cannot reach `roll_character`, and the roll waits for my confirmation, which shows every
-  value beside its quote and any flag.
-- The replay test passes unchanged. A failure means the interview leaked into the writer's path: a
-  finding, not a reason to re-record.
+## 4. Keep and edit (draft)
 
-And paid, on OpenAI and Anthropic, *needs my eyes*: three interviews each with vague and incomplete
-answers (the model asks for what is missing, every value that reached the roll has a quote I typed,
-the trace shows each rejection and flag), and one interview through to a written, saved character.
+**Goal.** I choose which characters are worth keeping, find them by a name I give them, and change
+a kept character later without starting over.
 
-## Open questions
+**Constraints.** Saving and loading stay app-only: the model never touches the saved file. Saves made
+before this epic still load.
 
-1. **A recurring character's extra field:** a tie to the place, a secret, or a want beyond this
-   scene? Needed by step 11.
-2. **Occupation in the interview:** a required question, or default to "innkeeper" as today? Needed
-   by step 13.
+**Done when.** I can list my kept characters, open one by its name, change part of it, and see the
+change saved. Runs I didn't keep don't clutter the list.
+
+## 5. Ready to grow (draft)
+
+**Goal.** A structure that's easy to keep developing. The same core (the dice, the writer, saving)
+works behind the console now and a website later, and saving can move from a file to a database
+without rewriting the rest. This comes just before epic 6, when the website and database make it pay.
+
+**Constraints.**
+- My preferred style is Clean Architecture. pstack decides the shape, and an ADR records it before
+  it's built. That ADR replaces AGENTS.md's "no layering" and "no DI container" rules.
+- Nothing visible changes: the replay test passes unchanged and is never re-recorded.
+- Earlier thinking on layers is in steps 10 and 12 of `git show eddc444:ROADMAP.md`.
+
+**Done when.** The replay test and every existing test pass with no test edits. The core has no
+reference to the console, the model vendors or the file store, and the compiler enforces that.
+
+## 6. Friends can use it (draft)
+
+**Goal.** A few friends can log in to a website, describe a scene, and get and keep their own
+characters.
+
+**Constraints.** Each person sees only their own characters. Secrets stay out of the repo. Model
+spending is capped, because every friend's run costs me money.
+
+**Done when.** A friend can log in on the deployed site, make a character, log out and back in, and
+find it there.
+
+## Done
+
+- **Steps 1 to 8** (2026-09-12 to 2026-09-22). The agent loop, the MCP server, the dice, the
+  writing skill, and saving. See `docs/architecture.md` "How it was built".
+- **Workflow reset** (2026-10-24). Agents write the code, pstack replaces the crew, the docs are
+  simplified. See ADR-006.

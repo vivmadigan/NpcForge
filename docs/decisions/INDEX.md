@@ -9,12 +9,12 @@ Decision, Why, Consequences.
 
 | Decision | Choice | Why, or the record |
 | --- | --- | --- |
-| How work is done | Agents write the code. Tasks are cards (Task, Constraints, Done when), ceremony matches risk, pstack replaces the crew. | [ADR-006](ADR-006-agents-write-the-code.md), superseding [ADR-001](ADR-001-crew-and-living-memory.md) |
+| How work is done | Agents write the code. Work is described as epics in ROADMAP.md (Goal, Constraints, Done when), ceremony matches risk, pstack replaces the crew. Agents commit on their own branch and open PRs; the owner merges, tags and owns `master`. | [ADR-006](ADR-006-agents-write-the-code.md), superseding [ADR-001](ADR-001-crew-and-living-memory.md) |
 | Model access | `IChatClient` (Microsoft.Extensions.AI), OpenAI and Anthropic behind `--provider` | The loop is written once and tested against two vendors |
 | `IChatModel` from the original design | Not written. `IChatClient` is it. | It already does the job |
 | `IToolSource` | Hand-written seam: `ListAsync` and `InvokeAsync` | Swaps a fake tool source for MCP without touching the loop |
 | `UseFunctionInvocation` | Off | It would run the tool loop for you, and the loop is the thing this app is built around |
-| Host or DI container on the console | None. `Program.cs` wires by hand: config, client, options, connect, roll, run, save. | The roll before the model's first turn has to stay visible. Step 12 revisits this with an ADR |
+| Host or DI container on the console | None. `Program.cs` wires by hand: config, client, options, connect, roll, run, save. | The roll before the model's first turn has to stay visible. The "Ready to grow" epic revisits this with an ADR |
 | `AgentLoop.RunAsync` | Takes `List<ChatMessage>`; `ChatOptions` comes in through the constructor | The caller builds the history, with the skill at index 0; the loop never changes |
 | Skills | `SKILL.md` files in the repo, read by the app into a system message | Works with both providers; a vendor's server-side skills would tie the app to one |
 | OpenAI endpoint | Responses, not Chat Completions | Chat Completions rejects function tools on reasoning models. [Lesson 001](../lessons/001-openai-responses-endpoint.md) |
@@ -24,7 +24,7 @@ Decision, Why, Consequences.
 | Storage | One JSON file on the server, every run saved, brief and text together, loaded by number | [ADR-003](ADR-003-saved-character-is-brief-and-text.md) |
 | Tests | xUnit, free: fake models, the real server, no network | Anything that costs money is not a test |
 | Recording paid runs | One file per run in `docs/runs/`, pasted from the console; commit first; the `[skill]` line carries a fingerprint | [docs/runs/README.md](../runs/README.md) |
-| Replay | Seeded dice through `NPCFORGE_SEED`, `--record`, a `replay` provider, and a free test of the whole app. Re-recorded only in feature steps. | [ADR-005](ADR-005-replay-a-recorded-run.md), amended: the replay compares the model's own messages too. The re-record command lives in ROADMAP.md step 9. |
+| Replay | Seeded dice through `NPCFORGE_SEED`, `--record`, a `replay` provider, and a free test of the whole app. Re-recorded only after a behavior change, never for a restructure. Not built yet: the "Safety net" epic. | [ADR-005](ADR-005-replay-a-recorded-run.md), amended: the replay compares the model's own messages too. The recording command lives in docs/runs/README.md. |
 
 ## Records
 
