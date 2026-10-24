@@ -80,8 +80,9 @@ call.
 
 Works end to end on OpenAI and Anthropic. The success test has passed: the same answers, three
 runs, three genuinely different characters whose levers differ, and a saved one loaded back
-unchanged. Next is the "Safety net": a free replay of a recorded run, so any later change can be
-checked without paying. After that: talking to the app instead of typing flags, better characters
+unchanged. The Safety net is in: `dotnet test` replays the whole app against one recorded run, for
+free, so a later change can be checked without paying. Next: talking to the app instead of typing
+flags, better characters
 (tone, names that don't repeat), keeping and editing characters, and in time a website with logins
 and a database so friends can use it. See [ROADMAP.md](ROADMAP.md).
 
