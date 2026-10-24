@@ -35,13 +35,46 @@ Two rules for every epic, now that the Safety net exists:
 
 | # | Epic | In one line |
 | --- | --- | --- |
+| 1 | Harden the safety net | Close the gaps the Safety net's review found |
 | 2 | Talk to it | Describe the scene in a conversation instead of flags |
 | 3 | Better characters | Tone, names that don't repeat, and a writers' lab |
 | 4 | Keep and edit | Choose what to keep, and change it later |
 | 5 | Ready to grow | A structure that can sit behind a website and a database |
 | 6 | Friends can use it | A website with logins and a database, deployed |
 
-Epics 4 to 6 are drafts: sharpen each one before it starts.
+Epics 1 and 4 to 6 are drafts: sharpen each one before it starts.
+
+## 1. Harden the safety net (draft)
+
+**Goal.** The free replay stays free and honest whatever changes next. A typo can't start a paid
+run. A free run can't reach a model even after "Talk to it" moves the model's first turn ahead of
+the roll. Nothing free writes over my saved characters. The replay's own sensitivity is tested, so a
+restructure can't quietly weaken it.
+
+**Constraints.**
+- No paid runs, and `dotnet test` stays free.
+- The replay test passes unchanged, and the fixture is not re-recorded.
+- Lands before "Talk to it", which moves the model call, and before "Ready to grow", which moves the
+  replay code.
+- Found by the Safety net's review of its own session, 2026-10-25.
+
+**Done when.**
+- A flag the app doesn't know, or a flag given without its value, stops the run before any model
+  client is built (free tests).
+- With the offline setting on, a run that would call OpenAI or Anthropic fails before it sends,
+  shown against the real client code, not a stand-in.
+- A replay or a recording run leaves the tracked `characters.json` untouched, and its save exists
+  somewhere else (a test that checks both).
+- `dotnet test -c Release` replays the Release build, or fails saying the build is stale.
+- Free tests show the replay failing on a changed system prompt, an emptied tool list, a changed
+  model option and a dropped model turn.
+
+**Tasks.**
+- One flag parser, from one table of answers, that also writes line 1 of a recording
+- An offline setting that stops the paid model clients being built
+- Record and replay save to a temp file unless told otherwise
+- The replay test runs the configuration it was built in
+- Committed tests of the replay's sensitivity
 
 ## 2. Talk to it
 

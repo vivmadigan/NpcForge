@@ -207,12 +207,16 @@ Approve only the edits that would change a future decision.
 - **Commits and PRs.** Agents commit on their own branch (never `master`), push it, and open a PR,
   as pstack's playbooks do. You review the PR and merge it on GitHub, and you do tags and anything on
   `master`. pstack's Babysit playbook drives a PR to merge-ready and stops; it merges only when you
-  ask it to merge, land or ship.
+  ask it to merge, land or ship. One task is one PR of small ordered commits, not a stack, because
+  you squash-merge (`.agents/playbooks/npcforge-one-pr-per-task.md`).
 - **Push `master` first.** pstack's coding agents work in their own worktree, which Claude Code
   branches from GitHub's `master` unless the `worktree.baseRef` setting is `"head"`. Commits that are
   only on your machine are invisible to them, so push `master` before you hand over a task.
 - **Paid runs.** pstack goes ahead with reversible work and external actions without asking.
-  AGENTS.md says any run against a real model needs your yes first.
+  AGENTS.md says any run against a real model needs your yes first. Before a paid or other costly
+  step, a free stand-in rehearses the pipeline and `interrogate` reviews it, even when the design was
+  decided (`.agents/playbooks/npcforge-costly-steps.md`). The project `verify` skill drives the app
+  for free.
 - **Irreversible actions.** pstack always pauses before a force-push to a shared branch, a deploy,
   deleting data, or a customer message.
 - **Its working files** stay out of git (`.gitignore`): the playbook checklist in `todo.md` (used
