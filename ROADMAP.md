@@ -25,7 +25,7 @@ Mark anything only I can judge as *needs my eyes*.
 
 Every epic inherits AGENTS.md's "Rules that must not break", so they aren't repeated here.
 
-Two rules for every epic, once the Safety net exists:
+Two rules for every epic, now that the Safety net exists:
 - **A restructure and a new behavior go in separate PRs.** Otherwise a bug can't be traced to one
   or the other.
 - **A restructure passes the replay test unchanged and never re-records it.** A behavior change
@@ -35,7 +35,6 @@ Two rules for every epic, once the Safety net exists:
 
 | # | Epic | In one line |
 | --- | --- | --- |
-| 1 | Safety net | Check for free that a change didn't break the app |
 | 2 | Talk to it | Describe the scene in a conversation instead of flags |
 | 3 | Better characters | Tone, names that don't repeat, and a writers' lab |
 | 4 | Keep and edit | Choose what to keep, and change it later |
@@ -43,29 +42,6 @@ Two rules for every epic, once the Safety net exists:
 | 6 | Friends can use it | A website with logins and a database, deployed |
 
 Epics 4 to 6 are drafts: sharpen each one before it starts.
-
-## 1. Safety net
-
-**Goal.** I want to check, for free, that a change hasn't broken the app. One real run is recorded
-once. After that, the whole app can be run against the recording at no cost, and the same dice
-setting gives the same character's traits every time.
-
-**Constraints.**
-- Making the recording is one paid run: ask me first. The scene to record is in
-  `docs/runs/README.md`.
-- `dotnet test` stays free: no network, no model calls.
-- Fixing the dice is an app setting. It is never one of the inputs to the roll, which stay the
-  brief fields a GM may set.
-- The design is already decided: ADR-005, with the correction noted in `docs/decisions/INDEX.md`.
-  A worked version from 2026-10-01 is in `git show cd20b60:PLAN.md`, lines 70 to 680.
-
-**Done when.**
-- `dotnet test` passes with no network, including a test that runs the whole app against the
-  recording and checks what it saved.
-- That test fails if the app sends the model anything different: a word changed in the writing
-  skill, the tool list emptied, or the model's turn left out of the history.
-- The same dice setting gives the same traits from two separate runs.
-- The recording is committed, and its run is written up in `docs/runs/`.
 
 ## 2. Talk to it
 
@@ -168,3 +144,6 @@ find it there.
   writing skill, and saving. See `docs/architecture.md` "How it was built".
 - **Workflow reset** (2026-10-24). Agents write the code, pstack replaces the crew, the docs are
   simplified. See ADR-006.
+- **Safety net** (2026-10-24). `--seed` fixes the dice, `--record` records a paid run, and
+  `dotnet test` replays the whole app against one recorded run for free. See
+  `docs/architecture.md` "Replay" and `docs/runs/2026-10-24-01-replay-fixture.md`.

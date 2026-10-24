@@ -2,7 +2,8 @@
 
 - **Status:** accepted; amended 2026-10-24: the replay compares the model's own messages too (the
   "What a replay compares" bullet below is wrong), and the re-record command is in docs/runs/README.md,
-  not team.md
+  not team.md; amended again 2026-10-24, when built: the replay also compares every `ChatOptions`
+  field the library serialises, not only the model id and the output cap
 - **Date:** 2026-10-01
 - **Supersedes:** none
 - **Plan version:** v04

@@ -14,13 +14,17 @@ namespace NpcForge;
 // Nothing else in the app knows which vendor is behind it.
 public static class ModelClients
 {
-    public static IChatClient Create(string provider, string model, IConfiguration config) => provider switch
+    public static IChatClient Create(string provider, string model, IConfiguration config, string? recording = null) => provider switch
     {
         "openai" => new ResponsesClient(RequireSecret(config, "OpenAI:ApiKey"))
             .AsIChatClient(model),
 
         "anthropic" => new AnthropicClient { ApiKey = RequireSecret(config, "Anthropic:ApiKey") }
             .AsIChatClient(model),
+
+        // Free: answers from a file made with --record. No key and no network.
+        "replay" => new ReplayChatClient(recording
+            ?? throw new ArgumentException("--provider replay needs --recording <file>.")),
 
         _ => throw new ArgumentException($"Unknown provider: {provider}"),
     };

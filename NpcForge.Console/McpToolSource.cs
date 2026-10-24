@@ -35,7 +35,14 @@ namespace NpcForge
         // the tests pass a temp file so they never touch your saves.
         private readonly string? _charactersPath;
 
-        public McpToolSource(string? charactersPath = null) => _charactersPath = charactersPath;
+        // The seed for the server's dice. Null makes them random, whatever the shell holds.
+        private readonly int? _seed;
+
+        public McpToolSource(string? charactersPath = null, int? seed = null)
+        {
+            _charactersPath = charactersPath;
+            _seed = seed;
+        }
 
         // Start the server, shake hands, ask what tools it has.
         public async Task ConnectAsync(CancellationToken ct)
@@ -44,6 +51,24 @@ namespace NpcForge
             // both the app and the tests, whatever folder they were started from.
             var serverProject = Path.GetFullPath(Path.Combine(
                 AppContext.BaseDirectory, "..", "..", "..", "..", "NpcForge.Server"));
+
+            // What the server is told, through its environment. The server inherits everything this
+            // process has, and a null value here does not mean "leave it": it deletes the variable.
+            // The two settings use that differently on purpose.
+            //
+            // NPCFORGE_SEED is always set. Only --seed seeds the dice, so a run without it must roll
+            // random even when the shell still holds a NPCFORGE_SEED from an earlier session.
+            //
+            // NPCFORGE_CHARACTERS is set only when given. The replay test sets it on the console and
+            // relies on the server inheriting it; a null here would delete it, and the test's saves
+            // would land in the tracked characters.json.
+            var environment = new Dictionary<string, string?>
+            {
+                ["NPCFORGE_SEED"] = _seed?.ToString(),
+            };
+
+            if (_charactersPath is not null)
+                environment["NPCFORGE_CHARACTERS"] = _charactersPath;
 
             // Nothing starts yet: this only describes the process. The server's stdout is the
             // wire, so its logs go to stderr, and they arrive here with a [server] prefix.
@@ -54,11 +79,12 @@ namespace NpcForge
                 Arguments = ["run", "--project", serverProject, "--no-build"],
                 StandardErrorLines = line => Console.Error.WriteLine($"[server] {line}"),
 
-                // Storage.cs reads this. An environment variable reaches the child process
-                // before any MCP message does, and survives the hop through dotnet run.
-                EnvironmentVariables = _charactersPath is null
-                    ? null
-                    : new Dictionary<string, string?> { ["NPCFORGE_CHARACTERS"] = _charactersPath },
+                // Storage.cs and the dice read these. An environment variable reaches the child
+                // process before any MCP message does, and survives the hop through dotnet run.
+                // Inheriting is the library's default, written out because the replay test keeps off
+                // the tracked characters.json only because the server inherits NPCFORGE_CHARACTERS.
+                InheritEnvironmentVariables = true,
+                EnvironmentVariables = environment,
             });
 
             // Library code from the ModelContextProtocol package. It starts the process, then runs

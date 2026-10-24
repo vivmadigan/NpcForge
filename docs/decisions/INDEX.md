@@ -24,7 +24,7 @@ Decision, Why, Consequences.
 | Storage | One JSON file on the server, every run saved, brief and text together, loaded by number | [ADR-003](ADR-003-saved-character-is-brief-and-text.md) |
 | Tests | xUnit, free: fake models, the real server, no network | Anything that costs money is not a test |
 | Recording paid runs | One file per run in `docs/runs/`, pasted from the console; commit first; the `[skill]` line carries a fingerprint | [docs/runs/README.md](../runs/README.md) |
-| Replay | Seeded dice through `NPCFORGE_SEED`, `--record`, a `replay` provider, and a free test of the whole app. Re-recorded only after a behavior change, never for a restructure. Not built yet: the "Safety net" epic. | [ADR-005](ADR-005-replay-a-recorded-run.md), amended: the replay compares the model's own messages too. The recording command lives in docs/runs/README.md. |
+| Replay | Seeded dice through `NPCFORGE_SEED`, set only from `--seed`; `--record`; a `replay` provider; and a free test of the whole app against `NpcForge.Tests/Fixtures/replay.jsonl`. The replay compares every message, the model's own included, every `ChatOptions` field the library serialises, and each tool. Re-recorded only after a behavior change, never for a restructure. | [ADR-005](ADR-005-replay-a-recorded-run.md), amended twice: the model's own messages, and every `ChatOptions` field rather than two. The recording command lives in docs/runs/README.md. |
 
 ## Records
 

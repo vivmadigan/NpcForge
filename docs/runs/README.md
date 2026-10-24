@@ -13,9 +13,9 @@ against a changed skill or prompt, so a change can be judged instead of guessed 
    and the token counts. Most of it is on the `[app]`, `[skill]` and `[loop]` lines.
 5. End with what the run showed.
 
-`raw/` holds full pastes that a summary file here points at. Once the Safety net epic is built, a
-run made with `--record` also has its transcript, kept beside the paste: it holds the model's side
-byte for byte, but none of the trace.
+`raw/` holds full pastes that a summary file here points at. A run made with `--record` also has a
+transcript, the JSONL file it names: it holds the model's side exactly, but none of the trace. The
+replay fixture's transcript is `NpcForge.Tests/Fixtures/replay.jsonl`.
 
 ## The replay fixture
 
@@ -29,7 +29,19 @@ dotnet run --project NpcForge.Console -- --record NpcForge.Tests/Fixtures/replay
 
 Re-record only after a deliberate behavior change, once it has settled, in the same PR. Never
 re-record to make a restructure pass: a red replay there is the bug the test exists to catch. A
-feature that adds answers (tone, importance) adds their flags here.
+change to `Tables.cs` or to the order of the picks re-rolls the seeded brief, so it needs a re-record
+too. A feature that adds answers (tone, importance) adds their flags here, and to the `flags` array
+in `Program.cs` that writes line 1 of the recording.
+
+To replay it by hand, for free, in PowerShell. The flags are line 1 of the fixture. Point
+`NPCFORGE_CHARACTERS` somewhere else first, or the replay's save lands in the tracked
+`characters.json`, and clear it afterwards, or later runs in that terminal save there too.
+
+```text
+$env:NPCFORGE_CHARACTERS = "$env:TEMP\npcforge-replay.json"
+dotnet run --project NpcForge.Console -- --provider replay --recording NpcForge.Tests/Fixtures/replay.jsonl --seed 1 --model gpt-6-luna --setting "an inn in a major city" --want "the name of a fence" --difficulty Wall --occupation innkeeper
+Remove-Item Env:NPCFORGE_CHARACTERS
+```
 
 ## Why it is done this way
 

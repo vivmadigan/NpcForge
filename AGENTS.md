@@ -113,6 +113,9 @@ dotnet run --project NpcForge.Console              # paid: OpenAI, default model
 dotnet run --project NpcForge.Console -- --provider anthropic --model claude-opus-5   # paid
 ```
 
+- `--seed <n>` fixes the dice. `--record <file>`, which needs `--seed`, also writes a paid run to a
+  file, and `--provider replay --recording <file>` answers from that file for free.
+  `docs/runs/README.md` has both commands for the replay fixture.
 - API keys are user-secrets on the console project: `OpenAI:ApiKey` and `Anthropic:ApiKey`.
 - A build fails while the app is running or paused in the debugger: it locks `NpcForge.Console.dll`.
 - Tests that start the server take several seconds each.
