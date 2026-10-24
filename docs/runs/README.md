@@ -6,11 +6,20 @@ against a changed skill or prompt, so a change can be judged instead of guessed 
 
 ## Recording a run
 
-1. **Commit first.** The SHA in the header only means something if the tree was clean.
+1. **Commit first.** The SHA in the header only means something if the tree was clean. On a branch,
+   name its PR as well: the owner squash-merges, so a branch SHA is not on `master` afterwards, but
+   GitHub keeps every PR's commits.
 2. Run the app and watch it live.
 3. Select all in the console and paste it into a new file here, named `YYYY-MM-DD-NN-<slug>.md`.
+   An agent cannot paste, so it captures in Git Bash instead, then appends the file:
+
+   ```text
+   <the run command> 2>&1 | tee <file>; echo "exit: ${PIPESTATUS[0]}"
+   ```
+
 4. Add a header: the model, the answers, the rolled obstacle, the `[skill]` fingerprint, the commit
-   and the token counts. Most of it is on the `[app]`, `[skill]` and `[loop]` lines.
+   (and its PR, on a branch) and the token counts. Most of it is on the `[app]`, `[skill]` and
+   `[loop]` lines.
 5. End with what the run showed.
 
 `raw/` holds full pastes that a summary file here points at. A run made with `--record` also has a
@@ -33,6 +42,14 @@ change to `Tables.cs` or to the order of the picks re-rolls the seeded brief, so
 too. A feature that adds answers (tone, importance) adds their flags here, and to the `flags` array
 in `Program.cs` that writes line 1 of the recording.
 
+An upgrade of Microsoft.Extensions.AI, the OpenAI library or the MCP library can also turn the replay
+red with no change in behavior, because the recording is the library's own JSON. Run the replay test
+first after one. If it is red and the upgrade is the only change, re-record in the upgrade's PR.
+
+A re-record can come back with no tool call: the model may write straight from the brief. The replay
+test refuses that recording, because a dropped model turn only shows on a later call. Ask the owner
+before a second paid attempt, and never weaken the check to let a recording pass.
+
 To replay it by hand, for free, in PowerShell. The flags are line 1 of the fixture. Point
 `NPCFORGE_CHARACTERS` somewhere else first, or the replay's save lands in the tracked
 `characters.json`, and clear it afterwards, or later runs in that terminal save there too.
@@ -47,7 +64,9 @@ Remove-Item Env:NPCFORGE_CHARACTERS
 
 **Paste, don't redirect.** A PowerShell redirect reorders the answer against the stderr trace, and
 not the same way twice, and the order is the information (lesson 005). `cmd /c "... > file 2>&1"`
-keeps the order but shows nothing on screen while the run costs money.
+keeps the order but shows nothing on screen while the run costs money. Git Bash's `2>&1 | tee` keeps
+the order and shows the run live: lesson 005's throwaway app, alternating the two streams five times,
+came out in exact alternation in three runs of three (2026-10-25).
 
 **A paste is not byte-exact either.** The Visual Studio console flattens curly quotes and dashes,
 and a paste drops trailing spaces (lesson 006). The save file and the `--record` transcript are the

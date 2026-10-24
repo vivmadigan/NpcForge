@@ -10,7 +10,7 @@
 | Occupation | innkeeper |
 | Seed | 1 |
 | Skill | `skills/npc-writer/SKILL.md`, 2239 chars, `6b58d7c2` |
-| Commit | `ac68ce8` on `feat/safety-net`, clean tree |
+| Commit | `ac68ce8` on `feat/safety-net` (PR #2, squash-merged as `698291d`), clean tree |
 | Tokens | turn 1: 708 in / 21 out · turn 2: 757 in / 2061 out |
 | Transcript | `NpcForge.Tests/Fixtures/replay.jsonl` (3 lines, 34,833 bytes) |
 
