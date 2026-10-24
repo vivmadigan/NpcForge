@@ -57,9 +57,24 @@ namespace NpcForge.Server
             };
         }
 
-        // Random.Shared is the dice: the whole of the variety, and the model cannot reach it.
-        // An empty table throws here, and the app's CallDirectAsync turns that into a stopped run.
-        private static T Pick<T>(IReadOnlyList<T> table) => table[Random.Shared.Next(table.Count)];
+        // The dice: the whole of the variety, and the model cannot reach them. An empty table
+        // throws here, and the app's CallDirectAsync turns that into a stopped run.
+        private static T Pick<T>(IReadOnlyList<T> table) => table[Dice.Next(table.Count)];
+
+        // With NPCFORGE_SEED set, the same seed rolls the same brief every time, because
+        // RollCharacter always picks in the same order. Without it, Random.Shared, as before.
+        // Made once per server process, and the console starts a new server for every run.
+        private static readonly Random Dice = CreateDice();
+
+        private static Random CreateDice()
+        {
+            var seed = Environment.GetEnvironmentVariable("NPCFORGE_SEED");
+
+            // stderr, never stdout: stdout is the wire. The console shows it as [server] dice ...
+            Console.Error.WriteLine(seed is null ? "dice: random" : $"dice: seed {seed}");
+
+            return seed is null ? Random.Shared : new Random(int.Parse(seed));
+        }
 
         // App-only. The app saves every run once the model has written. Returns the new number.
         // The brief must arrive as a JSON object, not as the text the roll returned: sent as

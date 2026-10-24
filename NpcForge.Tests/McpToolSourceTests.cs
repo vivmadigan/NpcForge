@@ -173,6 +173,25 @@ public class McpToolSourceTests
         }
     }
 
+    [Fact]
+    public async Task The_same_seed_rolls_the_same_brief()
+    {
+        // Two servers, one after the other, both given seed 1. If the seed never reached the
+        // dice, two briefs would match about one time in six million.
+        var first = await RollWithSeed(1);
+        var second = await RollWithSeed(1);
+
+        Assert.Equal(first, second);
+    }
+
+    // A server of its own each time, so the second roll cannot be the first one's dice carrying on.
+    private static async Task<string> RollWithSeed(int seed)
+    {
+        await using var tools = new McpToolSource(seed: seed);
+        await tools.ConnectAsync(CancellationToken.None);
+        return await tools.CallDirectAsync("roll_character", RollArgs(), CancellationToken.None);
+    }
+
     // A fresh file per test, so tests never share saves with each other or with you.
     private static string TempSaveFile() =>
         Path.Combine(Path.GetTempPath(), $"npcforge-test-{Guid.NewGuid():N}.json");
