@@ -370,4 +370,5 @@ FodyWeavers.xsd
 
 # pstack: per-task checklists and decision trails, kept local
 todo.md
+decisions.tsv
 .audit/

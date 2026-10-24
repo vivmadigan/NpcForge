@@ -26,7 +26,8 @@ phase is over. Do not hand me sketches to type. ADR-006 records the change.
   build is not evidence that it works. For a new test, show it fail with the code it guards removed.
 - If the card is ambiguous, or a constraint blocks it, stop and ask. Do not widen the scope.
 - When a card is done: delete it from `ROADMAP.md`, bring `docs/architecture.md` (and README's
-  "Status") into line with the code, and add the step to the build history table there.
+  "Status") into line with the code, and add the step to the build history table there, all in the
+  card's PR.
 
 **Ceremony matches risk.**
 
@@ -35,14 +36,19 @@ phase is over. Do not hand me sketches to type. ADR-006 records the change.
 | Easy to undo, and covered by tests | Do it. Report the evidence. |
 | Changes the MCP contract (`tools/list`), the save format, or a recorded decision | A design check first (pstack `architect` or `interrogate`), then an ADR |
 | Costs money: any run against a real model | Ask first, with the command and why |
-| Commits, tags, pushes | I do these. Hand over the commands. |
+| Commits on your own branch, pushing that branch, opening a PR | Do it. One branch per task, never `master`. The PR is where I review |
+| Merging, landing a stack, tags, anything on `master` | I do these. Never merge or land unless I ask in so many words |
+
+**Branches and PRs.** pstack's coding agents start their branches from GitHub's `master`, not the
+local one, so I push `master` before handing over a task. A PR targets `master`, says how the change
+was proved, and is opened ready for review. I review it and merge it on GitHub.
 
 **Tooling.** [pstack](https://github.com/michael-denyer/pstack-claude) is a workflow plugin: its
 `poteto-mode` skill routes any task that touches more than one file, involves a design choice, or
 is a bug of unknown cause. Its `architect` skill settles a design before code, and `interrogate`
-has several models try to break a diff. Install it with `/plugin marketplace add
-michael-denyer/pstack-claude`, then `/plugin install pstack@pstack-claude`. Without it, do the
-same by hand: check the design before coding, and have a fresh subagent review the diff.
+has several models try to break a diff. It is enabled for this repo in `.claude/settings.json`,
+and its commands carry the prefix `/pstack:`. `docs/pstack.md` says how to use it here. Without
+it, do the same by hand: check the design before coding, and have a fresh subagent review the diff.
 
 To iterate, use `/goal <the card's Done when>, or stop after N turns`, with N = 6 unless the card
 says otherwise. Always give a stop clause, as the app's own loop has a turn cap.
@@ -84,8 +90,10 @@ implementation and `haiku` for cheap checks. pstack's defaults name Fable; the m
   (Microsoft.Extensions.AI) and `IToolSource`. Step 10 proposes layers; it needs an ADR first.
 - No host or DI container in the console. `Program.cs` wires things by hand so the order of events
   stays readable: connect, roll, run, save.
-- Why-comments, not what-comments: a comment says which rule a line keeps. Comments that mention
-  "step N" mean the build history table in `docs/architecture.md`.
+- Why-comments, not what-comments: a comment says which rule a line keeps. Keep them: never run
+  pstack's `/no-comments` or its `comment-sicko` agent here
+  (`.agents/playbooks/npcforge-keep-why-comments.md`). Comments that mention "step N" mean the build
+  history table in `docs/architecture.md`.
 
 ## Vocabulary
 
@@ -116,3 +124,5 @@ dotnet run --project NpcForge.Console -- --provider anthropic --model claude-opu
 | `docs/decisions/` | ADRs. `INDEX.md` is the live list of every decision |
 | `docs/lessons/` | Problems that took a dead end. `INDEX.md` is loaded into every session |
 | `docs/runs/` | Records of paid runs: the evidence for anything about model behaviour |
+| `docs/pstack.md` | How to use the pstack workflow plugin in this repo |
+| `.agents/playbooks/` | NpcForge's changes to pstack's playbooks |
