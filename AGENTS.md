@@ -19,15 +19,17 @@ phase is over. Do not hand me sketches to type. ADR-006 records the change.
 
 ## How we work
 
-**Every task is a card: Task, Constraints, Done when.** `ROADMAP.md` holds the next ones.
+**Work is described as epics: Goal, Constraints, Done when.** `ROADMAP.md` holds them, with a
+template. A task I hand over in chat has the same three parts. I describe what I want; you, with
+pstack, decide how to build it.
 - "Done when" is something you can check: a command, a test, a file. Anything only I can judge
   ("does this read as comic?") is marked *needs my eyes*, and you list it for me at the end.
 - Work until "Done when" holds, then report the evidence: what you ran and what it showed. A clean
   build is not evidence that it works. For a new test, show it fail with the code it guards removed.
-- If the card is ambiguous, or a constraint blocks it, stop and ask. Do not widen the scope.
-- When a card is done: delete it from `ROADMAP.md`, bring `docs/architecture.md` (and README's
-  "Status") into line with the code, and add the step to the build history table there, all in the
-  card's PR.
+- If an epic or task is ambiguous, or a constraint blocks it, stop and ask. Do not widen the scope.
+- When an epic is done: shrink it to one line under "Done" in `ROADMAP.md`, bring
+  `docs/architecture.md` (and README's "Status") into line with the code, and add the epic to the
+  build history table there, all in the epic's last PR.
 
 **Ceremony matches risk.**
 
@@ -50,7 +52,7 @@ has several models try to break a diff. It is enabled for this repo in `.claude/
 and its commands carry the prefix `/pstack:`. `docs/pstack.md` says how to use it here. Without
 it, do the same by hand: check the design before coding, and have a fresh subagent review the diff.
 
-To iterate, use `/goal <the card's Done when>, or stop after N turns`, with N = 6 unless the card
+To iterate, use `/goal <the epic's Done when>, or stop after N turns`, with N = 6 unless the epic
 says otherwise. Always give a stop clause, as the app's own loop has a turn cap.
 
 **Never use Fable** (`fable`, `claude-fable-*`) for anything: not as a subagent, a review panel
@@ -87,9 +89,10 @@ implementation and `haiku` for cheap checks. pstack's defaults name Fable; the m
 - Modern C# where it names things, not where it only compresses.
 - No abstraction until there are two things to abstract.
 - No Clean Architecture layering. Two interfaces earn their place: `IChatClient`
-  (Microsoft.Extensions.AI) and `IToolSource`. Step 10 proposes layers; it needs an ADR first.
+  (Microsoft.Extensions.AI) and `IToolSource`. The "Ready to grow" epic brings layers,
+  Clean Architecture by preference, with an ADR first.
 - No host or DI container in the console. `Program.cs` wires things by hand so the order of events
-  stays readable: connect, roll, run, save.
+  stays readable: connect, roll, run, save. The same ADR may change this.
 - Why-comments, not what-comments: a comment says which rule a line keeps. Keep them: never run
   pstack's `/no-comments` or its `comment-sicko` agent here
   (`.agents/playbooks/npcforge-keep-why-comments.md`). Comments that mention "step N" mean the build
@@ -119,7 +122,7 @@ dotnet run --project NpcForge.Console -- --provider anthropic --model claude-opu
 | | |
 | --- | --- |
 | `README.md` | What NpcForge is, and why it is shaped this way |
-| `ROADMAP.md` | The next tasks, as cards |
+| `ROADMAP.md` | What's next, as epics, with a template for writing one |
 | `docs/architecture.md` | How it fits together, and behaviour worth knowing |
 | `docs/decisions/` | ADRs. `INDEX.md` is the live list of every decision |
 | `docs/lessons/` | Problems that took a dead end. `INDEX.md` is loaded into every session |
