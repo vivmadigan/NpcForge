@@ -1,8 +1,10 @@
 # Roadmap
 
 What's next, as epics, top to bottom. Each epic says what I want and how I'll know it works.
-pstack decides how to build it (`docs/pstack.md`), and `AGENTS.md` says how the work is done. When
-an epic is finished, its section shrinks to one line under **Done**.
+pstack decides how to build it (`docs/pstack.md`), and `AGENTS.md` says how the work is done.
+
+This is a living document. Add, reorder or drop epics and tasks whenever using the app shows
+something new. Only finished epics stay, as one line under **Done**.
 
 ## Writing an epic
 
