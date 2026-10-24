@@ -1,0 +1,2 @@
+# core.autocrlf=true on Windows would check the script out with CRLF, and bash then fails on the carriage return.
+scripts/*.sh text eol=lf

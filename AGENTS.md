@@ -23,13 +23,16 @@ phase is over. Do not hand me sketches to type. ADR-006 records the change.
 template. A task I hand over in chat has the same three parts. I describe what I want; you, with
 pstack, decide how to build it.
 - "Done when" is something you can check: a command, a test, a file. Anything only I can judge
-  ("does this read as comic?") is marked *needs my eyes*, and you list it for me at the end.
+  ("does this read as comic?") is marked *needs my eyes*, and you list it for me at the end. So is
+  any change to what I see or how I start the app, such as console output or a Visual Studio launch
+  profile, even when a test covers it.
 - Work until "Done when" holds, then report the evidence: what you ran and what it showed. A clean
   build is not evidence that it works. For a new test, show it fail with the code it guards removed.
 - If an epic or task is ambiguous, or a constraint blocks it, stop and ask. Do not widen the scope.
 - When an epic is done: shrink it to one line under "Done" in `ROADMAP.md`, bring
-  `docs/architecture.md` (and README's "Status") into line with the code, and add the epic to the
-  build history table there, all in the epic's last PR.
+  `docs/architecture.md` (and README's "Status") into line with the code, add the epic to the
+  build history table there, and write a lesson for each dead end the epic hit, all in the epic's
+  last PR.
 
 **Ceremony matches risk.**
 
@@ -132,3 +135,4 @@ dotnet run --project NpcForge.Console -- --provider anthropic --model claude-opu
 | `docs/runs/` | Records of paid runs: the evidence for anything about model behaviour |
 | `docs/pstack.md` | How to use the pstack workflow plugin in this repo |
 | `.agents/playbooks/` | NpcForge's changes to pstack's playbooks |
+| `.claude/skills/verify/` | How an agent drives the app and proves a change, for free |
