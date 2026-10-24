@@ -1,10 +1,10 @@
 <Solution>
   <Folder Name="/Docs/">
     <File Path="AGENTS.md" />
-    <File Path="BUILD.md" />
     <File Path="CLAUDE.md" />
-    <File Path="PLAN.md" />
     <File Path="README.md" />
+    <File Path="ROADMAP.md" />
+    <File Path="docs/architecture.md" />
   </Folder>
   <Project Path="NpcForge.Console/NpcForge.Console.csproj" />
   <Project Path="NpcForge.Server/NpcForge.Server.csproj" Id="1895d6e1-6089-47d1-952f-e8a426119016" />

@@ -1,6 +1,8 @@
 # ADR-005: Whole runs are regression-tested by replaying a recorded model
 
-- **Status:** accepted
+- **Status:** accepted; amended 2026-10-24: the replay compares the model's own messages too (the
+  "What a replay compares" bullet below is wrong), and the re-record command is in ROADMAP.md step 9,
+  not team.md
 - **Date:** 2026-10-01
 - **Supersedes:** none
 - **Plan version:** v04

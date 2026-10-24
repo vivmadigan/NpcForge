@@ -11,7 +11,7 @@ namespace NpcForge.Server
         public required string Setting { get; init; }
         public required string PlayersWant { get; init; }
         public required Difficulty Difficulty { get; init; }
-        public required string Occupation { get; init; }      // who they are; not in BUILD.md, see PLAN.md decisions
+        public required string Occupation { get; init; }      // who they are; supplied, not rolled (ADR-002)
 
         // rolled on the server, inside what Difficulty allows
         public required string CharacterWants { get; init; }

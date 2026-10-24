@@ -367,3 +367,7 @@ FodyWeavers.xsd
 # Claude Code: personal overrides and local agent memory, never shared
 .claude/settings.local.json
 .claude/agent-memory-local/
+
+# pstack: per-task checklists and decision trails, kept local
+todo.md
+.audit/

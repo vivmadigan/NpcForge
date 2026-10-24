@@ -2,7 +2,7 @@ using Microsoft.Extensions.AI;
 
 namespace NpcForge.Tests;
 
-// Two tests, one per rule from BUILD.md "The loop": the exit is the absence of tool
+// Two tests, one per rule in docs/architecture.md "The loop": the exit is the absence of tool
 // calls, and the cap is not optional. A third runs the loop against the real MCP server
 // (step 5). None touches the network: the models are local fakes, and the server is a
 // child process on this machine.

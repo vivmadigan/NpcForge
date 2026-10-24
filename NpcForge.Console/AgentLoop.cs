@@ -5,7 +5,7 @@ using System.Text;
 
 namespace NpcForge
 {
-    // BUILD.md's loop in Microsoft.Extensions.AI types. From here on this is the whole app:
+    // The loop in docs/architecture.md, in Microsoft.Extensions.AI types. This is the whole app:
     // everything later is either a tool source it is given or text it is given. It knows
     // neither which vendor is behind the model nor where the tools come from.
     public sealed class AgentLoop(IChatClient model, IToolSource tools, ChatOptions options, int maxTurns = 8)

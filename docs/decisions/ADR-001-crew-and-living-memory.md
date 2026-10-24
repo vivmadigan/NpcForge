@@ -1,6 +1,6 @@
 # ADR-001: A crew of specialist agents, with versioned decisions and curated lessons
 
-- **Status:** accepted
+- **Status:** Superseded by ADR-006 (2026-10-24)
 - **Date:** 2026-09-18
 - **Supersedes:** none
 - **Plan version:** v01
