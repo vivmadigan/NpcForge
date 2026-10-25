@@ -10,6 +10,8 @@ The console refuses a bad flag combination before it connects to the server or c
 - `guard-record-noseed` stops `--record <file>` without `--seed`.
 - `guard-load-nonum` stops `--load` given last with no number.
 - `guard-replay-norecording` stops `--provider replay` with no `--recording`.
+- `guard-unknown-flag` stops a flag the app does not know, such as a typo.
+- `guard-missing-value` stops a flag given with no value, last or before another flag.
 - `guard-roll-first` stops a difficulty the roll does not know, before any model turn.
 
 ## How to get to it (user POV)
@@ -31,14 +33,16 @@ Preconditions:
 - **Record without a seed.** Run `$V run --save guard.json g-record-noseed -- $N --record "$D/never-written.jsonl"`. The message contains `--record needs --seed`.
 - **Load without a number.** Run `$V run --save guard.json g-load-nonum -- $N --provider replay --recording NpcForge.Tests/Fixtures/replay.jsonl --load`. The message contains `--load needs a number`.
 - **Replay without a recording.** Run `$V run --save guard.json g-replay-norecording -- $N --provider replay`. The message contains `--provider replay needs --recording`.
+- **Unknown flag.** Run `$V run --save guard.json g-unknown-flag -- $N --setings farm`. The message contains `Unknown flag --setings` and lists the known flags.
+- **Missing value.** Run `$V run --save guard.json g-missing-value -- $N --setting --want "a cart"`. The message contains `--setting needs a value after it`. Then run `$V run --save guard.json g-missing-value-last -- $N --setting`, which prints the same message.
 - **Roll first.** Run `$V run --save guard.json g-roll-first -- $N`. The message contains `roll_character failed`, and a `[server]` line names `NpcForge.Server.Difficulty`.
-- **Check each refusal.** Define `chk() { grep -qF -- "$2" "$D/$1.txt" && ! grep -qE '^\[(loop|skill|tool)\]' "$D/$1.txt" && echo "ok   $1" || echo "FAIL $1"; }` and run `chk g-record-nofile '--record needs a file'`, then the same for each run and message above. Every line prints `ok`. The second test shows no model turn happened.
-- **Check nothing was written.** Run `ls "$D" | grep -E 'never-|guard.json'` and expect no output. Run `grep -c 'guard.json absent' "$D/index.tsv"` and expect `7`, one for each refusal run. Each of those runs reached its refusal, and none reached a save.
+- **Check each refusal.** Define `chk() { grep -qF -- "$2" "$D/$1.txt" && ! grep -qE '^\[(loop|skill|tool)\]' "$D/$1.txt" && echo "ok   $1" || echo "FAIL $1"; }` and run `chk g-record-nofile '--record needs a file'`, then the same for each run and message above (`chk g-unknown-flag 'Unknown flag --setings'`, `chk g-missing-value '--setting needs a value after it'`, `chk g-missing-value-last '--setting needs a value after it'`). Every line prints `ok`. The second test shows no model turn happened.
+- **Check nothing was written.** Run `ls "$D" | grep -E 'never-|guard.json'` and expect no output. Run `grep -c 'guard.json absent' "$D/index.tsv"` and expect `10`, one for each refusal run. Each of those runs reached its refusal, and none reached a save.
 - **Proof.** `$D` holds a `.cmd`, `.txt` and `.exit` for each `g-*` run, and `index.tsv`.
 
 ## Gotchas
 
-- Put `--difficulty Nonsense` first. If the flag under test sits before it, a refusal that wants a value reads `--difficulty` as that value. `--record --difficulty Nonsense` fails with `--record needs --seed`, which hides the `--record` with no file refusal.
+- Put `--difficulty Nonsense` first, as the helper requires. A flag given last now reads the next flag as missing its value, so `--record --difficulty Nonsense` fails with `--record needs a file`, but the helper still refuses a non-replay run that does not start with `--difficulty Nonsense`.
 - Every refusal exits with the same code (`127` in Git Bash, `-532462766` in PowerShell). The message is the proof, so use `chk` and not the exit code.
 - The checks fire in the order of `Program.cs`. `--record` without `--seed` fires before the others, so `guard-record-replay` needs `--seed 1` to reach its own message, and `guard-recording-noreplay` must not pass `--record`.
 - Give `--record` a path inside `$D`. The helper refuses any other, because the error message suggests the fixture and a broken guard plus replay would overwrite it.
