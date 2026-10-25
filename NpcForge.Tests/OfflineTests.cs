@@ -56,9 +56,10 @@ public class OfflineTests
         Assert.NotNull(client);
     }
 
-    // The same stop, through the whole app as a process, in the configuration under test (the
-    // console starts the server in its own, so a Debug default would need a Debug server), so the variable is read from the
-    // environment the way a test harness or a web host would set it.
+    // The same stop, through the whole app as a process, so the variable is read from the
+    // environment the way a test harness or a web host would set it. It runs the configuration under
+    // test: the console starts the server in its own configuration, so a Debug default would need a
+    // Debug server that a Release run may not have.
     [Theory]
     [InlineData("openai")]
     [InlineData("anthropic")]
