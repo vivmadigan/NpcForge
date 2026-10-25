@@ -55,14 +55,72 @@ public class RunOptionsTests
         Assert.Equal("out.jsonl", run.RecordTo);
     }
 
-    // Today's behaviour, kept by the restructure: these are ignored, and refusing them is a
-    // separate change.
-    [Fact]
-    public void An_unknown_flag_and_a_trailing_answer_flag_are_ignored()
-    {
-        var run = RunOptions.Parse(["--nonsense", "x", "--setting"]);
+    private const string Known =
+        "The flags are: --provider, --seed, --model, --setting, --want, --difficulty, --occupation, --load, --record, --recording.";
 
-        Assert.Equal("an inn in a major city", run.Setting);
+    [Fact]
+    public void An_unknown_flag_stops_the_run_and_names_the_flags_the_app_knows()
+    {
+        var error = Assert.Throws<ArgumentException>(() => RunOptions.Parse(["--setings", "farm"]));
+
+        Assert.Equal($"Unknown flag --setings. {Known}", error.Message);
+    }
+
+    [Fact]
+    public void A_stray_word_stops_the_run()
+    {
+        var error = Assert.Throws<ArgumentException>(() => RunOptions.Parse(["--setting", "a farm", "farm"]));
+
+        Assert.Equal(
+            $"Unexpected argument 'farm': a flag starts with -- and is followed by its value. {Known}",
+            error.Message);
+    }
+
+    // The value is consumed with its flag, so `--setting --load 3` no longer sets the setting to
+    // "--load" and loads 3 as well: --setting has no value.
+    [Fact]
+    public void A_flag_followed_by_a_flag_has_no_value()
+    {
+        var error = Assert.Throws<ArgumentException>(() => RunOptions.Parse(["--setting", "--load", "3"]));
+
+        Assert.Equal("--setting needs a value after it.", error.Message);
+    }
+
+    [Theory]
+    [InlineData("--provider", "--provider needs a value after it.")]
+    [InlineData("--seed", "--seed needs a number, for example --seed 1.")]
+    [InlineData("--model", "--model needs a value after it.")]
+    [InlineData("--setting", "--setting needs a value after it.")]
+    [InlineData("--want", "--want needs a value after it.")]
+    [InlineData("--difficulty", "--difficulty needs a value after it.")]
+    [InlineData("--occupation", "--occupation needs a value after it.")]
+    [InlineData("--load", "--load needs a number, for example --load 3.")]
+    [InlineData("--record", "--record needs a file, for example --record NpcForge.Tests/Fixtures/replay.jsonl.")]
+    [InlineData("--recording", "--recording needs a file, for example --recording NpcForge.Tests/Fixtures/replay.jsonl.")]
+    public void Every_flag_given_last_stops_the_run(string flag, string message)
+    {
+        var error = Assert.Throws<ArgumentException>(() => RunOptions.Parse([flag]));
+
+        Assert.Equal(message, error.Message);
+    }
+
+    [Theory]
+    [InlineData("--provider")]
+    [InlineData("--seed")]
+    [InlineData("--model")]
+    [InlineData("--setting")]
+    [InlineData("--want")]
+    [InlineData("--difficulty")]
+    [InlineData("--occupation")]
+    [InlineData("--load")]
+    [InlineData("--record")]
+    [InlineData("--recording")]
+    public void Every_flag_followed_by_a_flag_gets_the_same_message_as_when_last(string flag)
+    {
+        var last = Assert.Throws<ArgumentException>(() => RunOptions.Parse([flag]));
+        var beforeAnother = Assert.Throws<ArgumentException>(() => RunOptions.Parse([flag, "--difficulty", "Hill"]));
+
+        Assert.Equal(last.Message, beforeAnother.Message);
     }
 
     [Theory]

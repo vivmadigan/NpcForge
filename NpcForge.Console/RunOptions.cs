@@ -5,9 +5,9 @@ namespace NpcForge;
 // and the recording cannot drift: add a flag here and both know it.
 public sealed class RunOptions
 {
-    // MissingValue: the refusal for a flag given as the last argument. Null means the flag is
-    // ignored then and its default stays, which is what a bare run has always done. A flag with a
-    // message here would otherwise fall through to a paid run (or a paid run that records nothing).
+    // MissingValue: the refusal for a flag given with no value after it. Null gets the plain
+    // message below. A flag silently left at its default would be a paid run that is not the one
+    // the GM asked for (or one that records nothing).
     // Recorded: written to line 1 of a recording. The order of this table is the order on that line.
     private sealed record Flag(
         string Name,
@@ -24,7 +24,8 @@ public sealed class RunOptions
     private static readonly Flag[] Table =
     [
         new("--provider", "openai", Lower),
-        new("--seed", null, Number, Recorded: true),
+        new("--seed", null, Number, Recorded: true,
+            MissingValue: "--seed needs a number, for example --seed 1."),
         new("--model", "gpt-6-luna", Lower, Recorded: true),
         // Occupation sits with the setting because they change together: a farm run wants
         // --occupation as well as --setting.
@@ -39,7 +40,8 @@ public sealed class RunOptions
         new("--record", null, AsIs,
             MissingValue: "--record needs a file, for example --record NpcForge.Tests/Fixtures/replay.jsonl."),
         // --recording <file> is the file the replay provider answers from.
-        new("--recording", null, AsIs),
+        new("--recording", null, AsIs,
+            MissingValue: "--recording needs a file, for example --recording NpcForge.Tests/Fixtures/replay.jsonl."),
     ];
 
     private readonly Dictionary<string, string> _values;
@@ -67,28 +69,33 @@ public sealed class RunOptions
         var values = Table.Where(flag => flag.Default is not null)
             .ToDictionary(flag => flag.Name, flag => flag.Default!);
 
-        // A value is read again as a flag on the next pass, as it always has been: after
-        // `--setting --load`, --load is still seen. Unknown flags are skipped.
+        // Every argument is a flag or the value of the flag before it, and anything else stops the
+        // run here, before a model client is built. A value is consumed with its flag, so it is
+        // never read again as a flag: `--setting --load 3` is a --setting with no value.
         for (int i = 0; i < args.Length; i++)
         {
-            var flag = Array.Find(Table, f => f.Name == args[i]);
-            if (flag is null)
-                continue;
+            if (!args[i].StartsWith("--"))
+                throw new ArgumentException(
+                    $"Unexpected argument '{args[i]}': a flag starts with -- and is followed by its value. {KnownFlags()}");
 
-            if (i + 1 == args.Length)
-            {
-                if (flag.MissingValue is not null)
-                    throw new ArgumentException(flag.MissingValue);
-                continue;
-            }
+            var flag = Array.Find(Table, f => f.Name == args[i])
+                ?? throw new ArgumentException($"Unknown flag {args[i]}. {KnownFlags()}");
 
-            values[flag.Name] = flag.Read(args[i + 1]);
+            // The next argument being a flag means this one was given no value, not that the value
+            // is called "--something".
+            if (i + 1 == args.Length || args[i + 1].StartsWith("--"))
+                throw new ArgumentException(flag.MissingValue ?? $"{flag.Name} needs a value after it.");
+
+            values[flag.Name] = flag.Read(args[++i]);
         }
 
         var options = new RunOptions(values);
         options.RequireFlagsThatGoTogether();
         return options;
     }
+
+    // Listed from the table, so the message cannot name a flag the parser does not have.
+    private static string KnownFlags() => "The flags are: " + string.Join(", ", Table.Select(flag => flag.Name)) + ".";
 
     // All of these stop the run before anything is paid for.
     private void RequireFlagsThatGoTogether()
