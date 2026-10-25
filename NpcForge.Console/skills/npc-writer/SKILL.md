@@ -18,8 +18,9 @@ character knows and what would make them give way is true. Write the character i
   cheerful innkeeper in a frightened town is cheerful for a reason. The contrast is welcome; the
   situation stays real.
 - **What they know.** If the scene hints that something is going on, this character knows what it
-  is. Decide what it is, so it fits everything the scene says, and say it plainly in "Where they
-  stand", so the Games Master can use it.
+  is. If the scene says what it is, use it. If it does not, that is the Games Master's to decide,
+  not yours: wherever it would be named, dialogue included, write it as a gap in square brackets,
+  such as [what is really happening in the village]. Make something up only if the scene asks you to.
 - **What makes them give way.** If the scene says what it would take, that is how they yield. It is
   the first lever, and nothing else in the brief overrides it.
 - **A clash.** Where the scene and a brief entry disagree about a trait, the brief entry wins and is
