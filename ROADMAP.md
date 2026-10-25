@@ -35,7 +35,7 @@ Two rules for every epic, now that the Safety net exists:
 
 | # | Epic | In one line |
 | --- | --- | --- |
-| 3 | Better characters | Tone, names that don't repeat, and a writers' lab |
+| 3 | Better characters | Tone, race, names that don't repeat, and a writers' lab |
 | 4 | Keep and edit | Choose what to keep, and change it later |
 | 5 | Ready to grow | A structure that can sit behind a website and a database |
 | 6 | Friends can use it | A website with logins and a database, deployed |
@@ -44,36 +44,54 @@ Epics 4 to 6 are drafts: sharpen each one before it starts.
 
 ## 3. Better characters
 
-**Goal.** Characters that vary more and fit the mood I ask for: a tone (serious, comic or
-heartfelt), names that stop repeating, and a way to try different writing styles side by side.
+**Goal.** Characters that differ more from run to run and fit the mood I ask for, through three
+levers: tone, race and name dice. Plus a writers' lab, so I judge creative changes by comparing them
+side by side, not from memory.
 
 **Constraints.**
-- Variety comes from dice, not the model. Tone and name hints are rolled, or set by me, and never
-  invented. Each trait table keeps at least six entries for every difficulty and tone, so three runs
-  usually differ.
-- Characters saved before this epic still load. Fields they lack show as "unknown".
-- A writing-style experiment uses the same brief for each style, so only the writing changes.
-- The details decided on 2026-09-26 are in step 11 of `git show eddc444:ROADMAP.md`.
+- Tone, race and the name dice are given by me (a flag, or my words in the interview), inferred
+  where ADR-007 allows a choice, or rolled. The model never picks them.
+- Tone (serious, comic, heartfelt) changes how the character is written, not which traits roll.
+  Leaving out traits that clash with a tone waits until the lab shows a real clash.
+- Race is my words when I give it ("an orc blacksmith"), and rolled from a table otherwise. The
+  table and how often each race comes up are mine to approve.
+- Name dice are a starting letter and a syllable count, rolled for every character. The writer is
+  also told the race, so the name fits the people.
+- The lab runs one brief, with the dice fixed by `--seed`, through two or more variants (skills,
+  tones, temperature) and shows them side by side. A blind mode hides the labels and scores my
+  guesses. Lab runs are paid, so each one asks first, with its cost.
+- An ADR comes first: tone, race and name dice join the brief. This changes `roll_character` and
+  the save format.
+- Old saves still load, with the new fields showing as "unknown". Every table keeps at least six
+  entries.
 
 **Done when.**
-- Three runs at the same answers and tone give three different characters with different levers,
-  and each name follows its dice (*needs my eyes*, paid).
-- One run at each other tone reads as that tone (*needs my eyes*, paid).
-- An old save loads with the new fields as "unknown" (free test).
-- I can run two writing styles on the same brief and compare them side by side.
+- Free tests: a given tone or race is kept and a missing one is rolled; the interview infers a tone
+  from my scene and labels it; every brief carries name dice; an old save loads with "unknown"; the
+  replay passes against the re-recorded fixture; the lab, run with a stand-in model, produces a
+  side-by-side sheet and a blind sheet whose answer key matches.
+- Blind tone check: six characters from one brief, two of each tone. I name the tone and get at
+  least five right (*needs my eyes*, paid).
+- Names: six runs give six different first names, each following its dice (*needs my eyes*, paid,
+  unless the design finds a structured check).
+- Race: an elf and a dwarf from the same brief read as different peoples (*needs my eyes*, paid).
 
-**Tasks.**
-- Tone: set or rolled, with clashing traits left out of each tone
-- Name dice: a starting letter and a number of syllables
-- Throwaway or recurring characters. Open question: what extra does a recurring character get?
-- Writers' lab: compare writing styles (skills) on the same brief. Temperature can be one
-  experiment.
+**Tasks.** In this order, because the lab is what makes the other three judgeable:
+- ADR: tone, race and name dice join the brief
+- The writers' lab, with its blind mode
+- Tone
+- Race
+- Name dice. Open question: can code check that the name follows its dice without reading the
+  prose, for example by the writer handing the name back as a tool argument?
+
+**Not in this epic.** Throwaway and recurring characters move to "Keep and edit".
 
 ## 4. Keep and edit (draft)
 
 **Goal.** I choose which characters are worth keeping, find them by a name I give them, and change
 a kept character later without starting over, including follow-ups like "make him warier"
-(moved here from "Talk to it").
+(moved here from "Talk to it"). A kept character may be marked recurring, and the open question
+moves with it: what extra does a recurring character get? (moved here from "Better characters").
 
 **Constraints.** Saving and loading stay app-only: the model never touches the saved file. Saves made
 before this epic still load.
