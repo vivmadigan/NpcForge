@@ -45,6 +45,7 @@ Keep implementation details out of the map. Name only user paths, stable handles
 - [Roll and write a character, replayed](./replay-run.md) covers the free stand-in for the main path: roll, tool call, write, save, with the answer on stdout and the trace on stderr.
 - [Load a saved character](./load-saved.md) covers `--load N`, its exact output and its refusal of a number that was never saved.
 - [Flag refusals](./flag-guards.md) covers the bad flag combinations that stop before any cost, and a difficulty the roll rejects before the model is called.
+- [Scene interview](./scene-interview.md) covers a bare run waiting for the scene, and end of input stopping it with nothing rolled or saved.
 - [Free test suite](./test-suite.md) covers `dotnet test`, a single test by name, and the break-it loop that shows a new test fail.
 
-Not mapped. The paid run (`dotnet run --project NpcForge.Console` with no `--provider replay`), `--record` for real, and the MCP server driven directly over stdio. Whether a character reads well is *needs my eyes*.
+Not mapped. The paid run (`dotnet run --project NpcForge.Console` with no `--provider replay`), the interview with a real scene and model, `--record` for real, and the MCP server driven directly over stdio. Whether a character reads well is *needs my eyes*.

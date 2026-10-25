@@ -117,13 +117,16 @@ cmd_doctor() {
     else ok "NpcForge.$p built after its last source edit"; fi
   done
 
-  # SKILL.md is copied to bin at build, and the model is told the bin copy.
-  if cmp -s NpcForge.Console/skills/npc-writer/SKILL.md \
-            NpcForge.Console/bin/Debug/net10.0/skills/npc-writer/SKILL.md; then
-    ok "npc-writer SKILL.md in bin matches the source"
-  else
-    fail "npc-writer SKILL.md in bin differs from the source. Run dotnet build"
-  fi
+  # Each SKILL.md is copied to bin at build, and the model is told the bin copy.
+  local skill
+  for skill in npc-writer scene-interviewer; do
+    if cmp -s "NpcForge.Console/skills/$skill/SKILL.md" \
+              "NpcForge.Console/bin/Debug/net10.0/skills/$skill/SKILL.md"; then
+      ok "$skill SKILL.md in bin matches the source"
+    else
+      fail "$skill SKILL.md in bin differs from the source. Run dotnet build"
+    fi
+  done
 
   # A subshell, so the die inside fixture_flags fails this check and does not end the doctor.
   if (fixture_flags >/dev/null) 2>/dev/null; then
