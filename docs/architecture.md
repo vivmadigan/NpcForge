@@ -26,7 +26,8 @@ you ──► Program.cs
           │     records the GM's words with record_answer, show them, wait for "yes"
           │ 2. roll: call roll_character directly ─────────► server: tables and dice
           │ ◄─────────────────────────────────────────────── the brief, as JSON
-          │ 3. run: SKILL.md as the system message, the brief as the first user message
+          │ 3. run: SKILL.md as the system message; the first user message holds
+          │       the GM's scene (interview runs only) and the brief
           │       AgentLoop ◄──► model, which may call lookup_archetype ◄──► server
           │ 4. save: save_character(brief, text) ──────────► characters.json
           ▼
@@ -34,7 +35,11 @@ you ──► Program.cs
 ```
 
 Step 1a runs only when no answer flag and no `--load` is given ("The scene interview"). Its
-answers go to the same `roll_character` call the flags fill. `--load <number>` replaces steps 2 to 4
+answers go to the same `roll_character` call the flags fill. A yes also hands back the scene as the
+GM typed it, and the writer is sent it word for word, between `<scene>` tags, before the brief
+(ADR-008). `ChatAgent.FirstMessage` builds that message; with no scene it is the message a flag run
+always sent, so the replay fixture still matches it. Code never reads the scene, and it is not saved.
+`[app] scene sent (<n> chars)` on stderr shows it went. `--load <number>` replaces steps 2 to 4
 with `load_character`: no roll, no model, no cost. It still
 builds the model client, so it still needs an API key. `--seed`, `--record` and `--provider replay`
 are under "Replay".
@@ -163,7 +168,10 @@ the server's schema to it.
 
 `NpcForge.Console/skills/npc-writer/SKILL.md` is copied to `bin` and read into a system message at
 index 0. It sets the output order, what each difficulty and obstacle oblige the writer to do, that
-every lever names the brief entry it comes from, and "show the trait, never state it". Nothing
+every lever names the brief entry or the words of the scene it comes from, and "show the trait,
+never state it". When a scene is sent, it is settled like the brief: the traits are played through
+it, the character knows what the scene hints at, and what the scene says would make them give way is
+the first lever (epic 7, `docs/runs/2026-10-25-02-control-scene-with-the-scene.md`). Nothing
 parses it, so editing it changes the writing with no code change. The `[skill]` trace line carries
 its length and a short SHA-256, so a run names the guidance it was given.
 
@@ -273,7 +281,10 @@ One real run is recorded once, and the whole app replays against it for free (AD
   and naming `roll_character` fails; anything but `yes`, end of input included, returns nothing to
   roll; `yes` returns the arguments only after the confirmation was shown; the tavern scene's
   confirmation; a described trait reaches the brief from the real server; and the app with no answer
-  flag waits for a scene and, at end of input, rolls and saves nothing.
+  flag waits for a scene and, at end of input, rolls and saves nothing. A yes hands the scene back
+  as typed, trimmed.
+- `WriterMessageTests`: through the real `ChatAgent` and its skill, the writer is sent the scene word
+  for word with the brief last, and a run with no scene sends the message a flag run always sent.
 - `SpendingCapTests`: the cap refuses the call after the limit without asking the model, and stops
   an agent loop before its turn cap.
 - `ConsoleProcess`: not a test. The one place a test starts the app as a process: the build
@@ -330,3 +341,4 @@ agents and named, not numbered.
 | 8 | Every run is saved, and a load is byte-identical | `step-8` |
 | Safety net | A recorded run replays for free, and the same seed rolls the same brief | |
 | Harden the safety net | A typo'd flag, a free run reaching a model, a replay writing over the owner's saves, and a Release test replaying the Debug build all stop or fail loudly | |
+| The writer reads the scene (epic 7) | The GM's scene reaches the writer, and the control scene gives a character who acts inside it on three seeds of three | |
