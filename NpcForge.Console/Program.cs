@@ -129,7 +129,8 @@ if (scene is not null)
     Console.Error.WriteLine($"[app] scene sent ({scene.Length} chars)");
 
 // Run.
-var answer = await ChatAgent.RunAsync(client, options, tools, briefJson, scene);
+var answer = await ChatAgent.WriteAsync(
+    client, options, tools, new WriterInput(briefJson, scene, WriterInput.DefaultSkillDir), CancellationToken.None);
 Console.WriteLine(answer);
 
 // Save: every run is kept, the brief with the character written from it. The brief goes as a

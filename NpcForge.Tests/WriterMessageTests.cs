@@ -18,7 +18,8 @@ public class WriterMessageTests
     {
         var model = new KeepsWhatItIsSent();
 
-        await ChatAgent.RunAsync(model, new ChatOptions(), new FakeToolSource(), Brief, ControlScene);
+        await ChatAgent.WriteAsync(model, new ChatOptions(), new FakeToolSource(),
+            new WriterInput(Brief, ControlScene, WriterInput.DefaultSkillDir), CancellationToken.None);
 
         // One message of facts after the skill, as before: the scene joins it, not a message of its own.
         var sent = model.Messages;
@@ -36,9 +37,46 @@ public class WriterMessageTests
     {
         var model = new KeepsWhatItIsSent();
 
-        await ChatAgent.RunAsync(model, new ChatOptions(), new FakeToolSource(), Brief, scene: null);
+        await ChatAgent.WriteAsync(model, new ChatOptions(), new FakeToolSource(),
+            new WriterInput(Brief, Scene: null, WriterInput.DefaultSkillDir), CancellationToken.None);
 
         Assert.Equal($"Write this character. The brief is settled; do not change it.\n\n{Brief}", model.Messages[1].Text);
+    }
+
+    // The skill folder is a choice of the input, not a constant: a copy with an edit is what the
+    // writer is told (ADR-009, one way to write).
+    [Fact]
+    public async Task A_skill_folder_in_the_input_is_the_system_message()
+    {
+        var dir = Directory.CreateTempSubdirectory("npcforge-skill-").FullName;
+        try
+        {
+            var edited = File.ReadAllText(Path.Combine(WriterInput.DefaultSkillDir, "SKILL.md")) + "\nEDITED COPY MARKER\n";
+            File.WriteAllText(Path.Combine(dir, "SKILL.md"), edited);
+            var model = new KeepsWhatItIsSent();
+
+            await ChatAgent.WriteAsync(model, new ChatOptions(), new FakeToolSource(),
+                new WriterInput(Brief, Scene: null, dir), CancellationToken.None);
+
+            Assert.Equal(edited, model.Messages[0].Text);
+        }
+        finally { Directory.Delete(dir, recursive: true); }
+    }
+
+    // The line docs/runs records are compared by. Built here by hand, so a change to the format
+    // fails this test instead of silently re-fingerprinting every record.
+    [Fact]
+    public void The_skill_trace_for_the_default_folder_keeps_its_format()
+    {
+        var path = Path.Combine(AppContext.BaseDirectory, "skills", "npc-writer", "SKILL.md");
+        var skill = File.ReadAllText(path);
+        var hash = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(
+            System.Text.Encoding.UTF8.GetBytes(skill)))[..8].ToLowerInvariant();
+
+        var system = ChatAgent.SystemMessage(WriterInput.DefaultSkillDir);
+
+        Assert.Equal($"[skill] {path} ({skill.Length} chars, {hash})", system.Trace);
+        Assert.Equal(skill, system.Text);
     }
 
     // A stand-in writer: answers at once, and keeps the messages of its one call.
