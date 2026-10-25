@@ -185,8 +185,9 @@ Approve only the edits that would change a future decision.
 ## Cost and models
 
 - **Models per role** come from `~/.claude/pstack-models.md`. Fable is never used: the sheet replaces
-  it with `opus`, a hook in your user settings refuses any agent started on Fable (tested), and the
-  same settings limit model choice to opus, sonnet and haiku (`availableModels`).
+  it with `opus`, a hook refuses any agent started on Fable (tested), and your user settings limit
+  model choice to opus, sonnet and haiku (`availableModels`). The hook is in the repo's
+  `.claude/settings.json` as well as your user settings, so it also runs in a cloud session.
 - **Code delegates:** `sonnet` for features and refactoring, `opus` for bug fixes.
 - **Review panels** run one subagent per model in their list. `interrogate`, `architect` and `arena`
   each run three here (opus, sonnet, haiku). pstack's default is four, including Fable.
@@ -230,6 +231,27 @@ Approve only the edits that would change a future decision.
   The `watch-pr` and `orch` scripts behind the Babysit, Shipping and Orchestrate playbooks need Bun,
   which isn't installed. `reflect`, `automate-me` and skill authoring take their guidance from
   Anthropic's `plugin-dev` plugin, which isn't installed either.
+
+## In the cloud
+
+A cloud session (claude.ai/code, the Desktop app's Cloud environments, `claude --cloud`) runs on a
+fresh clone. It reads the repo's `.claude/settings.json`, so the Fable hook and the permission rules
+apply. It does not install the plugins that file declares, and nothing in your `~/.claude` reaches
+it: not the plugin, the model sheet, `CLAUDE.md` or `availableModels`
+([cloud environments, "What carries over"](https://code.claude.com/docs/en/cloud-environments#what-carries-over-from-your-setup)).
+
+`docs/cloud-setup.sh` puts them back. It installs pstack in the VM, and writes the model sheet and
+the Fable rule to the VM's `~/.claude`. To use it:
+
+1. At claude.ai/code, add or edit the cloud environment you use for NpcForge (one of your own, not
+   a shared one), with network access left at **Trusted** so GitHub is reachable.
+2. Paste `docs/cloud-setup.sh` into its **Setup script** box and save.
+3. Start a cloud session and check: `/context` lists `/root/.claude/CLAUDE.md`, and a `/pstack:`
+   command such as `/pstack:poteto-help` is known.
+
+The environment runs the pasted copy, so after a change to `docs/cloud-setup.sh`, paste it again.
+The script is cached with the environment for about a week. A Fable model in a cloud session is
+still blocked by the repo's hook, even when the setup script failed.
 
 ## Upkeep
 
