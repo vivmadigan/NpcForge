@@ -167,8 +167,8 @@ public class LabRunTests : IDisposable
     public async Task Blind_prints_no_trace_while_it_runs_and_the_same_seed_gives_the_same_key()
     {
         var skills = $"skill={string.Join(',', SixSkills())}";
-        var first = await RunLab(new LabStandIn(), ["--lab", skills, "--mode", "blind"], "yes\n");
-        var second = await RunLab(new LabStandIn(), ["--lab", skills, "--mode", "blind"], "yes\n");
+        var first = await RunLab(new LabStandIn { CallsATool = true }, ["--lab", skills, "--mode", "blind"], "yes\n");
+        var second = await RunLab(new LabStandIn { CallsATool = true }, ["--lab", skills, "--mode", "blind"], "yes\n");
 
         // Nothing a variant prints can give the key away: no label, no skill path, no token count.
         foreach (var stderr in new[] { first.Stderr, second.Stderr })
@@ -176,6 +176,8 @@ public class LabRunTests : IDisposable
             Assert.DoesNotContain("[loop]", stderr);
             Assert.DoesNotContain("[skill]", stderr);
             Assert.DoesNotContain("[tool]", stderr);
+            // Not [server]: the server's startup and roll lines arrive on their own thread before
+            // the window opens, and are not the variants'. The side control below does see them.
             Assert.DoesNotContain("npcforge-labskill", stderr);
             // The lab's own lines are outside the window: the confirmation and the folder.
             Assert.Contains("Run this lab? Type yes to run it.", stderr);
@@ -226,10 +228,13 @@ public class LabRunTests : IDisposable
     [Fact]
     public async Task A_side_lab_prints_its_trace_into_the_same_capture()
     {
-        var result = await RunLab(new LabStandIn(), ["--lab", $"skill={string.Join(',', SixSkills())}"], "yes\n");
+        var result = await RunLab(
+            new LabStandIn { CallsATool = true }, ["--lab", $"skill={string.Join(',', SixSkills())}"], "yes\n");
 
         Assert.Contains("[loop]", result.Stderr);
         Assert.Contains("[skill]", result.Stderr);
+        Assert.Contains("[tool] lookup_archetype", result.Stderr);
+        Assert.Contains("[server]", result.Stderr);
     }
 
     // The cap is caught inside the lab, so it never tests the finally. Cancellation is the one
@@ -412,9 +417,21 @@ public class LabRunTests : IDisposable
         public Func<Call, string?>? Behave { get; init; }
         public int TokensPerCall { get; init; }
 
+        // True: the first call of each character asks for lookup_archetype, and the call after the
+        // tool's answer writes the text. That is a real [tool] line (and a [server] line) for the
+        // blind window to hide.
+        public bool CallsATool { get; init; }
+
         public Task<ChatResponse> GetResponseAsync(
             IEnumerable<ChatMessage> messages, ChatOptions? options = null, CancellationToken cancellationToken = default)
         {
+            if (CallsATool && messages.Last().Role != ChatRole.Tool)
+            {
+                var ask = new FunctionCallContent("call-1", "lookup_archetype",
+                    new Dictionary<string, object?> { ["occupation"] = "innkeeper" });
+                return Task.FromResult(new ChatResponse(new ChatMessage(ChatRole.Assistant, [ask])));
+            }
+
             var system = messages.First(m => m.Role == ChatRole.System).Text;
             var user = messages.First(m => m.Role == ChatRole.User).Text;
             var call = new Call(system.Split('\n')[0], options?.Temperature, system.Length, user.Length);
