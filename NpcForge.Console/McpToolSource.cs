@@ -3,6 +3,7 @@ using ModelContextProtocol.Client;      // McpClient, McpClientTool, StdioClient
 using ModelContextProtocol.Protocol;    // TextContentBlock
 using System;
 using System.Collections.Generic;
+using System.Reflection;                // AssemblyConfigurationAttribute
 using System.Text;
 using System.Text.Json;
 
@@ -52,6 +53,15 @@ namespace NpcForge
             var serverProject = Path.GetFullPath(Path.Combine(
                 AppContext.BaseDirectory, "..", "..", "..", "..", "NpcForge.Server"));
 
+            // The server runs in the configuration this console was built in. `dotnet run --no-build`
+            // with no -c falls back to Debug, so a Release console would drive a Debug server that
+            // may be stale or missing, and a Release replay would prove nothing about the Release
+            // server (ROADMAP epic "Harden the safety net"). The assembly carries the Configuration
+            // the SDK built it under, so this is what `-c` set, not a guess from a path.
+            var configuration = typeof(McpToolSource).Assembly
+                .GetCustomAttribute<AssemblyConfigurationAttribute>()?.Configuration
+                ?? throw new InvalidOperationException("The console assembly carries no build configuration.");
+
             // What the server is told, through its environment. The server inherits everything this
             // process has, and a null value here does not mean "leave it": it deletes the variable.
             // The two settings use that differently on purpose.
@@ -76,7 +86,7 @@ namespace NpcForge
             {
                 Name = "NpcForge.Server",
                 Command = "dotnet",
-                Arguments = ["run", "--project", serverProject, "--no-build"],
+                Arguments = ["run", "--project", serverProject, "--no-build", "-c", configuration],
                 StandardErrorLines = line => Console.Error.WriteLine($"[server] {line}"),
 
                 // Storage.cs and the dice read these. An environment variable reaches the child

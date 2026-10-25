@@ -57,7 +57,9 @@ public class OfflineTests
     }
 
     // The same stop, through the whole app as a process, so the variable is read from the
-    // environment the way a test harness or a web host would set it.
+    // environment the way a test harness or a web host would set it. It runs the configuration under
+    // test: the console starts the server in its own configuration, so a Debug default would need a
+    // Debug server that a Release run may not have.
     [Theory]
     [InlineData("openai")]
     [InlineData("anthropic")]
@@ -101,7 +103,7 @@ public class OfflineTests
             RedirectStandardOutput = true,
             RedirectStandardError = true,
         };
-        foreach (var arg in new[] { "run", "--project", Path.Combine(RepoRoot(), "NpcForge.Console"), "--no-build", "--no-launch-profile", "--" })
+        foreach (var arg in new[] { "run", "--project", Path.Combine(RepoRoot(), "NpcForge.Console"), "--no-build", "-c", ReplayTests.BuildConfiguration(), "--no-launch-profile", "--" })
             start.ArgumentList.Add(arg);
         foreach (var flag in flags)
             start.ArgumentList.Add(flag);
