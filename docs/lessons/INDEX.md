@@ -17,3 +17,4 @@ not a lesson. Older lessons mention `PLAN.md` and plan versions; those are in gi
 - [005 Redirecting a run to a file in PowerShell reorders the trace against the answer](005-powershell-redirect-reorders-trace.md) — applies to: docs/runs/**, NpcForge.Console/AgentLoop.cs, NpcForge.Console/Program.cs
 - [006 A run and its --load look different in a console paste when the save is exact](006-console-paste-not-byte-exact.md) — applies to: docs/runs/**, NpcForge.Console/Program.cs, NpcForge.Server/characters.json
 - [007 A launch profile puts a line on stdout above the answer](007-launch-profile-stdout-line.md) — applies to: `**/Properties/launchSettings.json`, NpcForge.Tests/ReplayTests.cs, docs/runs/**
+- [008 A test that starts the app with `dotnet run --no-build` and no `-c` runs the Debug build](008-dotnet-run-no-build-runs-debug.md) — applies to: NpcForge.Tests/ConsoleProcess.cs, NpcForge.Console/McpToolSource.cs

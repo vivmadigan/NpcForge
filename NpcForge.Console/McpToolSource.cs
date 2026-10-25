@@ -56,7 +56,7 @@ namespace NpcForge
             // The server runs in the configuration this console was built in. `dotnet run --no-build`
             // with no -c falls back to Debug, so a Release console would drive a Debug server that
             // may be stale or missing, and a Release replay would prove nothing about the Release
-            // server (ROADMAP epic "Harden the safety net"). The assembly carries the Configuration
+            // server (lesson 008). The assembly carries the Configuration
             // the SDK built it under, so this is what `-c` set, not a guess from a path.
             var configuration = typeof(McpToolSource).Assembly
                 .GetCustomAttribute<AssemblyConfigurationAttribute>()?.Configuration

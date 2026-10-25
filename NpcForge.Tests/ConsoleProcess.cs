@@ -16,7 +16,7 @@ internal static class ConsoleProcess
     // The SDK stamps the test assembly with the Configuration it was built under, so this is what
     // `dotnet test -c Release` set, not a guess from a path. The console is a project reference, so
     // it was built in the same one. Without it, `dotnet run --no-build` falls back to Debug and
-    // runs a different build from the one under test (ROADMAP epic "Harden the safety net").
+    // runs a different build from the one under test (lesson 008).
     public static string BuildConfiguration { get; } =
         typeof(ConsoleProcess).Assembly.GetCustomAttribute<AssemblyConfigurationAttribute>()?.Configuration
         ?? throw new InvalidOperationException("The test assembly carries no build configuration.");

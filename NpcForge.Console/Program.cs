@@ -53,7 +53,7 @@ var options = new ChatOptions
 // Connect: start the server, before the model's first turn. Disposed when the run ends,
 // which stops the server on purpose.
 // A replay or a recording run saves to a temp file unless NPCFORGE_CHARACTERS says otherwise, so
-// it never writes over the characters.json you keep (ROADMAP epic "Harden the safety net").
+// it never writes over the characters.json you keep (docs/architecture.md "Storage").
 var charactersPath = run.CharactersPath(Environment.GetEnvironmentVariable("NPCFORGE_CHARACTERS"));
 await using var tools = new McpToolSource(charactersPath, seed);
 await tools.ConnectAsync(CancellationToken.None);

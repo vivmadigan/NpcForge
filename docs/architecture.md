@@ -35,6 +35,26 @@ you ──► Program.cs
 builds the model client, so it still needs an API key. `--seed`, `--record` and `--provider replay`
 are under "Replay".
 
+## Run options
+
+Every flag is a row in one table in `RunOptions`, which says its default, how its value is read and
+whether it goes on line 1 of a recording. The parser and the recording both read that table, so a
+flag cannot be parsed and left off the recording.
+
+| Flag | Default | Does |
+| --- | --- | --- |
+| `--provider` | `openai` | `openai`, `anthropic` or `replay` |
+| `--model` | `gpt-6-luna` | The model id, lower-cased |
+| `--setting`, `--want`, `--difficulty`, `--occupation` | an inn in a major city, the name of a fence, `Wall`, `innkeeper` | The GM's answers, sent to `roll_character` |
+| `--seed <n>` | none | Fixes the dice (see "Replay") |
+| `--load <n>` | none | Prints saved character n instead of making one |
+| `--record <file>` | none | Also writes every model call to a file. Needs `--seed` |
+| `--recording <file>` | none | The file `--provider replay` answers from |
+
+A flag the table does not know, a flag with no value (last, or before another flag) and a stray word
+stop the run in `RunOptions.Parse`, before any model client is built. So do `--record` without
+`--seed`, `--recording` without `--provider replay`, and `--record` with it.
+
 ## The server's tools
 
 | Tool | Called by | Does |
@@ -105,12 +125,24 @@ output on stdout would corrupt the wire; the `ProjectReference` keeps the server
 Settings reach it as environment variables (`NPCFORGE_CHARACTERS`, `NPCFORGE_SEED`), which arrive
 before any MCP message.
 
+It is started in the configuration the console was built in. `dotnet run --no-build` with no `-c`
+runs the Debug build, so a Release console would drive a Debug server that may be stale or missing.
+`McpToolSource` reads the console assembly's `AssemblyConfigurationAttribute` and passes that as `-c`
+(lesson 008).
+
 ## Storage
 
 One JSON file, `NpcForge.Server/characters.json`: every run, numbered from 1, the brief and the text
-together (ADR-003). `NPCFORGE_CHARACTERS` overrides the path, and the tests use temp files. The path
-is always absolute, because the server's working folder is wherever the app was started. Only the
-server touches the file, so a database later changes the server and nothing else.
+together (ADR-003). `NPCFORGE_CHARACTERS` overrides the path. The path is always absolute, because
+the server's working folder is wherever the app was started. Only the server touches the file, so a
+database later changes the server and nothing else.
+
+A replay or a recording run is not a real character, so it never uses the tracked file.
+`RunOptions.CharactersPath` decides the file for every run: an `NPCFORGE_CHARACTERS` the caller set
+wins; otherwise `--provider replay` and `--record` get a fresh `npcforge-replay-<guid>.json` or
+`npcforge-record-<guid>.json` in the OS temp folder; a normal run and `--load` keep the tracked file.
+The console passes the answer to the server and ends with `[app] saved as N in <path>` whenever it
+chose the file, so the temp file can be found. The temp file is left in place on purpose.
 
 ## Replay
 
@@ -134,7 +166,9 @@ One real run is recorded once, and the whole app replays against it for free (AD
 - **The test.** `ReplayTests` runs the console as a process with line 1's flags and checks the save
   file against the recording. It refuses a recording with fewer than two calls or no tool call,
   because a dropped model turn only shows on a later call. The child's HTTP proxy is a dead port, so
-  a replay that ever lost `--provider replay` fails instead of paying.
+  a replay that ever lost `--provider replay` fails instead of paying. A second test runs it with
+  `NPCFORGE_CHARACTERS` removed and checks the tracked `characters.json` is byte-identical afterwards
+  (putting it back if not) and the save is at the path the app printed.
 - **Offline.** `NPCFORGE_OFFLINE=1` makes `ModelClients.Create` refuse `openai` and `anthropic` before
   it builds a client or reads a key, so a free run cannot reach a model whatever order `Program.cs` runs
   in. `replay` still works. It is a second stop, independent of the dead proxy. `OfflineTests` runs both
@@ -146,8 +180,11 @@ One real run is recorded once, and the whole app replays against it for free (AD
   their JSON. Re-record after a deliberate behavior change or such an upgrade only, never for a
   restructure. A re-record with no tool call fails the test; ask the owner before paying again. The
   command and the rules are in `docs/runs/README.md`.
-- **By hand, free.** `docs/runs/README.md` has the replay command. Give it `NPCFORGE_CHARACTERS`, or
-  its save lands in the tracked `characters.json`.
+- **By hand, free.** `docs/runs/README.md` has the replay command. Its save goes to a temp file,
+  named on the `[app] saved as` line.
+- **Build configuration.** A test that starts the app passes `-c <the configuration it was built in>`
+  and checks both builds are newer than their source. The one helper that does it is
+  `ConsoleProcess` (lesson 008).
 
 ## Tests
 
@@ -157,8 +194,14 @@ One real run is recorded once, and the whole app replays against it for free (AD
 - `McpToolSourceTests`, against the real server: the model can neither see nor name an app-only
   tool, a save loads back byte for byte, an unknown number stops the run, and the same seed rolls the
   same brief from two servers.
-- `ReplayTests`: the whole app against the recorded run, as above.
+- `ReplayTests`: the whole app against the recorded run, as above, and the temp-file save.
+- `ReplaySensitivityTests`: the replay fails on a changed system prompt, an emptied tool list, a
+  changed model option and a dropped model turn.
 - `OfflineTests`: `NPCFORGE_OFFLINE=1` refuses both paid providers, and replay still works.
+- `RunOptionsTests` and `FlagRefusalTests`: the flag table, its refusals, and which save file a run
+  uses; and a typo'd flag next to the paid default stops at the parser, through the whole app.
+- `ConsoleProcess`: not a test. The one place a test starts the app as a process: the build
+  configuration, a freshness check, the dead proxy, a timeout, and both streams read.
 
 A test that asserts on `Tool failed:` must give arguments that would otherwise succeed, or it passes
 for the wrong reason (lesson 004).
@@ -209,3 +252,4 @@ agents and named, not numbered.
 | 7 | `SKILL.md` shapes the output, and levers differ across runs | `step-7` |
 | 8 | Every run is saved, and a load is byte-identical | `step-8` |
 | Safety net | A recorded run replays for free, and the same seed rolls the same brief | |
+| Harden the safety net | A typo'd flag, a free run reaching a model, a replay writing over the owner's saves, and a Release test replaying the Debug build all stop or fail loudly | |
