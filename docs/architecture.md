@@ -132,6 +132,10 @@ One real run is recorded once, and the whole app replays against it for free (AD
   file against the recording. It refuses a recording with fewer than two calls or no tool call,
   because a dropped model turn only shows on a later call. The child's HTTP proxy is a dead port, so
   a replay that ever lost `--provider replay` fails instead of paying.
+- **Offline.** `NPCFORGE_OFFLINE=1` makes `ModelClients.Create` refuse `openai` and `anthropic` before
+  it builds a client or reads a key, so a free run cannot reach a model whatever order `Program.cs` runs
+  in. `replay` still works. It is a second stop, independent of the dead proxy. `OfflineTests` runs both
+  paid providers against the real code, in process with a dummy key and as the whole app.
 - **What forces a re-record.** Anything that changes what the model is sent: `SKILL.md`, a tool's
   description or schema, a `ChatOptions` field, the first message. Anything that changes the seeded
   brief: an entry in `Tables.cs`, the order of the picks, a .NET major version that changes
@@ -151,6 +155,7 @@ One real run is recorded once, and the whole app replays against it for free (AD
   tool, a save loads back byte for byte, an unknown number stops the run, and the same seed rolls the
   same brief from two servers.
 - `ReplayTests`: the whole app against the recorded run, as above.
+- `OfflineTests`: `NPCFORGE_OFFLINE=1` refuses both paid providers, and replay still works.
 
 A test that asserts on `Tool failed:` must give arguments that would otherwise succeed, or it passes
 for the wrong reason (lesson 004).
