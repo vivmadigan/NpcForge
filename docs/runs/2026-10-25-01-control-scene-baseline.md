@@ -39,6 +39,7 @@ neither yields to a threat on their life.
   It wrote an ordinary inn.
 - **The GM's "he" became "Mara Venn" in both runs**, and save 3 (a different brief) is also Mara
   Venn. The writer is told nothing about the character's sex, and its name comes from the model, not
-  the dice. The scene fixes the first; repeating names are epic 3's.
+  the dice. Sending the scene should fix the first (a guess until a run shows it); repeating names
+  are epic 3's.
 - **Rolled traits are used as a checklist.** Every lever and anti-lever is one brief entry played on
   its own, as the skill's rule "every lever names the entry in the brief it comes from" asks.
