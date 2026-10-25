@@ -1,6 +1,5 @@
 using System.Text;
 using System.Text.Json;
-using System.Text.RegularExpressions;
 
 namespace NpcForge;
 
@@ -55,35 +54,62 @@ public static class LabSheet
     // label, no skill line and no failure text, and a key from letter to label. A failed variant is
     // left off the sheet, because its label or reason would give its letter away by elimination. It
     // is counted in a closing line, and written with its label, take and reason into key.json, which
-    // the GM reads only after guessing.
-    public static (string Sheet, string Key) Blind(
+    // the GM reads only after guessing. The third result is blind.json: the same characters as data,
+    // so --score never has to find a letter by reading the model's prose.
+    public static (string Sheet, string Key, string Data) Blind(
         string briefJson, IReadOnlyList<LabEntry> entries, int planned, Random random)
     {
         var written = Shuffle(entries.Where(entry => entry.Text is not null), random);
-        var letters = written.Select((entry, i) => ((char)('A' + i)).ToString()).ToList();
+        var characters = written
+            .Select((entry, i) => new BlindCharacter(((char)('A' + i)).ToString(), entry.Text!))
+            .ToList();
 
-        var sheet = new StringBuilder();
-        sheet.AppendLine("# Blind lab").AppendLine();
-        sheet.AppendLine("## The brief, the same for every character").AppendLine();
-        sheet.AppendLine("```json").AppendLine(briefJson).AppendLine("```").AppendLine();
-
-        for (var i = 0; i < written.Count; i++)
-            sheet.AppendLine($"## Character {letters[i]}").AppendLine().AppendLine(written[i].Text).AppendLine();
-
+        var notes = new List<string>();
         var failed = entries.Count(entry => entry.Text is null);
         if (failed > 0)
-            sheet.AppendLine(FailedNote(failed)).AppendLine();
+            notes.Add(FailedNote(failed));
         if (entries.Count < planned)
-            sheet.AppendLine(StoppedNote(entries.Count, planned));
+            notes.Add(StoppedNote(entries.Count, planned));
+        var blind = new BlindSheet(briefJson, characters, notes);
 
         var key = new
         {
-            key = letters.Zip(written, (letter, entry) => (letter, entry.Label))
-                .ToDictionary(pair => pair.letter, pair => pair.Label),
+            key = characters.Zip(written, (character, entry) => (character.Letter, entry.Label))
+                .ToDictionary(pair => pair.Letter, pair => pair.Label),
             failures = entries.Where(entry => entry.Text is null)
                 .Select(entry => new { label = entry.Label, take = entry.Take, reason = entry.Failure }),
         };
-        return (sheet.ToString(), JsonSerializer.Serialize(key, new JsonSerializerOptions { WriteIndented = true }));
+        return (Render("Blind lab", blind, annotations: null),
+            JsonSerializer.Serialize(key, Indented), JsonSerializer.Serialize(blind, Indented));
+    }
+
+    private static readonly JsonSerializerOptions Indented = new(JsonSerializerDefaults.Web) { WriteIndented = true };
+
+    // What blind.json holds: the brief, the characters by letter in sheet order, and the closing
+    // notes. No label, no skill line and no failure reason, the same as blind.md.
+    private sealed record BlindCharacter(string Letter, string Text);
+    private sealed record BlindSheet(string Brief, List<BlindCharacter> Characters, List<string> Notes);
+
+    // One layout for the blind sheet and the scored one, so scored.md is blind.md plus a line under
+    // each letter. `annotations` maps a letter to that line.
+    private static string Render(string title, BlindSheet blind, IReadOnlyDictionary<string, string>? annotations)
+    {
+        var sheet = new StringBuilder();
+        sheet.AppendLine($"# {title}").AppendLine();
+        sheet.AppendLine("## The brief, the same for every character").AppendLine();
+        sheet.AppendLine("```json").AppendLine(blind.Brief).AppendLine("```").AppendLine();
+
+        foreach (var character in blind.Characters)
+        {
+            sheet.AppendLine($"## Character {character.Letter}").AppendLine();
+            if (annotations?.GetValueOrDefault(character.Letter) is { } line)
+                sheet.AppendLine(line).AppendLine();
+            sheet.AppendLine(character.Text).AppendLine();
+        }
+
+        foreach (var note in blind.Notes)
+            sheet.AppendLine(note).AppendLine();
+        return sheet.ToString();
     }
 
     // The one sentence about failures that may appear before the GM has guessed: a count, and
@@ -101,24 +127,29 @@ public static class LabSheet
             ?? throw new ArgumentException("key.json holds no key."));
     }
 
-    // The blind sheet with each letter's label and the guess beside it. A guess is right when it
-    // equals the label, ignoring case. A letter with no guess counts as wrong.
+    // The blind sheet with each letter's label and the guess beside it, drawn from blind.json and
+    // never from blind.md: a character's own text may hold a line that looks like a heading. A
+    // guess is right when it equals the label, ignoring case. A letter with no guess counts as wrong.
     public static (int Right, int Total, string Scored) Score(
-        string blindSheet, IReadOnlyDictionary<string, string> key, IReadOnlyDictionary<string, string> guesses)
+        string blindJson, IReadOnlyDictionary<string, string> key, IReadOnlyDictionary<string, string> guesses)
     {
+        var blind = JsonSerializer.Deserialize<BlindSheet>(blindJson, Indented)
+            ?? throw new ArgumentException("blind.json holds no sheet.");
+
         var right = 0;
-        var scored = Regex.Replace(blindSheet, @"^## Character ([A-Z])\r?$", match =>
+        var annotations = new Dictionary<string, string>();
+        foreach (var character in blind.Characters)
         {
-            var letter = match.Groups[1].Value;
-            var label = key.GetValueOrDefault(letter, "(not in the key)");
-            var guess = guesses.GetValueOrDefault(letter, "");
+            var label = key.GetValueOrDefault(character.Letter, "(not in the key)");
+            var guess = guesses.GetValueOrDefault(character.Letter, "");
             var isRight = guess.Trim().Equals(label, StringComparison.OrdinalIgnoreCase);
             if (isRight)
                 right++;
-            return $"{match.Value}\n\nLabel: {label}. Your guess: {(guess == "" ? "none" : guess)}. {(isRight ? "Right." : "Wrong.")}";
-        }, RegexOptions.Multiline);
+            annotations[character.Letter] =
+                $"Label: {label}. Your guess: {(guess == "" ? "none" : guess)}. {(isRight ? "Right." : "Wrong.")}";
+        }
 
-        return (right, key.Count, scored);
+        return (right, key.Count, Render("Blind lab, scored", blind, annotations));
     }
 
     private static string StoppedNote(int done, int planned) =>

@@ -163,6 +163,16 @@ public class LabRunTests : IDisposable
         Assert.DoesNotContain("[skill]", blind);
         Assert.DoesNotContain("npcforge-labskill", blind);
 
+        // blind.json is what --score reads: the letters in order with each character's text, and no
+        // label, skill line or path.
+        var data = File.ReadAllText(Path.Combine(result.Folder!, "blind.json"));
+        var characters = JsonDocument.Parse(data).RootElement.GetProperty("characters").EnumerateArray().ToList();
+        Assert.Equal(["A", "B", "C", "D", "E", "F"], characters.Select(c => c.GetProperty("letter").GetString()));
+        foreach (var character in characters)
+            Assert.Equal($"SKILL-{key[character.GetProperty("letter").GetString()!]}", Regex.Match(character.GetProperty("text").GetString()!, @"SKILL-\w").Value);
+        Assert.DoesNotContain("npcforge-labskill", data);
+        Assert.DoesNotContain("[skill]", data);
+
         // The run order is Shuffle(variants) from new Random(seed), and the letters come next from the
         // same Random, so a test can predict both without running the lab.
         var random = new Random(Seed);

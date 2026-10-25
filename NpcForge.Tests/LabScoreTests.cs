@@ -18,9 +18,10 @@ public class LabScoreTests : IDisposable
             .SelectMany(label => new[] { 1, 2 }.Select(take =>
                 new LabEntry(label, take, "[skill] x", $"{label} {take} text", null)))
             .ToList();
-        var (sheet, key) = LabSheet.Blind("""{"setting":"a farm"}""", entries, 6, new Random(9));
+        var (sheet, key, data) = LabSheet.Blind("""{"setting":"a farm"}""", entries, 6, new Random(9));
         Directory.CreateDirectory(_folder);
         File.WriteAllText(Path.Combine(_folder, "blind.md"), sheet);
+        File.WriteAllText(Path.Combine(_folder, "blind.json"), data);
         File.WriteAllText(Path.Combine(_folder, "key.json"), key);
         return new Dictionary<string, string>(LabSheet.ReadKey(key));
     }
@@ -69,7 +70,7 @@ public class LabScoreTests : IDisposable
         var error = await Assert.ThrowsAsync<InvalidOperationException>(() =>
             Lab.ScoreAsync(_folder, new StringReader(""), new StringWriter(), new StringWriter(), CancellationToken.None));
 
-        Assert.Contains("must hold blind.md and key.json", error.Message);
+        Assert.Contains("must hold blind.json and key.json", error.Message);
     }
 
     // The whole app: no API key (the child has none in its user secrets here and a dead proxy), no

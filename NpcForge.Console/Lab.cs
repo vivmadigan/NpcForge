@@ -96,11 +96,13 @@ public static class Lab
     public static async Task ScoreAsync(
         string folder, TextReader input, TextWriter dialogue, TextWriter result, CancellationToken ct)
     {
-        var blindPath = Path.Combine(folder, "blind.md");
+        // blind.json, not blind.md: the sheet is read as data, so a character's own text can never be
+        // taken for a heading.
+        var blindPath = Path.Combine(folder, "blind.json");
         var keyPath = Path.Combine(folder, "key.json");
         if (!File.Exists(blindPath) || !File.Exists(keyPath))
             throw new InvalidOperationException(
-                $"--score needs a blind lab: {folder} must hold blind.md and key.json (made by --lab with --mode blind).");
+                $"--score needs a blind lab: {folder} must hold blind.json and key.json (made by --lab with --mode blind).");
 
         var blind = await File.ReadAllTextAsync(blindPath, ct);
         var key = LabSheet.ReadKey(await File.ReadAllTextAsync(keyPath, ct));
@@ -142,7 +144,7 @@ public static class Lab
 
         // A second sheet beside an old one would put a sheet.md next to a blind.md, and a sheet.md
         // beside a blind lab gives away its key.
-        if (new[] { "sheet.md", "blind.md", "key.json", "scored.md" }.Any(name => File.Exists(Path.Combine(folder, name))))
+        if (new[] { "sheet.md", "blind.md", "blind.json", "key.json", "scored.md" }.Any(name => File.Exists(Path.Combine(folder, name))))
         {
             Console.Error.WriteLine($"[lab] not run: {folder} already holds a lab. Name a new --out folder.");
             return null;                // an old lab's folder is not ours to remove
@@ -246,8 +248,9 @@ public static class Lab
 
         if (blind)
         {
-            var (sheet, key) = LabSheet.Blind(briefJson, entries, planned.Count, random);
+            var (sheet, key, data) = LabSheet.Blind(briefJson, entries, planned.Count, random);
             await File.WriteAllTextAsync(Path.Combine(folder, "blind.md"), sheet, ct);
+            await File.WriteAllTextAsync(Path.Combine(folder, "blind.json"), data, ct);
             await File.WriteAllTextAsync(Path.Combine(folder, "key.json"), key, ct);
 
             // After the window, and a count only: a label or a reason would give away which letters

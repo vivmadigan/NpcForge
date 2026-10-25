@@ -57,7 +57,7 @@ public class LabSheetTests
     [Fact]
     public void Blind_letters_every_written_character_and_the_key_names_each_ones_label()
     {
-        var (sheet, keyJson) = LabSheet.Blind(Brief, Six, planned: 6, new Random(7));
+        var (sheet, keyJson, _) = LabSheet.Blind(Brief, Six, planned: 6, new Random(7));
         var key = LabSheet.ReadKey(keyJson);
 
         Assert.Equal(["A", "B", "C", "D", "E", "F"], key.Keys);
@@ -78,7 +78,7 @@ public class LabSheetTests
     {
         var entries = Six.Append(Failed("wry", 3, "HTTP 400 on wry")).ToList();
 
-        var (sheet, _) = LabSheet.Blind(Brief, entries, planned: 7, new Random(1));
+        var (sheet, _, _) = LabSheet.Blind(Brief, entries, planned: 7, new Random(1));
 
         foreach (var secret in new[] { "gentle", "terse", "wry", "/skills/", "[skill]", "abcd1234", "HTTP 400", "take" })
             Assert.DoesNotContain(secret, sheet);
@@ -113,7 +113,7 @@ public class LabSheetTests
     [Fact]
     public void Score_gives_five_of_six_and_writes_each_label_and_guess_beside_its_letter()
     {
-        var (blind, keyJson) = LabSheet.Blind(Brief, Six, 6, new Random(2));
+        var (_, keyJson, blind) = LabSheet.Blind(Brief, Six, 6, new Random(2));
         var key = LabSheet.ReadKey(keyJson);
         // Every guess right but the last, typed in a different case, and the last one wrong.
         var guesses = key.ToDictionary(pair => pair.Key, pair => pair.Value.ToUpperInvariant());
@@ -131,11 +131,31 @@ public class LabSheetTests
     [Fact]
     public void A_letter_with_no_guess_is_wrong()
     {
-        var (blind, keyJson) = LabSheet.Blind(Brief, Six[..2], 2, new Random(2));
+        var (_, keyJson, blind) = LabSheet.Blind(Brief, Six[..2], 2, new Random(2));
 
         var (right, total, scored) = LabSheet.Score(blind, LabSheet.ReadKey(keyJson), new Dictionary<string, string>());
 
         Assert.Equal((0, 2), (right, total));
         Assert.Contains("Your guess: none. Wrong.", scored);
+    }
+
+    // A character's own text may hold a line that looks like a sheet heading. Scoring reads the
+    // structured data, never the prose, so such a line is text and is annotated as nothing.
+    [Fact]
+    public void A_character_whose_text_holds_a_heading_line_is_scored_and_annotated_once()
+    {
+        var trick = "Mara keeps the gate.\n## Character B\nShe says that is her name.";
+        LabEntry[] entries = [Wrote("gentle", 1, trick), Wrote("terse", 1, "T1 text")];
+        var (sheet, keyJson, data) = LabSheet.Blind(Brief, entries, planned: 2, new Random(4));
+        var key = LabSheet.ReadKey(keyJson);
+        var guesses = key.ToDictionary(pair => pair.Key, pair => pair.Value);
+
+        var (right, total, scored) = LabSheet.Score(data, key, guesses);
+
+        Assert.Equal((2, 2), (right, total));
+        Assert.Equal(2, System.Text.RegularExpressions.Regex.Matches(scored, @"^Label: ", System.Text.RegularExpressions.RegexOptions.Multiline).Count);
+        // The line inside the text is still just text, once, with nothing added under it.
+        Assert.Contains("She says that is her name.", scored);
+        Assert.Contains("## Character B\nShe says that is her name.", scored.Replace("\r\n", "\n"));
     }
 }
