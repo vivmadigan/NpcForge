@@ -115,7 +115,7 @@ public class ReplayTests
     // `dotnet test -c Release` set, not a guess from a path. The console is a project reference, so
     // it was built in the same one. Without it, `dotnet run --no-build` falls back to Debug and
     // replays a different build from the one under test (ROADMAP epic "Harden the safety net").
-    private static string BuildConfiguration() =>
+    internal static string BuildConfiguration() =>
         typeof(ReplayTests).Assembly.GetCustomAttribute<AssemblyConfigurationAttribute>()?.Configuration
         ?? throw new InvalidOperationException("The test assembly carries no build configuration.");
 

@@ -56,7 +56,8 @@ public class OfflineTests
         Assert.NotNull(client);
     }
 
-    // The same stop, through the whole app as a process, so the variable is read from the
+    // The same stop, through the whole app as a process, in the configuration under test (the
+    // console starts the server in its own, so a Debug default would need a Debug server), so the variable is read from the
     // environment the way a test harness or a web host would set it.
     [Theory]
     [InlineData("openai")]
@@ -101,7 +102,7 @@ public class OfflineTests
             RedirectStandardOutput = true,
             RedirectStandardError = true,
         };
-        foreach (var arg in new[] { "run", "--project", Path.Combine(RepoRoot(), "NpcForge.Console"), "--no-build", "--no-launch-profile", "--" })
+        foreach (var arg in new[] { "run", "--project", Path.Combine(RepoRoot(), "NpcForge.Console"), "--no-build", "-c", ReplayTests.BuildConfiguration(), "--no-launch-profile", "--" })
             start.ArgumentList.Add(arg);
         foreach (var flag in flags)
             start.ArgumentList.Add(flag);
