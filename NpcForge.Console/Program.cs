@@ -7,10 +7,16 @@ using System.Text.Json;                 // JsonDocument
 // UTF-8 out, so curly quotes and dashes reach a terminal or a test as they were written (lesson 006).
 Console.OutputEncoding = Encoding.UTF8;
 
+// UTF-8 in as well, so a curly apostrophe the GM types reaches the quote check as itself and not
+// as a "?". Only at a real console: piped input is already bytes in whatever encoding it was sent.
+if (!Console.IsInputRedirected)
+    Console.InputEncoding = Encoding.UTF8;
+
 // No host, no DI container. Everything is wired by hand, in the order it happens:
-// config, then the client, then the options, then connect, roll, run, save. With --load,
-// the load comes straight after connect and the model is never called. The roll comes
-// before the model's first turn, which is why the order has to stay visible.
+// config, then the client, then the options, then connect, interview, roll, run, save. With
+// --load, the load comes straight after connect and the model is never called. With no answer
+// flag, the interview reads the GM's scene, and the roll waits for the GM's yes. The roll comes
+// before the writer's first turn, which is why the order has to stay visible.
 
 var config = new ConfigurationBuilder()
     .AddUserSecrets<Program>()          // API keys live here, never in appsettings or the repo
@@ -37,6 +43,10 @@ IChatClient client = ModelClients.Create(provider, model, config, run.Recording)
 // of the file is this run's answers as flags, from the same table the parser reads.
 if (recordTo is not null)
     client = new RecordingChatClient(client, recordTo, run.RecordedFlags());
+
+// Outermost, so every model call this session makes, interview and writer alike, counts against
+// one allowance, and a refused call is never recorded or sent.
+client = new SpendingCap(client, SpendingCap.TokensPerSession);
 
 // Shared by every request. Step 4 fills in Tools from the tool source before the first turn.
 var options = new ChatOptions
@@ -70,11 +80,40 @@ if (load is not null)
     return;
 }
 
+// The answers: from the flags, or from the GM's scene when no answer flag was given (ADR-007).
+// Either way a plain set of roll_character arguments. The interview never rolls; it only says
+// what to roll with, and only after the GM's yes.
+Dictionary<string, object?> rollArguments;
+if (run.Interview)
+{
+    // The fields come from the server's own schema, so the console keeps no copy of them.
+    var fields = RollField.ListFrom(tools.SchemaOf("roll_character"));
+
+    // The dialogue goes to stderr, so stdout stays the character text alone (lesson 007). The
+    // flag defaults fill a required field the scene never mentions. A copy of the options, so
+    // the interview's tool list never reaches the writer.
+    var told = await SceneInterview.RunAsync(
+        client, options.Clone(), fields, run.RollArguments(), Console.In, Console.Error, CancellationToken.None);
+
+    // Anything but yes, end of input included: nothing is rolled, written or saved.
+    if (told is null)
+    {
+        Console.Error.WriteLine("[app] not rolled: the GM did not say yes");
+        return;
+    }
+    rollArguments = told;
+}
+else
+{
+    // The parameter names come from the flag table (RunOptions.RollArguments), not from here.
+    rollArguments = run.RollArguments();
+}
+
 // Roll: the app calls roll_character itself. The model never sees this tool, so it cannot
 // skip the roll. The difficulty goes as text and the server turns it into the enum; a value
-// it does not know stops the run here, before any model is called. The parameter names come
-// from the flag table (RunOptions.RollArguments), not from here.
-var briefJson = await tools.CallDirectAsync("roll_character", run.RollArguments(), CancellationToken.None);
+// it does not know stops the run here, before the writer is called. A trait the GM described
+// goes in through the parameter roll_character already has, and only the rest is rolled.
+var briefJson = await tools.CallDirectAsync("roll_character", rollArguments, CancellationToken.None);
 
 // The dice, made visible. Every trait in the writing should trace back to a value on this line,
 // and any that does not was invented by the model.

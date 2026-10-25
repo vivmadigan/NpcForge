@@ -114,6 +114,15 @@ namespace NpcForge
                                 => Task.FromResult<IReadOnlyList<AITool>>([.. ModelTools]);
 
 
+        // A tool's input schema as the server wrote it in tools/list, app-only tools included. The
+        // scene interview reads roll_character's here, so the server stays the one owner of the
+        // brief's fields (ADR-007). Reading a schema shows the model nothing.
+        public JsonElement SchemaOf(string toolName)
+            => (_tools.FirstOrDefault(t => t.Name == toolName)
+                ?? throw new InvalidOperationException($"The server has no tool named '{toolName}'."))
+                .ProtocolTool.InputSchema;
+
+
         // Same contract as FakeToolSource: one [tool] trace line, and every failure comes back as
         // text. An unknown name, a dead server and a closed pipe all land in the catch.
         public async Task<string> InvokeAsync(FunctionCallContent call, CancellationToken ct)

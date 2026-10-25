@@ -7,7 +7,7 @@ How NpcForge fits together as it is now. Why it is shaped this way is in `README
 
 ```
 NpcForge.slnx
-├── NpcForge.Console   the app: flags, the agent loop, the model clients, the MCP client
+├── NpcForge.Console   the app: flags, the scene interview, the agent loop, the model clients, the MCP client
 ├── NpcForge.Server    an MCP server over stdio: the brief, the trait tables, the dice, storage
 └── NpcForge.Tests     xUnit, free: fake models, the real server, and the whole app against a recording
 ```
@@ -22,6 +22,8 @@ order (`ReferenceOutputAssembly="false"`).
 ```
 you ──► Program.cs
           │ 1. connect: start the server, list its tools
+          │ 1a. interview, only with no answer flag: read the scene, a model
+          │     records the GM's words with record_answer, show them, wait for "yes"
           │ 2. roll: call roll_character directly ─────────► server: tables and dice
           │ ◄─────────────────────────────────────────────── the brief, as JSON
           │ 3. run: SKILL.md as the system message, the brief as the first user message
@@ -31,7 +33,9 @@ you ──► Program.cs
      the character on stdout, the trace on stderr
 ```
 
-`--load <number>` replaces steps 2 to 4 with `load_character`: no roll, no model, no cost. It still
+Step 1a runs only when no answer flag and no `--load` is given ("The scene interview"). Its
+answers go to the same `roll_character` call the flags fill. `--load <number>` replaces steps 2 to 4
+with `load_character`: no roll, no model, no cost. It still
 builds the model client, so it still needs an API key. `--seed`, `--record` and `--provider replay`
 are under "Replay".
 
@@ -46,7 +50,7 @@ flag cannot be parsed and left off the recording. The same table names the `roll
 | --- | --- | --- |
 | `--provider` | `openai` | `openai`, `anthropic` or `replay` |
 | `--model` | `gpt-6-luna` | The model id, lower-cased |
-| `--setting`, `--want`, `--difficulty`, `--occupation` | an inn in a major city, the name of a fence, `Wall`, `innkeeper` | The GM's answers, sent to `roll_character` |
+| `--setting`, `--want`, `--difficulty`, `--occupation` | an inn in a major city, the name of a fence, `Wall`, `innkeeper` | The GM's answers, sent to `roll_character`. Any one of them skips the interview |
 | `--seed <n>` | none | Fixes the dice (see "Replay") |
 | `--load <n>` | none | Prints saved character n instead of making one |
 | `--record <file>` | none | Also writes every model call to a file. Needs `--seed` |
@@ -54,14 +58,16 @@ flag cannot be parsed and left off the recording. The same table names the `roll
 
 A flag the table does not know, a flag with no value (last, or before another flag) and a stray word
 stop the run in `RunOptions.Parse`, before any model client is built. So do `--record` without
-`--seed`, `--recording` without `--provider replay`, and `--record` with it.
+`--seed`, `--recording` without `--provider replay`, `--record` with it, and `--record` with no
+answer flag (a recording replays flags, and a typed scene is not one). `RunOptions.Interview` is true
+when no answer flag and no `--load` was typed; defaults do not count as typed.
 
 ## The server's tools
 
 | Tool | Called by | Does |
 | --- | --- | --- |
 | `lookup_archetype` | the model | Says how a kind of person usually behaves |
-| `roll_character` | the app only | Rolls the brief. Any rolled trait can be passed in instead |
+| `roll_character` | the app only | Rolls the brief. Any rolled trait can be passed in instead. Each parameter has a `[Description]`, which the interview reads |
 | `save_character` | the app only | Saves a brief and its text, returns the new number |
 | `load_character` | the app only | Returns a saved brief and text by number |
 
@@ -70,6 +76,8 @@ stop the run in `RunOptions.Parse`, before any model client is built. So do `--r
   failure comes back as text starting `Tool failed:`, so the model can read it and carry on.
 - **The app's door**, `CallDirectAsync`, reaches the app-only tools. A failure throws, so a failed
   roll stops the run instead of reaching the model as a brief.
+- **`SchemaOf(name)`** returns any tool's input schema from `tools/list`, app-only ones included. It
+  shows the model nothing.
 
 ## The loop
 
@@ -97,7 +105,61 @@ The difficulty filter is code: each want is tagged with the difficulties it fits
 rolls `Wont`. Enums travel as their names. The brief is settled once and never changes, and it is
 half of the save format (ADR-003).
 
+A trait handed in to `roll_character` is used as given, and only the missing ones are rolled. The
+difficulty filter shapes the dice, not a handed-in trait: `Easy` with an obstacle of `Wont` the GM
+described is kept (ADR-007). A handed-in trait also skips its pick, so the same seed rolls the other
+traits differently from a plain roll.
+
+## The scene interview
+
+ADR-007 is the design. `SceneInterview.RunAsync` greets the GM, reads one line (asked again while it
+is empty), and runs `AgentLoop` with the `scene-interviewer` skill and one tool, `record_answer(field,
+value, quote)`. The tool lives in the console (`RecordAnswerTool`), and any other name, `roll_character`
+included, fails as `Tool failed: No tool named '...'`. The interview holds no `McpToolSource`, so it
+cannot roll, save or load. It returns `roll_character`'s arguments after a `yes`, or null after
+anything else, end of input included, and `Program.cs` rolls only on the arguments. The loop gets
+one turn per field plus three; out of turns (`TurnCapReachedException`) it goes on to the
+confirmation with what was recorded, since every answer there already passed its checks.
+
+- **The fields** come from `roll_character`'s schema (`RollField.ListFrom`): name, order,
+  description, choices for an enum, and whether it is required. The SDK writes the nullable
+  `ObstacleKind` as type `["string","null"]` with a null among its choices; the null is dropped. A
+  trait added on the server reaches the interview with no console change.
+- **The checks** are in `SceneDraft.Record`, pure, each with its own `Rejection`: an unknown field, an
+  empty value, a choice not in the list, an empty quote, a quote longer than one sentence or 12 words
+  (or running across two sentences of the scene), a quote not in the scene as whole words, and a
+  free-text value that is not a run of whole words of its quote. `Words.Split` is the one normalising
+  function: lower case, letters and digits, an apostrophe inside a word kept (curly written
+  straight), everything else a separator. A rejection changes nothing; a second answer for a field
+  replaces the first. The rejection's message goes back to the model. A choice is matched as
+  letters only, so `Can't` finds `Cant`. A `.`, `!` or `?` ends a sentence only before a capital,
+  an opening quote or the end, so `3.5` and `He...` stay in one; `Mr. Hobb` still splits, and a
+  quote across it is rolled instead.
+- **The labels** are decided by code, never claimed by the model: *my words* for a free-text field,
+  stored as the GM typed it, cut from the scene; *inferred* for a choice, stored as the server spells
+  it; *rolled* for an optional field nobody recorded, left out of the roll; *default* for a required
+  field nobody recorded, which takes its flag default.
+- **The confirmation** shows every field, its label, the quote as the GM typed it and the whole
+  sentence it sits in. The greeting, the confirmation and the question go to stderr, so stdout stays
+  the character text. Labels and quotes stop there: the writer's first message and the save are the
+  same as for a flag run (ADR-003, ADR-005).
+- **Untested here, needs a paid run:** whether a real model quotes the GM exactly and leaves
+  unspoken fields alone. That is the skill's job and the epic's paid check.
+
+## Spending
+
+`SpendingCap` wraps the model client outermost, once per session, so the interview and the writer
+draw on one allowance of 200,000 tokens. It adds each response's `Usage` and refuses the next call
+once the total reaches the cap, before the model is asked; one call may overshoot. It refuses
+streaming, which the app never uses and which it could not count. Below the cap it passes every call
+through, so the replay sees nothing new.
+
 ## Writing guidance
+
+`NpcForge.Console/skills/scene-interviewer/SKILL.md` is the interviewer's: quote the GM exactly, at
+most one sentence and 12 words, never offer a value, free text only as the GM's words, a choice only
+when the GM's words point to it, no follow-up questions. The interview appends the field list from
+the server's schema to it.
 
 `NpcForge.Console/skills/npc-writer/SKILL.md` is copied to `bin` and read into a system message at
 index 0. It sets the output order, what each difficulty and obstacle oblige the writer to do, that
@@ -113,9 +175,10 @@ trace.
 | Prefix | From | Says |
 | --- | --- | --- |
 | `[app]` | `Program.cs` | `recording to <path>`, the provider and model, the rolled brief, `saved as N`, `loaded N` |
-| `[skill]` | `ChatAgent.cs` | Which `SKILL.md`, its length and fingerprint |
+| `[skill]` | `ChatAgent.cs`, `SceneInterview.cs` | Which `SKILL.md`, its length and fingerprint (the interviewer's with its field list) |
 | `[loop]` | `AgentLoop.cs` | One line per model turn: tool calls, history size, tokens |
-| `[tool]` | `McpToolSource` | Each call the model made. The app's own calls have none |
+| `[tool]` | `McpToolSource`, `RecordAnswerTool` | Each call the model made, and for `record_answer` what it got back. The app's own calls have none |
+| `[interview]` | `SceneInterview.cs` | The interviewer's closing line, as a trace; nothing reads it |
 | `[server]` | the server | MCP requests and log lines, and `dice: seed N` or `dice: random` at the first roll |
 
 ## Starting the server
@@ -199,10 +262,23 @@ One real run is recorded once, and the whole app replays against it for free (AD
 - `ReplaySensitivityTests`: the replay fails on a changed system prompt, an emptied tool list, a
   changed model option and a dropped model turn.
 - `OfflineTests`: `NPCFORGE_OFFLINE=1` refuses both paid providers, and replay still works.
-- `RunOptionsTests` and `FlagRefusalTests`: the flag table, its refusals, and which save file a run
-  uses; and a typo'd flag next to the paid default stops at the parser, through the whole app.
+- `RunOptionsTests` and `FlagRefusalTests`: the flag table, its refusals, when the interview runs,
+  and which save file a run uses; and a typo'd flag next to the paid default stops at the parser,
+  through the whole app.
+- `RollFieldTests`, against the real server: the eleven fields in order, the four required, the two
+  choice lists, a description on each, and a flag default for every required field.
+- `SceneDraftTests`: every check of ADR-007 with its reason, the labels, the value and quote as the
+  GM typed them, rolled and default fields, and the roll arguments. Pure.
+- `SceneInterviewTests`: a scripted stand-in interviewer. The model is offered only `record_answer`
+  and naming `roll_character` fails; anything but `yes`, end of input included, returns nothing to
+  roll; `yes` returns the arguments only after the confirmation was shown; the tavern scene's
+  confirmation; a described trait reaches the brief from the real server; and the app with no answer
+  flag waits for a scene and, at end of input, rolls and saves nothing.
+- `SpendingCapTests`: the cap refuses the call after the limit without asking the model, and stops
+  an agent loop before its turn cap.
 - `ConsoleProcess`: not a test. The one place a test starts the app as a process: the build
-  configuration, a freshness check, the dead proxy, a timeout, and both streams read.
+  configuration, a freshness check, the dead proxy, a timeout, both streams read, and stdin always
+  its own (closed after any input given), so a run that reaches the interview never waits on a GM.
 
 A test that asserts on `Tool failed:` must give arguments that would otherwise succeed, or it passes
 for the wrong reason (lesson 004).

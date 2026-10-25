@@ -64,21 +64,31 @@ Needs the .NET 10 SDK and an OpenAI or Anthropic API key.
 dotnet user-secrets set "OpenAI:ApiKey" "<your key>" --project NpcForge.Console
 dotnet build
 dotnet test
+dotnet run --project NpcForge.Console
 dotnet run --project NpcForge.Console -- --setting "an isolated farm on a dangerous border" --occupation farmer --want "passage" --difficulty SomeWork
 dotnet run --project NpcForge.Console -- --load 1
 ```
 
 Flags: `--provider openai|anthropic`, `--model <id>`, `--setting`, `--want`,
 `--difficulty Easy|SomeWork|Wall`, `--occupation`, `--load <number>`, and for the free replay
-`--seed`, `--record`, `--recording` and `--provider replay`. Each has a default, so a bare run
-works. A flag the app does not know, or one with no value, stops the run before anything is paid for.
-A run calls a real model and costs money; `dotnet test` and `--load` do not. `NPCFORGE_OFFLINE=1`
+`--seed`, `--record`, `--recording` and `--provider replay`.
+
+With no answer flag (`--setting`, `--want`, `--difficulty`, `--occupation`) and no `--load`, the app
+greets you and waits for the scene, typed in one go and ended with Enter. A model reads it and
+records only what your words say. You then see every field with its label: *my words* (a span you
+typed), *inferred* (a difficulty or obstacle read from your words, shown beside them), *rolled* (the
+dice pick it) or *default* (a required field you did not mention). Nothing is rolled until you type
+`yes`; anything else stops the run. Any answer flag skips the interview, and each answer flag has a
+default. A flag the app does not know, or one with no value, stops the run before anything is paid for.
+A run calls a real model and costs money, capped at 200,000 tokens per session; `dotnet test` and
+`--load` do not. `NPCFORGE_OFFLINE=1`
 makes the app refuse OpenAI and Anthropic outright. A replay or a recording run saves to a temp file,
 named on its `[app] saved as` line, so it never touches `characters.json`.
 
 The character is printed on stdout. A trace on stderr shows each step: `[app]` the rolled brief,
 `[skill]` the writing guidance used, `[loop]` each model turn, `[tool]` and `[server]` each tool
-call.
+call. The interview's greeting, confirmation and question are on stderr too, so stdout stays the
+character alone.
 
 ## Status
 
@@ -87,8 +97,9 @@ runs, three genuinely different characters whose levers differ, and a saved one 
 unchanged. The Safety net is in and hardened: `dotnet test` replays the whole app against one
 recorded run, for free, so a later change can be checked without paying. A mistyped flag cannot start
 a paid run, `NPCFORGE_OFFLINE=1` stops a free run reaching a model, a replay never writes over the
-saved characters, and `dotnet test -c Release` tests the Release build. Next: talking to the app
-instead of typing flags, better characters (tone, names that don't repeat), keeping and editing
+saved characters, and `dotnet test -c Release` tests the Release build. Talking to the app is
+built and tested free: a bare `dotnet run` interviews you about the scene, and every trait traces to
+your words or the dice. Its paid run on OpenAI and Anthropic is still to come. Next: better characters (tone, names that don't repeat), keeping and editing
 characters, and in time a website with logins and a database so friends can use it. See
 [ROADMAP.md](ROADMAP.md).
 

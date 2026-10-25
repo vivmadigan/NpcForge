@@ -22,9 +22,10 @@ internal static class ConsoleProcess
         ?? throw new InvalidOperationException("The test assembly carries no build configuration.");
 
     // Runs the console in BuildConfiguration. `offline` sets NPCFORGE_OFFLINE=1, the stop in the
-    // paid model clients. `environment` adds or overrides variables for the child only.
+    // paid model clients. `environment` adds or overrides variables for the child only. `input` is
+    // what the GM types; the console's stdin is closed after it.
     public static async Task<Result> RunAsync(
-        string[] flags, bool offline = false, Dictionary<string, string?>? environment = null)
+        string[] flags, bool offline = false, Dictionary<string, string?>? environment = null, string input = "")
     {
         // --no-build runs whatever is in bin, so a missing or old build would run old code and
         // pass or fail for the wrong reason. The console starts the server in this same
@@ -36,6 +37,9 @@ internal static class ConsoleProcess
         {
             RedirectStandardOutput = true,
             RedirectStandardError = true,
+            // Always ours, never the test runner's: a run that reaches the scene interview reads
+            // `input`, then end of input, which stops without rolling instead of waiting for a GM.
+            RedirectStandardInput = true,
         };
         foreach (var arg in new[]
         {
@@ -61,6 +65,9 @@ internal static class ConsoleProcess
             start.Environment[name] = value;
 
         using var process = Process.Start(start)!;
+
+        await process.StandardInput.WriteAsync(input);
+        process.StandardInput.Close();
 
         // Read both streams while it runs. Left unread, the [server] and [loop] lines fill the
         // pipe and the app stops, waiting for someone to read them.

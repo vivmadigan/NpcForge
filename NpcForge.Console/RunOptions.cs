@@ -49,7 +49,14 @@ public sealed class RunOptions
 
     private readonly Dictionary<string, string> _values;
 
-    private RunOptions(Dictionary<string, string> values) => _values = values;
+    // The flags typed on the command line, as opposed to the defaults filled in for the rest.
+    private readonly HashSet<string> _given;
+
+    private RunOptions(Dictionary<string, string> values, HashSet<string> given)
+    {
+        _values = values;
+        _given = given;
+    }
 
     public string Provider => _values["--provider"];
     public string Model => _values["--model"];
@@ -67,10 +74,17 @@ public sealed class RunOptions
 
     private int? Int(string name) => _values.TryGetValue(name, out var value) ? int.Parse(value) : null;
 
+    // No answer flag and no --load: the GM describes the scene instead (ADR-007). Any answer flag
+    // skips the interview, so a run with flags, the replay test's among them, is the run it was.
+    public bool Interview => Load is null && !AnyAnswerGiven;
+
+    private bool AnyAnswerGiven => Table.Any(flag => flag.RollParameter is not null && _given.Contains(flag.Name));
+
     public static RunOptions Parse(string[] args)
     {
         var values = Table.Where(flag => flag.Default is not null)
             .ToDictionary(flag => flag.Name, flag => flag.Default!);
+        var given = new HashSet<string>();
 
         // Every argument is a flag or the value of the flag before it, and anything else stops the
         // run here, before a model client is built. A value is consumed with its flag, so it is
@@ -90,9 +104,10 @@ public sealed class RunOptions
                 throw new ArgumentException(flag.MissingValue ?? $"{flag.Name} needs a value after it.");
 
             values[flag.Name] = flag.Read(args[++i]);
+            given.Add(flag.Name);
         }
 
-        var options = new RunOptions(values);
+        var options = new RunOptions(values, given);
         options.RequireFlagsThatGoTogether();
         return options;
     }
@@ -115,6 +130,13 @@ public sealed class RunOptions
         // A replay must never write a recording, least of all over the one it is reading.
         if (RecordTo is not null && Provider == "replay")
             throw new ArgumentException("--record cannot go with --provider replay: a replay never writes a recording.");
+
+        // Line 1 of a recording is the run's answers as flags, and a replay cannot type a scene, so
+        // an interview could never be replayed. Refused before the GM types anything (ADR-007).
+        if (RecordTo is not null && !AnyAnswerGiven)
+            throw new ArgumentException(
+                "--record needs the answers as flags (--setting, --want, --difficulty or --occupation): " +
+                "a recording replays flags, and a described scene is not one.");
     }
 
     // Which file this run saves its character in. A replay or a recording run is not a real

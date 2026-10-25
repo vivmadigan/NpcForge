@@ -56,7 +56,13 @@ namespace NpcForge
             }
 
             // Out of turns and still no plain answer. Stopping here is the point of the cap.
-            throw new InvalidOperationException($"No answer after {maxTurns} turns.");
+            throw new TurnCapReachedException(maxTurns);
         }
     }
+
+    // Its own type, so a caller can tell "out of turns" from any other failure. The scene interview
+    // goes on to the confirmation with what was already recorded; SpendingCap's refusal still stops
+    // the run.
+    public sealed class TurnCapReachedException(int maxTurns)
+        : InvalidOperationException($"No answer after {maxTurns} turns.");
 }

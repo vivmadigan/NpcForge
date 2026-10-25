@@ -79,7 +79,7 @@ public class RunOptionsTests
     [Fact]
     public void Record_sets_the_recording_file()
     {
-        var run = RunOptions.Parse(["--seed", "1", "--record", "out.jsonl"]);
+        var run = RunOptions.Parse(["--seed", "1", "--setting", "a farm", "--record", "out.jsonl"]);
 
         Assert.Equal("out.jsonl", run.RecordTo);
     }
@@ -209,7 +209,7 @@ public class RunOptionsTests
     [Fact]
     public void A_recording_run_saves_to_a_fresh_temp_file()
     {
-        var path = RunOptions.Parse(["--seed", "1", "--record", "r.jsonl"]).CharactersPath(null);
+        var path = RunOptions.Parse(["--seed", "1", "--setting", "a farm", "--record", "r.jsonl"]).CharactersPath(null);
 
         Assert.NotNull(path);
         Assert.StartsWith(Path.GetTempPath(), path);
@@ -225,11 +225,52 @@ public class RunOptionsTests
 
     [Theory]
     [InlineData("--provider", "replay", "--recording", "r.jsonl")]
-    [InlineData("--seed", "1", "--record", "r.jsonl")]
+    [InlineData("--seed", "1", "--setting", "a farm", "--record", "r.jsonl")]
     [InlineData("--load", "3")]
     [InlineData("--provider", "openai")]
     public void A_file_the_caller_named_wins(params string[] args)
     {
         Assert.Equal(@"C:\mine\saves.json", RunOptions.Parse(args).CharactersPath(@"C:\mine\saves.json"));
+    }
+
+    // ADR-007: no answer flag and no --load means the GM describes the scene instead.
+    [Theory]
+    [InlineData]
+    [InlineData("--provider", "anthropic", "--model", "claude-opus-5")]
+    [InlineData("--seed", "3")]
+    public void No_answer_flag_and_no_load_runs_the_interview(params string[] args)
+    {
+        Assert.True(RunOptions.Parse(args).Interview);
+    }
+
+    [Theory]
+    [InlineData("--setting", "a farm")]
+    [InlineData("--want", "a cart")]
+    [InlineData("--difficulty", "Easy")]
+    [InlineData("--occupation", "farmer")]
+    [InlineData("--load", "3")]
+    public void Any_answer_flag_or_load_skips_the_interview(string flag, string value)
+    {
+        Assert.False(RunOptions.Parse([flag, value]).Interview);
+    }
+
+    // The replay test's own flags never interview, so the replay stays the run it recorded.
+    [Fact]
+    public void The_fixtures_flags_skip_the_interview()
+    {
+        var flags = JsonSerializer.Deserialize<string[]>(File.ReadLines(Fixture).First())!;
+
+        Assert.False(RunOptions.Parse(flags).Interview);
+    }
+
+    [Fact]
+    public void Record_with_no_answer_flags_is_refused()
+    {
+        var error = Assert.Throws<ArgumentException>(() => RunOptions.Parse(["--seed", "1", "--record", "f.jsonl"]));
+
+        Assert.Equal(
+            "--record needs the answers as flags (--setting, --want, --difficulty or --occupation): " +
+            "a recording replays flags, and a described scene is not one.",
+            error.Message);
     }
 }

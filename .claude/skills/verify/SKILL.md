@@ -1,6 +1,6 @@
 ---
 name: verify
-description: Drive NpcForge, a .NET console app that starts an MCP server as a child process, and prove a change works without paying for a model call. Use after any edit to NpcForge.Console, NpcForge.Server, the npc-writer SKILL.md or the tests, and before saying a task is done. Replays the recorded run, loads a saved character, probes the flag refusals and runs the free test suite.
+description: Drive NpcForge, a .NET console app that starts an MCP server as a child process, and prove a change works without paying for a model call. Use after any edit to NpcForge.Console, NpcForge.Server, the npc-writer SKILL.md or the tests, and before saying a task is done. Replays the recorded run, loads a saved character, probes the flag refusals, stops the scene interview at end of input and runs the free test suite.
 ---
 
 # Verify NpcForge
@@ -34,7 +34,7 @@ There is no server to keep up. Each drive is one `dotnet run` that starts and st
 `$V doctor` is read-only. Run it first, and again whenever anything looks off. It checks:
 - `dotnet` is on `PATH`.
 - Each of the three projects was built after its newest `.cs` or `.csproj`.
-- `bin` holds the same `npc-writer/SKILL.md` as the source. The model is told the `bin` copy.
+- `bin` holds the same `npc-writer/SKILL.md` and `scene-interviewer/SKILL.md` as the source. The model is told the `bin` copy.
 - The fixture exists and its line 1 is a plain JSON array of flags.
 - No `NpcForge.Console` or `NpcForge.Server` process is running. A hit is not necessarily yours. The owner may have one paused in the debugger. Do not kill it.
 - `NpcForge.Server/characters.json` is unmodified in `git status`.
@@ -111,4 +111,5 @@ Two sessions can drive at once. Each run has its own server on stdio and its own
 - An unhandled exception exits `-532462766` in PowerShell and `127` in Git Bash. The helper's own refusals exit `64`, and its watchdog `124`.
 - Plain `--load N` builds the real client first, so it needs `OpenAI:ApiKey` in user secrets and fails without it. The helper's `load` passes `--provider replay` and needs no key.
 - The replay stops at the first line that differs from the recording. After an edit to the npc-writer `SKILL.md`, a tool description or schema, a `ChatOptions` field or `Tables.cs`, that is the signal to re-record. The re-record is paid. Report the drift. Do not re-record to get green.
-- Not covered. A paid run, `--record` for real, and driving the MCP server's stdio directly. Whether a character reads well is *needs my eyes*.
+- A run with no answer flag and no `--load` waits for the GM to type a scene. Give it `< /dev/null` (`features/scene-interview.md`), or it waits until the watchdog ends it.
+- Not covered. A paid run, an interview with a real scene and model, `--record` for real, and driving the MCP server's stdio directly. Whether a character reads well is *needs my eyes*.
