@@ -48,6 +48,12 @@ pstack, decide how to build it.
 local one, so I push `master` before handing over a task. A PR targets `master`, says how the change
 was proved, and is opened ready for review. I review it and merge it on GitHub.
 
+**My saves.** Uncommitted changes to `NpcForge.Server/characters.json` are characters from my own
+runs. Replays, recordings and tests save to temp files; for any other run of yours, set
+`NPCFORGE_CHARACTERS` to a scratch file, so anything in `characters.json` is mine. When you find
+them, commit them on the branch you are working on, in a commit of their own (`chore(saves): ...`),
+and mention it in the PR. Never revert, reset or overwrite them.
+
 **Tooling.** [pstack](https://github.com/michael-denyer/pstack-claude) is a workflow plugin: its
 `poteto-mode` skill routes any task that touches more than one file, involves a design choice, or
 is a bug of unknown cause. Its `architect` skill settles a design before code, and `interrogate`
