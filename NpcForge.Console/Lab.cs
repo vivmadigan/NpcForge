@@ -224,9 +224,11 @@ public static class Lab
             await File.WriteAllTextAsync(Path.Combine(folder, "blind.md"), sheet, ct);
             await File.WriteAllTextAsync(Path.Combine(folder, "key.json"), key, ct);
 
-            // After the window, and by label only: the letter stays secret.
-            foreach (var failed in entries.Where(e => e.Failure is not null))
-                Console.Error.WriteLine($"[lab] {failed.Label} take {failed.Take} failed: {failed.Failure}");
+            // After the window, and a count only: a label or a reason would give away which letters
+            // are missing. The reasons are in key.json, which the GM reads after guessing.
+            var failed = entries.Count(e => e.Failure is not null);
+            if (failed > 0)
+                Console.Error.WriteLine($"[lab] {LabSheet.FailedNote(failed)}");
         }
         else
         {

@@ -83,7 +83,7 @@ public class LabSheetTests
         foreach (var secret in new[] { "gentle", "terse", "wry", "/skills/", "[skill]", "abcd1234", "HTTP 400", "take" })
             Assert.DoesNotContain(secret, sheet);
         // The failure is counted, not described.
-        Assert.Contains("1 variant(s) failed to write and are not shown", sheet);
+        Assert.Contains("1 character failed to write; the reasons are in key.json", sheet);
     }
 
     [Fact]

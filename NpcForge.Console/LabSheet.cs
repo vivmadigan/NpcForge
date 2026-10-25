@@ -53,7 +53,9 @@ public static class LabSheet
 
     // The sheet for judging without knowing: characters as A, B, C in a shuffled order, with no
     // label, no skill line and no failure text, and a key from letter to label. A failed variant is
-    // left off the sheet, because its reason could name what it was, and counted in a closing line.
+    // left off the sheet, because its label or reason would give its letter away by elimination. It
+    // is counted in a closing line, and written with its label, take and reason into key.json, which
+    // the GM reads only after guessing.
     public static (string Sheet, string Key) Blind(
         string briefJson, IReadOnlyList<LabEntry> entries, int planned, Random random)
     {
@@ -70,19 +72,34 @@ public static class LabSheet
 
         var failed = entries.Count(entry => entry.Text is null);
         if (failed > 0)
-            sheet.AppendLine($"{failed} variant(s) failed to write and are not shown. The console said why.").AppendLine();
+            sheet.AppendLine(FailedNote(failed)).AppendLine();
         if (entries.Count < planned)
             sheet.AppendLine(StoppedNote(entries.Count, planned));
 
-        var key = letters.Zip(written, (letter, entry) => (letter, entry.Label))
-            .ToDictionary(pair => pair.letter, pair => pair.Label);
+        var key = new
+        {
+            key = letters.Zip(written, (letter, entry) => (letter, entry.Label))
+                .ToDictionary(pair => pair.letter, pair => pair.Label),
+            failures = entries.Where(entry => entry.Text is null)
+                .Select(entry => new { label = entry.Label, take = entry.Take, reason = entry.Failure }),
+        };
         return (sheet.ToString(), JsonSerializer.Serialize(key, new JsonSerializerOptions { WriteIndented = true }));
     }
 
-    public static IReadOnlyDictionary<string, string> ReadKey(string keyJson) =>
-        new SortedDictionary<string, string>(
-            JsonSerializer.Deserialize<Dictionary<string, string>>(keyJson)
+    // The one sentence about failures that may appear before the GM has guessed: a count, and
+    // where the reasons are. Lab.cs prints the same words on stderr.
+    public static string FailedNote(int failed) =>
+        $"{failed} {(failed == 1 ? "character" : "characters")} failed to write; the reasons are in key.json";
+
+    // key.json holds the letters under "key" and the failures beside them. Only the letters are read
+    // back for scoring.
+    public static IReadOnlyDictionary<string, string> ReadKey(string keyJson)
+    {
+        using var document = JsonDocument.Parse(keyJson);
+        return new SortedDictionary<string, string>(
+            document.RootElement.GetProperty("key").Deserialize<Dictionary<string, string>>()
             ?? throw new ArgumentException("key.json holds no key."));
+    }
 
     // The blind sheet with each letter's label and the guess beside it. A guess is right when it
     // equals the label, ignoring case. A letter with no guess counts as wrong.

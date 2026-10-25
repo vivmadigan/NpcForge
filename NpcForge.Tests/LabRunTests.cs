@@ -135,7 +135,7 @@ public class LabRunTests : IDisposable
 
         Assert.False(File.Exists(Path.Combine(result.Folder!, "sheet.md")));
         var blind = File.ReadAllText(Path.Combine(result.Folder!, "blind.md"));
-        var key = JsonSerializer.Deserialize<Dictionary<string, string>>(File.ReadAllText(Path.Combine(result.Folder!, "key.json")))!;
+        var key = LabSheet.ReadKey(File.ReadAllText(Path.Combine(result.Folder!, "key.json")));
         Assert.Equal(["A", "B", "C", "D", "E", "F"], key.Keys.Order());
         foreach (var (letter, label) in key)
         {
@@ -178,6 +178,38 @@ public class LabRunTests : IDisposable
         Assert.Equal(
             File.ReadAllText(Path.Combine(first.Folder!, "blind.md")),
             File.ReadAllText(Path.Combine(second.Folder!, "blind.md")));
+    }
+
+    // A failed variant is the one thing the lab reports after the silent window. Its label would be
+    // the key, so stderr gets a count only, and the label, take and reason go to key.json, which the
+    // GM reads after guessing.
+    [Fact]
+    public async Task Blind_with_a_failing_variant_prints_no_label_and_keeps_the_failure_in_key_json()
+    {
+        var names = new[] { "gentle", "terse", "wry" };
+        var model = new LabStandIn
+        {
+            Behave = call => call.SystemFirstLine == "SKILL-terse"
+                ? throw new InvalidOperationException("HTTP 400 on terse")
+                : null,
+        };
+
+        var result = await RunLab(model, ["--lab", $"skill={string.Join(',', names.Select(Skill))}", "--mode", "blind"], "yes\n");
+
+        foreach (var secret in new[] { "gentle", "terse", "wry", "HTTP 400", "npcforge-labskill" })
+            Assert.DoesNotContain(secret, result.Stderr);
+        Assert.Contains("[lab] 1 character failed to write; the reasons are in key.json", result.Stderr);
+
+        var key = JsonDocument.Parse(File.ReadAllText(Path.Combine(result.Folder!, "key.json"))).RootElement;
+        var failure = Assert.Single(key.GetProperty("failures").EnumerateArray());
+        Assert.Equal("terse", failure.GetProperty("label").GetString());
+        Assert.Equal(1, failure.GetProperty("take").GetInt32());
+        Assert.Contains("HTTP 400 on terse", failure.GetProperty("reason").GetString());
+        Assert.Equal(2, LabSheet.ReadKey(File.ReadAllText(Path.Combine(result.Folder!, "key.json"))).Count);
+        // blind.md says the same thing as stderr, and nothing more.
+        var blind = File.ReadAllText(Path.Combine(result.Folder!, "blind.md"));
+        Assert.Contains("1 character failed to write; the reasons are in key.json", blind);
+        Assert.DoesNotContain("terse", blind);
     }
 
     // The positive control for the test above: the same lab in side mode does print those lines into
