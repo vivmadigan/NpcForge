@@ -209,6 +209,10 @@ Approve only the edits that would change a future decision.
   `master`. pstack's Babysit playbook drives a PR to merge-ready and stops; it merges only when you
   ask it to merge, land or ship. One task is one PR of small ordered commits, not a stack, because
   you squash-merge (`.agents/playbooks/npcforge-one-pr-per-task.md`).
+- **Plans for more than one PR.** pstack's multi-PR plan is built for large programs: a plan file
+  in a fixed skeleton, ten live swarm lanes and a perf gate per PR, and an hourly audit loop. Here
+  the plan is a table in chat, and a PR is proved by tests that fail with the guarded code removed,
+  `dotnet test` and the `verify` skill (`.agents/playbooks/npcforge-small-plan.md`).
 - **Push `master` first.** pstack's coding agents work in their own worktree, which Claude Code
   branches from GitHub's `master` unless the `worktree.baseRef` setting is `"head"`. Commits that are
   only on your machine are invisible to them, so push `master` before you hand over a task.
