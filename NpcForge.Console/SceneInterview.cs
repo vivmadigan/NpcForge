@@ -11,8 +11,8 @@ namespace NpcForge;
 public sealed record Told(string Scene, Dictionary<string, object?> RollArguments);
 
 // The scene interview (ADR-007): greet the GM, read the scene in one go, let a model record what the
-// scene says through record_answer, show every field with its label and words, and hand back
-// roll_character's arguments only after the GM types yes. It never rolls. It holds no tool source
+// scene says through record_answer, show every field with its label and words, and hand back the
+// scene and roll_character's arguments only after the GM types yes. It never rolls. It holds no tool source
 // that reaches the server, so it cannot roll, save or load: that is Program.cs's job, after the yes.
 public static class SceneInterview
 {

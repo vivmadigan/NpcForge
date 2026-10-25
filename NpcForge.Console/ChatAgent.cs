@@ -50,8 +50,8 @@ public static class ChatAgent
 
     // The writer's facts (ADR-008). With no scene, today's message to the byte, so the replay
     // fixture, a flag run, still matches. The scene goes in as typed and code never reads it. The
-    // brief stays last, because ReplayTests finds it from the first brace, and wins on a clash, so
-    // the dice keep their job. How to use the scene is the skill's business, not this message's.
+    // brief stays last, so a replay of a scene run can find it from the end (the scene may hold a
+    // brace), and it wins on a clash, so the dice keep their job. How to use the scene is the skill's business, not this message's.
     public static string FirstMessage(string briefJson, string? scene) =>
         scene is null
             ? $"Write this character. The brief is settled; do not change it.\n\n{briefJson}"
