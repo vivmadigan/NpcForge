@@ -184,6 +184,31 @@ public class McpToolSourceTests
         Assert.Equal(first, second);
     }
 
+    [Fact]
+    public async Task A_handed_in_trait_replaces_its_die_without_moving_the_others()
+    {
+        // ADR-009: every die is cast, so one seed rolls the same brief whatever is handed in.
+        // Seed 5 is one where, on the old short-circuit, the dice after attitude visibly moved.
+        var rolled = await RollWithSeed(5, RollArgs());
+        var handed = RollArgs();
+        handed["attitude"] = "handed in by the test";
+        var withAttitude = await RollWithSeed(5, handed);
+
+        var expected = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(rolled)!;
+        var actual = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(withAttitude)!;
+
+        Assert.Equal("handed in by the test", actual["attitude"].GetString());
+        foreach (var (name, value) in expected.Where(e => e.Key != "attitude"))
+            Assert.True(value.ToString() == actual[name].ToString(), $"{name} moved when attitude was handed in");
+    }
+
+    private static async Task<string> RollWithSeed(int seed, Dictionary<string, object?> args)
+    {
+        await using var tools = new McpToolSource(seed: seed);
+        await tools.ConnectAsync(CancellationToken.None);
+        return await tools.CallDirectAsync("roll_character", args, CancellationToken.None);
+    }
+
     // A server of its own each time, so the second roll cannot be the first one's dice carrying on.
     private static async Task<string> RollWithSeed(int seed)
     {
