@@ -38,6 +38,10 @@ IChatClient client = ModelClients.Create(provider, model, config, run.Recording)
 if (recordTo is not null)
     client = new RecordingChatClient(client, recordTo, run.RecordedFlags());
 
+// Outermost, so every model call this session makes, interview and writer alike, counts against
+// one allowance, and a refused call is never recorded or sent.
+client = new SpendingCap(client, SpendingCap.TokensPerSession);
+
 // Shared by every request. Step 4 fills in Tools from the tool source before the first turn.
 var options = new ChatOptions
 {
