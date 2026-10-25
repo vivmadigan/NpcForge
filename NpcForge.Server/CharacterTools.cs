@@ -20,18 +20,32 @@ namespace NpcForge.Server
         // App-only. The console calls this directly, before the model's first turn, and leaves it
         // out of the model's list: a tool the model can see is a tool it can skip.
         [McpServerTool(Name = "roll_character"), Description("Roll up a character brief inside what the difficulty allows.")]
+        // Each parameter's [Description] reaches tools/list. The console builds the scene interview's
+        // field list from that schema (ADR-007), so these lines are what the interviewer model reads
+        // about each field. The model never sees this tool itself.
         public static CharacterBrief RollCharacter(
+            [Description("Where the players meet this character, such as an inn in a major city")]
             string setting,
+            [Description("What the players want from this character, such as the name of a fence")]
             string playersWant,
+            [Description("How hard it is to get what the players want: Easy, SomeWork or Wall")]
             Difficulty difficulty,
+            [Description("Who the character is, such as innkeeper or farmer")]
             string occupation,
             // Any rolled trait can be handed in instead. Only what is missing gets rolled.
+            [Description("What the character wants for themselves, such as to be left alone")]
             string? characterWants = null,
+            [Description("Why the character does not simply give the players what they want: Wont (will not), Cant (cannot) or ForAPrice (will, at a price)")]
             ObstacleKind? obstacle = null,
+            [Description("How the character comes across, such as distrustful or world-weary")]
             string? attitude = null,
+            [Description("A habit the players notice, such as drums their fingers on the bar")]
             string? mannerism = null,
+            [Description("A weakness the players could use, such as vain or short of money")]
             string? weakness = null,
+            [Description("A subject the character will not talk about, such as their family")]
             string? willNotDiscuss = null,
+            [Description("Something the character believes that is not true")]
             string? wrongAbout = null)
         {
             // The difficulty filter, in code. Left to the model, it would pick something agreeable.
