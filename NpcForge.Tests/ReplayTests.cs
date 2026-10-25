@@ -1,6 +1,4 @@
 using Microsoft.Extensions.AI;
-using System.Diagnostics;               // Process, ProcessStartInfo
-using System.Reflection;                // AssemblyConfigurationAttribute
 using System.Text.Json;
 using System.Text.Json.Nodes;           // JsonNode
 
@@ -15,8 +13,7 @@ public class ReplayTests
     [Fact]
     public async Task Replays_the_recorded_run_and_saves_the_same_character()
     {
-        // Four folders up from this test's bin is the repo, as McpToolSource finds the server.
-        var repo = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", ".."));
+        var repo = ConsoleProcess.RepoRoot;
         var fixture = Path.Combine(repo, "NpcForge.Tests", "Fixtures", "replay.jsonl");
         var saveFile = Path.Combine(Path.GetTempPath(), $"npcforge-replay-{Guid.NewGuid():N}.json");
 
@@ -30,67 +27,15 @@ public class ReplayTests
         // fail here, not pass.
         RequireRecordingThatGuardsSomething(calls);
 
-        // The configuration this test was built in, and so the one to replay.
-        var configuration = BuildConfiguration();
-        RequireFreshBuild(repo, "NpcForge.Console", configuration);
-        RequireFreshBuild(repo, "NpcForge.Server", configuration);
-
-        var start = new ProcessStartInfo("dotnet")
-        {
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-        };
-        start.ArgumentList.Add("run");
-        start.ArgumentList.Add("--project");
-        start.ArgumentList.Add(Path.Combine(repo, "NpcForge.Console"));
-        start.ArgumentList.Add("--no-build");
-        start.ArgumentList.Add("-c");
-        start.ArgumentList.Add(configuration);
-        start.ArgumentList.Add("--no-launch-profile");
-        start.ArgumentList.Add("--");
-        foreach (var flag in flags)
-            start.ArgumentList.Add(flag);
-        start.ArgumentList.Add("--provider");
-        start.ArgumentList.Add("replay");
-        start.ArgumentList.Add("--recording");
-        start.ArgumentList.Add(fixture);
-
-        // The console never names a save file, so the server inherits this one from it.
-        start.Environment["NPCFORGE_CHARACTERS"] = saveFile;
-
-        // Free by construction, not by one flag. The child console can read the owner's real API
-        // keys from its user secrets. If a later change to flag handling ever dropped
-        // --provider replay, the run would be a paid one. A proxy that nothing listens on makes it
-        // fail at the proxy instead, and the telemetry opt-out stops the dotnet CLI itself from
-        // sending anything through it.
-        start.Environment["HTTPS_PROXY"] = "http://127.0.0.1:9";
-        start.Environment["HTTP_PROXY"] = "http://127.0.0.1:9";
-        start.Environment["DOTNET_CLI_TELEMETRY_OPTOUT"] = "1";
-
         try
         {
-            using var process = Process.Start(start)!;
-
-            // Read both streams while it runs. Left unread, the [server] and [loop] lines fill
-            // the pipe and the app stops, waiting for someone to read them.
-            var stdout = process.StandardOutput.ReadToEndAsync();
-            var stderr = process.StandardError.ReadToEndAsync();
-
-            // A minute is far more than a replay needs. A hang fails the test instead of the test
-            // run never ending.
-            using var timeout = new CancellationTokenSource(TimeSpan.FromMinutes(1));
-            try
-            {
-                await process.WaitForExitAsync(timeout.Token);
-            }
-            catch (OperationCanceledException)
-            {
-                process.Kill(entireProcessTree: true);
-                throw;
-            }
+            // The console never names a save file, so the server inherits this one from it.
+            var run = await ConsoleProcess.RunAsync(
+                [.. flags, "--provider", "replay", "--recording", fixture],
+                environment: new() { ["NPCFORGE_CHARACTERS"] = saveFile });
 
             // On failure, the app's own trace is the message: the replay names the line that differs.
-            Assert.True(process.ExitCode == 0, await stderr);
+            Assert.True(run.ExitCode == 0, run.Stderr);
 
             // What the recorded run saved: the text of the model's last reply, and the brief from
             // the first message. Read with the library's own types, not the console's, so a
@@ -109,34 +54,6 @@ public class ReplayTests
         {
             File.Delete(saveFile);
         }
-    }
-
-    // The SDK stamps the test assembly with the Configuration it was built under, so this is what
-    // `dotnet test -c Release` set, not a guess from a path. The console is a project reference, so
-    // it was built in the same one. Without it, `dotnet run --no-build` falls back to Debug and
-    // replays a different build from the one under test (ROADMAP epic "Harden the safety net").
-    internal static string BuildConfiguration() =>
-        typeof(ReplayTests).Assembly.GetCustomAttribute<AssemblyConfigurationAttribute>()?.Configuration
-        ?? throw new InvalidOperationException("The test assembly carries no build configuration.");
-
-    // --no-build runs whatever is in bin, so a build that is missing, or older than the source,
-    // would replay old code and pass or fail for the wrong reason. Say so instead. The console
-    // starts the server in this same configuration, so both are checked. Unlike the verify script
-    // this includes the console's skill, which is product and is copied to bin.
-    private static void RequireFreshBuild(string repo, string name, string configuration)
-    {
-        var project = Path.Combine(repo, name);
-        var dll = Path.Combine(project, "bin", configuration, "net10.0", $"{name}.dll");
-        Assert.True(File.Exists(dll),
-            $"The {configuration} build of {name} is missing ({dll}). Run `dotnet build -c {configuration}`.");
-
-        var newest = Directory.EnumerateFiles(project, "*", SearchOption.AllDirectories)
-            .Where(file => !file.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}")
-                        && !file.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}"))
-            .OrderByDescending(File.GetLastWriteTimeUtc)
-            .First();
-        Assert.True(File.GetLastWriteTimeUtc(dll) >= File.GetLastWriteTimeUtc(newest),
-            $"The {configuration} build of {name} is stale: {Path.GetRelativePath(repo, newest)} is newer than the build. Run `dotnet build -c {configuration}`.");
     }
 
     // The replay only catches what the recording makes visible. Three things it needs, each of
