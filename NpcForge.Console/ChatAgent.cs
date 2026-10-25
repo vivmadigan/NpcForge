@@ -10,7 +10,9 @@ namespace NpcForge;
 
 public static class ChatAgent
 {
-    public static async Task<string> RunAsync(IChatClient client, ChatOptions options, IToolSource tools, string briefJson)
+    // scene is the GM's scene from the interview, or null for a run with answer flags. No default,
+    // so every caller says which it is.
+    public static async Task<string> RunAsync(IChatClient client, ChatOptions options, IToolSource tools, string briefJson, string? scene)
     {
         var loop = new AgentLoop(client, tools, options);
 
@@ -37,7 +39,7 @@ public static class ChatAgent
         var history = new List<ChatMessage>
         {
             new(ChatRole.System, skill),
-            new(ChatRole.User, $"Write this character. The brief is settled; do not change it.\n\n{briefJson}"),
+            new(ChatRole.User, FirstMessage(briefJson, scene)),
         };
 
         var answer = await loop.RunAsync(history, CancellationToken.None);
@@ -45,4 +47,15 @@ public static class ChatAgent
         return answer;
 
     }
+
+    // The writer's facts (ADR-008). With no scene, today's message to the byte, so the replay
+    // fixture, a flag run, still matches. The scene goes in as typed and code never reads it. The
+    // brief stays last, so a replay of a scene run can find it from the end (the scene may hold a
+    // brace), and it wins on a clash, so the dice keep their job. How to use the scene is the skill's business, not this message's.
+    public static string FirstMessage(string briefJson, string? scene) =>
+        scene is null
+            ? $"Write this character. The brief is settled; do not change it.\n\n{briefJson}"
+            : "Write this character. The brief is settled; do not change it.\n\n" +
+              "This is the scene the GM described, in their own words. Where it and the brief disagree, the brief wins.\n\n" +
+              $"<scene>\n{scene}\n</scene>\n\n{briefJson}";
 }

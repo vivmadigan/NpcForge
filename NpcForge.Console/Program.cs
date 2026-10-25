@@ -84,6 +84,8 @@ if (load is not null)
 // Either way a plain set of roll_character arguments. The interview never rolls; it only says
 // what to roll with, and only after the GM's yes.
 Dictionary<string, object?> rollArguments;
+// The GM's scene, for the writer (ADR-008). Null for a run with answer flags, which has none.
+string? scene = null;
 if (run.Interview)
 {
     // The fields come from the server's own schema, so the console keeps no copy of them.
@@ -101,7 +103,8 @@ if (run.Interview)
         Console.Error.WriteLine("[app] not rolled: the GM did not say yes");
         return;
     }
-    rollArguments = told;
+    rollArguments = told.RollArguments;
+    scene = told.Scene;
 }
 else
 {
@@ -120,8 +123,13 @@ var briefJson = await tools.CallDirectAsync("roll_character", rollArguments, Can
 Console.Error.WriteLine($"[app] {provider} {model}");
 Console.Error.WriteLine($"[app] brief {briefJson}");
 
+// Shows in every run's record that the writer was given the scene. A count, not the text: the GM
+// typed it, and it is on the screen above.
+if (scene is not null)
+    Console.Error.WriteLine($"[app] scene sent ({scene.Length} chars)");
+
 // Run.
-var answer = await ChatAgent.RunAsync(client, options, tools, briefJson);
+var answer = await ChatAgent.RunAsync(client, options, tools, briefJson, scene);
 Console.WriteLine(answer);
 
 // Save: every run is kept, the brief with the character written from it. The brief goes as a

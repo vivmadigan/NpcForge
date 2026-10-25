@@ -26,6 +26,7 @@ Decision, Why, Consequences.
 | Recording paid runs | One file per run in `docs/runs/`, pasted from the console; commit first; the `[skill]` line carries a fingerprint | [docs/runs/README.md](../runs/README.md) |
 | Replay | Seeded dice through `NPCFORGE_SEED`, set only from `--seed`; `--record`; a `replay` provider; and a free test of the whole app against `NpcForge.Tests/Fixtures/replay.jsonl`. The replay compares every message, the model's own included, every `ChatOptions` field the library serialises, and each tool. Re-recorded only after a behavior change, never for a restructure. | [ADR-005](ADR-005-replay-a-recorded-run.md), amended twice: the model's own messages, and every `ChatOptions` field rather than two. The recording command lives in docs/runs/README.md. |
 | The scene interview ("Talk to it") | The model records answers with one console tool, `record_answer(field, value, quote)`; code decides each label. A free-text field takes the GM's own words; only a choice (difficulty, obstacle) may be inferred; anything unrecorded is rolled or takes its default. Labels stay out of the save and the writer. | [ADR-007](ADR-007-scene-interview-labels.md) |
+| What the writer is sent | The skill, then one message: the instruction, the GM's scene word for word when there is one, and the brief last. The brief wins where they disagree. The scene is not saved. | [ADR-008](ADR-008-writer-reads-the-scene.md), superseding one line of ADR-007 |
 
 ## Records
 
@@ -34,7 +35,8 @@ Decision, Why, Consequences.
 - [ADR-003 A saved character is the brief and the written text together, loaded by number](ADR-003-saved-character-is-brief-and-text.md) — accepted 2026-09-22
 - [ADR-005 Whole runs are regression-tested by replaying a recorded model](ADR-005-replay-a-recorded-run.md) — accepted 2026-10-01
 - [ADR-006 Agents write the code; the user sets the task, the constraints and what done means](ADR-006-agents-write-the-code.md) — accepted 2026-10-24
-- [ADR-007 The scene interview records the GM's own words, and only a choice may be inferred](ADR-007-scene-interview-labels.md) — accepted 2026-10-25
+- [ADR-007 The scene interview records the GM's own words, and only a choice may be inferred](ADR-007-scene-interview-labels.md) — accepted 2026-10-25; one line superseded by ADR-008
+- [ADR-008 The writer is sent the GM's scene, word for word, beside the brief](ADR-008-writer-reads-the-scene.md) — accepted 2026-10-25
 
 ADR-004 was reserved for the server layers by a plan that no longer exists, and was never written.
 Older records mention plan versions and `PLAN.md`; those are in git at commit `cd20b60`.

@@ -171,3 +171,7 @@ find it there.
   `NPCFORGE_OFFLINE=1` stops the paid clients, a replay or a recording saves to a temp file, a test
   replays the build configuration it was built in, and free tests prove the replay fails on a changed
   prompt, tool list, option or dropped turn. See `docs/architecture.md` "Run options" and lesson 008.
+- **The writer reads the scene** (epic 7, 2026-10-25). The writer is sent the GM's scene word for
+  word beside the brief, plays the traits through it, makes the scene's condition the first lever,
+  and leaves a trouble the scene does not name as a gap for the GM. The control scene passed on three
+  seeds of three. See ADR-008, lesson 009 and `docs/runs/2026-10-25-01` to `-03`.
