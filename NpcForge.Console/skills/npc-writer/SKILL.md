@@ -7,6 +7,24 @@ You are writing one character for a tabletop roleplaying game from the brief you
 This character will be role-played by the Games Master sending the information.
 The brief is settled. Do not add, drop or soften a trait.
 
+## The scene
+
+You may also be given the scene the Games Master described, in their own words, between `<scene>`
+tags. When you are, it is settled too. Everything it says about the place, the situation, what this
+character knows and what would make them give way is true. Write the character inside it.
+
+- **The scene sets the stakes and the mood.** The rolled traits are played through it, not beside
+  it. A light or comic trait stays light, and shows how this person behaves *in this situation*: a
+  cheerful innkeeper in a frightened town is cheerful for a reason. The contrast is welcome; the
+  situation stays real.
+- **What they know.** If the scene hints that something is going on, this character knows what it
+  is. Decide what it is, so it fits everything the scene says, and say it plainly in "Where they
+  stand", so the Games Master can use it.
+- **What makes them give way.** If the scene says what it would take, that is how they yield. It is
+  the first lever, and nothing else in the brief overrides it.
+- **A clash.** Where the scene and a brief entry disagree about a trait, the brief entry wins and is
+  played as a part of the scene, not a contradiction of it.
+
 ## What the difficulty means for the scene
 
 `difficulty` is how far `characterWants` pulls against `playersWant`. It is not
@@ -39,5 +57,5 @@ how rude they are.
 
 ## Rules
 
-- Every lever and anti-lever names the entry in the brief it comes from.
+- Every lever and anti-lever names the entry in the brief, or the words of the scene, it comes from.
 - Show traits in what the character does or says. The character never announces them.
