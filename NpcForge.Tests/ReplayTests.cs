@@ -1,6 +1,7 @@
 using Microsoft.Extensions.AI;
 using System.Text.Json;
 using System.Text.Json.Nodes;           // JsonNode
+using System.Text.RegularExpressions;
 
 namespace NpcForge.Tests;
 
@@ -53,6 +54,60 @@ public class ReplayTests
         finally
         {
             File.Delete(saveFile);
+        }
+    }
+
+    // The owner's saves are the tracked characters.json. A replay run by hand names no save file,
+    // and must still leave that file alone and save somewhere else, which the app says in its
+    // `[app] saved as` line. Unlike the test above, this one does not set NPCFORGE_CHARACTERS: it
+    // removes it, so it holds even when the owner's shell has it set.
+    [Fact]
+    public async Task A_replay_that_names_no_save_file_leaves_the_tracked_saves_alone_and_saves_to_a_temp_file()
+    {
+        var repo = ConsoleProcess.RepoRoot;
+        var fixture = Path.Combine(repo, "NpcForge.Tests", "Fixtures", "replay.jsonl");
+        var tracked = Path.Combine(repo, "NpcForge.Server", "characters.json");
+        var lines = File.ReadAllLines(fixture);
+        var flags = JsonSerializer.Deserialize<string[]>(lines[0])!;
+        var calls = lines.Skip(1).Select(line => JsonNode.Parse(line)!).ToList();
+
+        var trackedBefore = File.ReadAllBytes(tracked);
+        string? tempSave = null;
+        try
+        {
+            var run = await ConsoleProcess.RunAsync(
+                [.. flags, "--provider", "replay", "--recording", fixture],
+                environment: new() { ["NPCFORGE_CHARACTERS"] = null });
+            Assert.True(run.ExitCode == 0, run.Stderr);
+
+            // A regression must not damage the owner's saves: put back what was there before
+            // failing, so the next run starts from the owner's file.
+            if (!File.ReadAllBytes(tracked).SequenceEqual(trackedBefore))
+            {
+                File.WriteAllBytes(tracked, trackedBefore);
+                Assert.Fail("The replay wrote over the tracked NpcForge.Server/characters.json. It has been restored.");
+            }
+
+            // The app says where it saved. Taken from the line, not computed here, so this holds
+            // whatever the app names the file.
+            var line = Regex.Match(run.Stderr, @"^\[app\] saved as (\d+) in (.+?)\s*$", RegexOptions.Multiline);
+            Assert.True(line.Success, $"No `[app] saved as N in <path>` line on stderr:\n{run.Stderr}");
+            tempSave = line.Groups[2].Value;
+
+            Assert.NotEqual(Path.GetFullPath(tracked), Path.GetFullPath(tempSave));
+            Assert.True(File.Exists(tempSave), $"The app said it saved to {tempSave}, which does not exist.");
+
+            var saved = JsonNode.Parse(File.ReadAllText(tempSave))![line.Groups[1].Value]!;
+            Assert.Equal(Reply(calls[^1]).Text, saved["text"]!.GetValue<string>());
+        }
+        finally
+        {
+            // Also on a timeout or any other throw before the check above ran.
+            if (!File.ReadAllBytes(tracked).SequenceEqual(trackedBefore))
+                File.WriteAllBytes(tracked, trackedBefore);
+            // Never delete the tracked file, whatever path the app printed.
+            if (tempSave is not null && Path.GetFullPath(tempSave) != Path.GetFullPath(tracked))
+                File.Delete(tempSave);
         }
     }
 

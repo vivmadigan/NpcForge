@@ -24,7 +24,7 @@ internal static class ConsoleProcess
     // Runs the console in BuildConfiguration. `offline` sets NPCFORGE_OFFLINE=1, the stop in the
     // paid model clients. `environment` adds or overrides variables for the child only.
     public static async Task<Result> RunAsync(
-        string[] flags, bool offline = false, Dictionary<string, string>? environment = null)
+        string[] flags, bool offline = false, Dictionary<string, string?>? environment = null)
     {
         // --no-build runs whatever is in bin, so a missing or old build would run old code and
         // pass or fail for the wrong reason. The console starts the server in this same
@@ -56,6 +56,7 @@ internal static class ConsoleProcess
 
         if (offline)
             start.Environment[ModelClients.OfflineVariable] = "1";
+        // A null value removes the variable, so a test can run as if the owner's shell never set it.
         foreach (var (name, value) in environment ?? [])
             start.Environment[name] = value;
 
@@ -91,7 +92,10 @@ internal static class ConsoleProcess
         Assert.True(File.Exists(dll),
             $"The {BuildConfiguration} build of {name} is missing ({dll}). Run `dotnet build -c {BuildConfiguration}`.");
 
+        // characters.json is the owner's saves, not code: a save, or a test putting it back, must
+        // not make the build look old.
         var newest = Directory.EnumerateFiles(project, "*", SearchOption.AllDirectories)
+            .Where(file => Path.GetFileName(file) != "characters.json")
             .Where(file => !file.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}")
                         && !file.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}"))
             .OrderByDescending(File.GetLastWriteTimeUtc)

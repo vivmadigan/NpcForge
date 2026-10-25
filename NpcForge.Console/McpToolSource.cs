@@ -69,9 +69,9 @@ namespace NpcForge
             // NPCFORGE_SEED is always set. Only --seed seeds the dice, so a run without it must roll
             // random even when the shell still holds a NPCFORGE_SEED from an earlier session.
             //
-            // NPCFORGE_CHARACTERS is set only when given. The replay test sets it on the console and
-            // relies on the server inheriting it; a null here would delete it, and the test's saves
-            // would land in the tracked characters.json.
+            // NPCFORGE_CHARACTERS is set only when given. Program.cs passes the caller's own value, or
+            // a temp file for a replay or a recording; a null here would delete a variable the
+            // caller set, and the saves would land in the tracked characters.json.
             var environment = new Dictionary<string, string?>
             {
                 ["NPCFORGE_SEED"] = _seed?.ToString(),
@@ -91,8 +91,8 @@ namespace NpcForge
 
                 // Storage.cs and the dice read these. An environment variable reaches the child
                 // process before any MCP message does, and survives the hop through dotnet run.
-                // Inheriting is the library's default, written out because the replay test keeps off
-                // the tracked characters.json only because the server inherits NPCFORGE_CHARACTERS.
+                // Inheriting is the library's default, written out because the server also needs
+                // the rest of the caller's environment, such as the proxy the tests set.
                 InheritEnvironmentVariables = true,
                 EnvironmentVariables = environment,
             });

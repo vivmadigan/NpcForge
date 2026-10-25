@@ -45,9 +45,9 @@ Every Bash call is a fresh shell, so begin each with `V=.claude/skills/verify/sc
 
 | Command | Does |
 | --- | --- |
-| `$V replay [--split] [--save F] NAME [-- flags]` | Replays the recorded run with line 1 of the fixture as the answers. Flags after `--` override them. |
+| `$V replay [--split] [--save F\|--temp-save] NAME [-- flags]` | Replays the recorded run with line 1 of the fixture as the answers. Flags after `--` override them. `--temp-save` names no save file, so the app picks a temp one and the helper reads its path from the `[app] saved as` line. |
 | `$V load N` | `--load N` against `save.json`, split into `.stdout` and `.stderr`. |
-| `$V run [--split] [--save F] NAME -- flags` | Any console flags, behind the three fences. |
+| `$V run [--split] [--save F\|--temp-save] NAME -- flags` | Any console flags, behind the three fences. |
 | `$V test [FILTER]` | `dotnet test --no-build`, optionally `--filter "FullyQualifiedName~FILTER"`. |
 | `$V fixture-flags` | Prints line 1 of the fixture, one flag per line. |
 
