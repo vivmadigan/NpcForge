@@ -1,6 +1,10 @@
 # ADR-009: Tone, race and name dice join the brief, a namer names the character, and a lab compares writers
 
-- **Status:** accepted
+- **Status:** accepted. Amended 2026-10-25, while building the lab: its confirmation shows an
+  estimate (two calls per character), not an upper bound, because the writer loop allows more turns
+  and a true bound would refuse the six-character blind tone check; the spending cap stays the hard
+  stop. A blind lab also writes `blind.json`, which `--score` reads instead of `blind.md`, and
+  `key.json` holds the failures as well as the key.
 - **Date:** 2026-10-25
 - **Supersedes:** three lines of earlier records, each named where it changes. ADR-003's save format
   gains a name and keeps its brief as JSON (Decision 2). ADR-007's rule that any choice may be inferred

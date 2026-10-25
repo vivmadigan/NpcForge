@@ -60,12 +60,44 @@ flag cannot be parsed and left off the recording. The same table names the `roll
 | `--load <n>` | none | Prints saved character n instead of making one |
 | `--record <file>` | none | Also writes every model call to a file. Needs `--seed` |
 | `--recording <file>` | none | The file `--provider replay` answers from |
+| `--lab skill=<dir>,<dir>` or `--lab temperature=<t>,<t>` | none | The writers' lab (see "The lab") |
+| `--repeat <n>`, `--mode side\|blind`, `--out <dir>` | 1, `side`, a new temp folder | How many takes of each variant, blind or not, and where the sheet goes. Only with `--lab` |
+| `--score <dir>` | none | Marks the guesses for a finished blind lab. No model, no server, no key |
 
 A flag the table does not know, a flag with no value (last, or before another flag) and a stray word
 stop the run in `RunOptions.Parse`, before any model client is built. So do `--record` without
 `--seed`, `--recording` without `--provider replay`, `--record` with it, and `--record` with no
 answer flag (a recording replays flags, and a typed scene is not one). `RunOptions.Interview` is true
 when no answer flag and no `--load` was typed; defaults do not count as typed.
+
+## The lab
+
+`--lab` writes one brief several ways and lays the results out side by side, so a change to the
+writer is judged on a sheet instead of from memory (ADR-009). `Lab.cs` owns the run and `LabSheet.cs`
+the sheets, which are pure.
+
+- **One axis per lab.** `skill=<dir>,<dir>` gives each variant its own skill folder (a `SKILL.md`);
+  `temperature=<t>,<t>` sets `ChatOptions.Temperature` on a copy per variant. The tone axis arrives
+  with tone. A lab needs `--seed` and the answers as flags, and is refused with `--load`, `--record`,
+  `--provider replay`, a repeated folder or temperature, and a temperature on `anthropic`. Every
+  refusal comes before a model client is built.
+- **One write path.** The lab rolls once, then writes every variant and take through
+  `ChatAgent.WriteAsync`, the call a normal run makes. It saves nothing, and `CharactersPath` sends it
+  to a temp file as a second stop.
+- **It asks first.** Before any model call it prints the number of characters and an estimate in
+  tokens against the session cap, and waits for `yes`. An estimate over the cap is refused. The
+  estimate counts two calls per character, the usual case; the spending cap stops a lab that runs
+  over, and the sheet says where it stopped. The `--out` folder is made and test-written before the
+  question, so a bad one fails for free.
+- **Side mode** writes `sheet.md`: the brief once, then each character under its label and take with
+  its `[skill]` line. A variant that fails stays on the sheet with its reason.
+- **Blind mode** writes `blind.md` (characters as A, B, C), `blind.json` (the same, as data) and
+  `key.json` (letter to label, and any failures), and no `sheet.md`. The run order and the letters are
+  shuffled from `--seed`. While the variants run, `Console.Error` goes to a null writer, so no trace
+  line gives the key away; afterwards only a count of failures is printed.
+- **`--score <dir>`** reads `blind.json` and `key.json`, asks for a guess per letter, prints
+  `n of m right` and writes `scored.md`. It reads no model prose as markup and runs before any client
+  or server.
 
 ## The server's tools
 
@@ -110,10 +142,10 @@ The difficulty filter is code: each want is tagged with the difficulties it fits
 rolls `Wont`. Enums travel as their names. The brief is settled once and never changes, and it is
 half of the save format (ADR-003).
 
-A trait handed in to `roll_character` is used as given, and only the missing ones are rolled. The
-difficulty filter shapes the dice, not a handed-in trait: `Easy` with an obstacle of `Wont` the GM
-described is kept (ADR-007). A handed-in trait also skips its pick, so the same seed rolls the other
-traits differently from a plain roll.
+A trait handed in to `roll_character` is used as given. The difficulty filter shapes the dice, not a
+handed-in trait: `Easy` with an obstacle of `Wont` the GM described is kept (ADR-007). Every die is
+still cast, in one fixed order, and a handed-in value replaces its die's result, so the same seed
+rolls the same other traits whatever is handed in (ADR-009).
 
 ## The scene interview
 
@@ -208,14 +240,17 @@ runs the Debug build, so a Release console would drive a Debug server that may b
 ## Storage
 
 One JSON file, `NpcForge.Server/characters.json`: every run, numbered from 1, the brief and the text
-together (ADR-003). `NPCFORGE_CHARACTERS` overrides the path. The path is always absolute, because
+together (ADR-003). The server keeps each saved brief as the JSON it was saved as (`SavedCharacter.Brief`
+is a `JsonElement`), so an old entry is read and written back without passing through `CharacterBrief`
+and never gains a field added later (ADR-009). `save_character` still binds a new brief through
+`CharacterBrief`. `NPCFORGE_CHARACTERS` overrides the path. The path is always absolute, because
 the server's working folder is wherever the app was started. Only the server touches the file, so a
 database later changes the server and nothing else.
 
 A replay or a recording run is not a real character, so it never uses the tracked file.
 `RunOptions.CharactersPath` decides the file for every run: an `NPCFORGE_CHARACTERS` the caller set
-wins; otherwise `--provider replay` and `--record` get a fresh `npcforge-replay-<guid>.json` or
-`npcforge-record-<guid>.json` in the OS temp folder; a normal run and `--load` keep the tracked file.
+wins; otherwise `--provider replay`, `--record` and `--lab` get a fresh `npcforge-replay-<guid>.json`,
+`npcforge-record-<guid>.json` or `npcforge-lab-<guid>.json` in the OS temp folder; a normal run and `--load` keep the tracked file.
 The console passes the answer to the server and ends with `[app] saved as N in <path>` whenever it
 chose the file, so the temp file can be found. The temp file is left in place on purpose.
 
@@ -288,6 +323,12 @@ One real run is recorded once, and the whole app replays against it for free (AD
   as typed, trimmed.
 - `WriterMessageTests`: through the real `ChatAgent` and its skill, the writer is sent the scene word
   for word with the brief last, and a run with no scene sends the message a flag run always sent.
+- `StorageTests`: a copy of the real `characters.json` goes through `Storage.Load` and `Save` byte for
+  byte, and a new save leaves every old entry's bytes alone.
+- `LabFlagTests`, `LabSheetTests`, `LabRunTests` and `LabScoreTests`: every lab refusal with its
+  reason; the sheets, the key and the score, pure; the lab against the real server and a stand-in
+  model (each variant reaches the writer, the confirmation stops without a yes, blind stderr holds no
+  variant, the cap stops it, a failure stays on the sheet); and `--score` as a process with no key.
 - `SpendingCapTests`: the cap refuses the call after the limit without asking the model, and stops
   an agent loop before its turn cap.
 - `ConsoleProcess`: not a test. The one place a test starts the app as a process: the build
