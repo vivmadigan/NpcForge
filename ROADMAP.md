@@ -35,63 +35,12 @@ Two rules for every epic, now that the Safety net exists:
 
 | # | Epic | In one line |
 | --- | --- | --- |
-| 2 | Talk to it | Describe the scene in plain words, and see where each part came from |
 | 3 | Better characters | Tone, names that don't repeat, and a writers' lab |
 | 4 | Keep and edit | Choose what to keep, and change it later |
 | 5 | Ready to grow | A structure that can sit behind a website and a database |
 | 6 | Friends can use it | A website with logins and a database, deployed |
 
 Epics 4 to 6 are drafts: sharpen each one before it starts.
-
-## 2. Talk to it
-
-**Goal.** I start the app with no flags. It greets me and briefly says what it needs. I describe the
-scene in one go, for example: "My players meet a tavern owner at his tavern to ask about a thieves
-guild. He knows nothing about the guild, knows a few people who might, and doesn't want to get
-involved." It works out the brief from my words, shows me where each part of it came from, and rolls
-only after I say yes. Purpose: test like a real user, so I can improve the dialogue and the scenes
-the model receives.
-
-**Constraints.**
-- The model never guesses (AGENTS.md). Each field of the brief is one of three things, labelled at
-  the confirmation:
-  - *My words.* A free-text field takes a span of words I typed, kept as I typed them. A quote I
-    never typed is rejected.
-  - *Inferred.* Only for a choice (difficulty, obstacle): the model's reading of my words, shown
-    beside the words it read, such as difficulty "Wall" from "doesn't want to get involved". Kept
-    and labelled. A free-text trait the model can only paraphrase is not recorded, so the dice roll
-    it (ADR-007).
-  - *Rolled.* I said nothing about it, so the dice decide. The model never fills a gap itself.
-- What I say about the character settles that trait instead of the dice: "knows nothing about the
-  guild" settles the obstacle as can't, and the dice roll the rest. `roll_character` already takes
-  every trait this way; ADR-007 records the design.
-- No follow-up questions. A gap is rolled, or takes its default (occupation "innkeeper", ADR-002).
-- The roll happens in code after my yes, and `roll_character` stays out of the model's reach.
-- Flags keep working and skip the interview, so the replay test is unchanged.
-- A spending cap per session stops a conversation running up a bill.
-- The matching rules decided on 2026-09-26 still apply (step 13 in `git show eddc444:ROADMAP.md`):
-  one normalising function, and whole-word quotes. A quote is one sentence of at most 12 words, and
-  the confirmation shows the whole sentence it came from (ADR-007).
-
-**Done when.**
-- Free tests: a quote I never typed is rejected; an inferred choice is kept and labelled;
-  a free-text value that is not a span of my words is rejected; a field I
-  said nothing about is rolled; a trait I described reaches the brief instead of a roll; the model
-  can't reach `roll_character`, and nothing is rolled before my yes.
-- The spending cap stops a session at its limit (free test, with a stand-in model).
-- The replay test passes unchanged.
-- The tavern scene above gives a written, saved character with nothing typed but "yes". The
-  confirmation shows every field with its label and the words behind it, and the obstacle and
-  attitude come from my words, not the dice (*needs my eyes*, paid, on OpenAI and Claude).
-
-**Tasks.**
-- ADR: details I give about the character settle those traits
-- The scene interview: the interviewer skill, a tool that records each answer with its label and
-  quote, and the confirmation
-- A spending cap per session
-
-**Not in this epic.** Follow-up changes like "make him warier" move to "Keep and edit". Ctrl+C that
-stops a run without closing the app waits until a run is long enough to need it.
 
 ## 3. Better characters
 
@@ -175,3 +124,8 @@ find it there.
   word beside the brief, plays the traits through it, makes the scene's condition the first lever,
   and leaves a trouble the scene does not name as a gap for the GM. The control scene passed on three
   seeds of three. See ADR-008, lesson 009 and `docs/runs/2026-10-25-01` to `-03`.
+- **Talk to it** (epic 2, 2026-10-25). A bare `dotnet run` greets the GM, reads the scene in one
+  go, labels every field of the brief as their words, inferred or rolled, and rolls only after a
+  yes. A spending cap stops a session at 200,000 tokens. The tavern scene passed on OpenAI and
+  Claude, judged by the owner on runs of their own. See ADR-007 and `docs/architecture.md` "The
+  scene interview".
