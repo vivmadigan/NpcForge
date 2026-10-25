@@ -36,6 +36,7 @@ Two rules for every epic, now that the Safety net exists:
 | # | Epic | In one line |
 | --- | --- | --- |
 | 2 | Talk to it | Describe the scene in plain words, and see where each part came from |
+| 7 | The writer reads the scene | The character acts inside the situation I described, comic or not |
 | 3 | Better characters | Tone, names that don't repeat, and a writers' lab |
 | 4 | Keep and edit | Choose what to keep, and change it later |
 | 5 | Ready to grow | A structure that can sit behind a website and a database |
@@ -92,6 +93,53 @@ the model receives.
 
 **Not in this epic.** Follow-up changes like "make him warier" move to "Keep and edit". Ctrl+C that
 stops a run without closing the app waits until a run is long enough to need it.
+
+## 7. The writer reads the scene
+
+Numbered 7 so the epics after it keep their numbers. It comes next, before 3.
+
+**Goal.** The writer gets my scene word for word, alongside the brief, and plays the rolled traits
+through it. The character acts inside the situation I described, comic or not. Today the interview
+keeps the fields and drops the scene, so the writer never hears "something is off about the town"
+(save 5, Merrit Vale).
+
+**Constraints.**
+- The dice, the tables, the interview and the quote checks stay as they are. NPCs are meant to be
+  thin, close to a stereotype: the traits stay light, and the scene says why they belong here.
+- Code never reads the scene. Only the writer does.
+- A run started with answer flags has no scene and works exactly as today, so the replay fixture
+  stays valid.
+- Paid runs only on OpenAI `gpt-6-luna`, at most 10, one change per run so each result traces to
+  one change. Every paid run is kept in `docs/runs/`.
+- An ADR before any code. It supersedes ADR-007's "the writer gets the brief as today".
+- Ideas for better output found by reading the characters (a skill change, or anything else) are
+  welcome, but each one is proved by a run before it is kept.
+- Not in this epic: a field for what makes the character yield, a tone field, table changes,
+  temperature, a `--scene` flag, and a replay fixture for scene runs.
+
+**Done when.**
+- The control scene below, run with three different seeds, gives an innkeeper who knows what is
+  really going on in the town and will not give it up until the players seriously threaten his
+  life, whatever his personality (*needs my eyes*, paid, with a pass or fail note on each run).
+- A free test shows the writer's message holds the scene, and fails when it does not.
+- `dotnet test` passes.
+
+The control scene:
+
+```text
+The players are in a small village. They have noticed something is off about the town and so they
+have gone into the town's only inn, which is empty apart from the innkeeper. They want to get
+information about the town from the innkeeper, but he refuses to give them anything, unless
+threatened with death.
+```
+
+**Tasks.**
+- Baseline: two paid runs of the control scene on today's code
+- Design and ADR: how the scene reaches the writer, and whether it is saved
+- The scene reaches the writer, with the free test
+- Rewrite the npc-writer skill: the scene sets the register, traits are played through it, and the
+  output says why this person fits here and now
+- Final check: three paid runs, three seeds
 
 ## 3. Better characters
 
