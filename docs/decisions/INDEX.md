@@ -38,7 +38,7 @@ Decision, Why, Consequences.
 - [ADR-006 Agents write the code; the user sets the task, the constraints and what done means](ADR-006-agents-write-the-code.md) — accepted 2026-10-24
 - [ADR-007 The scene interview records the GM's own words, and only a choice may be inferred](ADR-007-scene-interview-labels.md) — accepted 2026-10-25; one line superseded by ADR-008
 - [ADR-008 The writer is sent the GM's scene, word for word, beside the brief](ADR-008-writer-reads-the-scene.md) — accepted 2026-10-25
-- [ADR-009 Tone, race and name dice join the brief, a namer names the character, and a lab compares writers](ADR-009-tone-race-and-name-dice.md) — proposed 2026-10-25
+- [ADR-009 Tone, race and name dice join the brief, a namer names the character, and a lab compares writers](ADR-009-tone-race-and-name-dice.md) — accepted 2026-10-25
 
 ADR-004 was reserved for the server layers by a plan that no longer exists, and was never written.
 Older records mention plan versions and `PLAN.md`; those are in git at commit `cd20b60`.

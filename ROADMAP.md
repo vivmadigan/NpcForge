@@ -92,6 +92,8 @@ side by side, not from memory.
 a kept character later without starting over, including follow-ups like "make him warier"
 (moved here from "Talk to it"). A kept character may be marked recurring, and the open question
 moves with it: what extra does a recurring character get? (moved here from "Better characters").
+A kept character can have a fixed name, including one the GM gives in a scene ("an innkeeper called
+Bram") or by a flag. Until then the name dice apply and the namer's name wins (ADR-009).
 
 **Constraints.** Saving and loading stay app-only: the model never touches the saved file. Saves made
 before this epic still load.

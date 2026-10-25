@@ -1,6 +1,6 @@
 # ADR-009: Tone, race and name dice join the brief, a namer names the character, and a lab compares writers
 
-- **Status:** proposed
+- **Status:** accepted
 - **Date:** 2026-10-25
 - **Supersedes:** three lines of earlier records, each named where it changes. ADR-003's save format
   gains a name and keeps its brief as JSON (Decision 2). ADR-007's rule that any choice may be inferred
@@ -371,14 +371,9 @@ guards, then passing. A restructure passes the replay fixture unchanged.
 4. **The namer's extra calls** are accepted: about 2,000 to 3,000 tokens per character.
 5. **Paid runs use OpenAI's `gpt-6-luna`,** the default model, which the replay fixture already uses:
    the three re-records, the lab runs and the epic's paid checks.
-
-## Open questions for the owner
-
-1. **The letter table,** used for both letters. Proposed: every letter but Q, U, X, Y and Z, at equal
-   weight, so 21 rows. A given `--letter Q` is still allowed.
-2. **The syllable weights.** Proposed: one 1, two 2, three 1. Is four wanted, for elves?
-3. **Tokens, not money, at the lab's confirmation.** The epic says the lab asks "with its cost".
-   Proposed: tokens only, because a price table needs hand upkeep and goes stale.
-4. **A name the GM gives,** in a scene ("an innkeeper called Bram") or by a flag. Proposed: not in this
-   epic. The dice apply and the namer's name wins, as the brief wins. Epic 4 can give a kept character a
-   fixed name.
+6. **The letter table,** used for both letters: every letter but Q, U, X, Y and Z, at equal weight, so
+   21 rows. A given `--letter Q` is still allowed.
+7. **The syllable weights:** one 1, two 2, three 1. No four.
+8. **Tokens, not money,** at the lab's confirmation.
+9. **A name the GM gives** is not in this epic. The dice apply and the namer's name wins, as the brief
+   wins. It moves to epic 4, "Keep and edit".
