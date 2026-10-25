@@ -85,7 +85,7 @@ public class RunOptionsTests
     }
 
     private const string Known =
-        "The flags are: --provider, --seed, --model, --setting, --want, --difficulty, --occupation, --load, --record, --recording.";
+        "The flags are: --provider, --seed, --model, --setting, --want, --difficulty, --occupation, --load, --record, --recording, --lab, --repeat, --mode, --out, --score.";
 
     [Fact]
     public void An_unknown_flag_stops_the_run_and_names_the_flags_the_app_knows()
@@ -126,6 +126,11 @@ public class RunOptionsTests
     [InlineData("--load", "--load needs a number, for example --load 3.")]
     [InlineData("--record", "--record needs a file, for example --record NpcForge.Tests/Fixtures/replay.jsonl.")]
     [InlineData("--recording", "--recording needs a file, for example --recording NpcForge.Tests/Fixtures/replay.jsonl.")]
+    [InlineData("--lab", "--lab needs an axis and its values, for example --lab skill=skills/a,skills/b.")]
+    [InlineData("--repeat", "--repeat needs a number, for example --repeat 2.")]
+    [InlineData("--mode", "--mode needs a value after it.")]
+    [InlineData("--out", "--out needs a folder, for example --out lab-1.")]
+    [InlineData("--score", "--score needs the folder of a blind lab, for example --score lab-1.")]
     public void Every_flag_given_last_stops_the_run(string flag, string message)
     {
         var error = Assert.Throws<ArgumentException>(() => RunOptions.Parse([flag]));
@@ -144,6 +149,11 @@ public class RunOptionsTests
     [InlineData("--load")]
     [InlineData("--record")]
     [InlineData("--recording")]
+    [InlineData("--lab")]
+    [InlineData("--repeat")]
+    [InlineData("--mode")]
+    [InlineData("--out")]
+    [InlineData("--score")]
     public void Every_flag_followed_by_a_flag_gets_the_same_message_as_when_last(string flag)
     {
         var last = Assert.Throws<ArgumentException>(() => RunOptions.Parse([flag]));

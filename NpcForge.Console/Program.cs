@@ -31,6 +31,11 @@ int? load = run.Load;
 int? seed = run.Seed;
 string? recordTo = run.RecordTo;
 
+// The lab flags parse and refuse, but the lab itself is not wired in yet. Stop here, so a lab
+// command can never fall through to a normal, paid run. Replaced by the lab branch.
+if (run.Lab is not null || run.Score is not null)
+    throw new NotSupportedException("The lab does not run yet: only its flags and refusals exist.");
+
 // Where the recording will land, shown before anything is paid for, so a wrong working directory
 // shows here and not after the run.
 if (recordTo is not null)
