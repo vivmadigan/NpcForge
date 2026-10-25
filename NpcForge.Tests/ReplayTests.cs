@@ -1,5 +1,6 @@
 using Microsoft.Extensions.AI;
 using System.Diagnostics;               // Process, ProcessStartInfo
+using System.Reflection;                // AssemblyConfigurationAttribute
 using System.Text.Json;
 using System.Text.Json.Nodes;           // JsonNode
 
@@ -29,6 +30,10 @@ public class ReplayTests
         // fail here, not pass.
         RequireRecordingThatGuardsSomething(calls);
 
+        // The configuration this test was built in, and so the one to replay.
+        var configuration = BuildConfiguration();
+        RequireFreshConsoleBuild(repo, configuration);
+
         var start = new ProcessStartInfo("dotnet")
         {
             RedirectStandardOutput = true,
@@ -38,6 +43,8 @@ public class ReplayTests
         start.ArgumentList.Add("--project");
         start.ArgumentList.Add(Path.Combine(repo, "NpcForge.Console"));
         start.ArgumentList.Add("--no-build");
+        start.ArgumentList.Add("-c");
+        start.ArgumentList.Add(configuration);
         start.ArgumentList.Add("--no-launch-profile");
         start.ArgumentList.Add("--");
         foreach (var flag in flags)
@@ -101,6 +108,33 @@ public class ReplayTests
         {
             File.Delete(saveFile);
         }
+    }
+
+    // The SDK stamps the test assembly with the Configuration it was built under, so this is what
+    // `dotnet test -c Release` set, not a guess from a path. The console is a project reference, so
+    // it was built in the same one. Without it, `dotnet run --no-build` falls back to Debug and
+    // replays a different build from the one under test (ROADMAP epic "Harden the safety net").
+    private static string BuildConfiguration() =>
+        typeof(ReplayTests).Assembly.GetCustomAttribute<AssemblyConfigurationAttribute>()?.Configuration
+        ?? throw new InvalidOperationException("The test assembly carries no build configuration.");
+
+    // --no-build runs whatever is in bin, so a build that is missing, or older than the source,
+    // would replay old code and pass or fail for the wrong reason. Say so instead. Unlike the
+    // verify script this includes the skill, which is product and is copied to bin.
+    private static void RequireFreshConsoleBuild(string repo, string configuration)
+    {
+        var project = Path.Combine(repo, "NpcForge.Console");
+        var dll = Path.Combine(project, "bin", configuration, "net10.0", "NpcForge.Console.dll");
+        Assert.True(File.Exists(dll),
+            $"The {configuration} build of NpcForge.Console is missing ({dll}). Run `dotnet build -c {configuration}`.");
+
+        var newest = Directory.EnumerateFiles(project, "*", SearchOption.AllDirectories)
+            .Where(file => !file.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}")
+                        && !file.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}"))
+            .OrderByDescending(File.GetLastWriteTimeUtc)
+            .First();
+        Assert.True(File.GetLastWriteTimeUtc(dll) >= File.GetLastWriteTimeUtc(newest),
+            $"The {configuration} build of NpcForge.Console is stale: {Path.GetRelativePath(repo, newest)} is newer than the build. Run `dotnet build -c {configuration}`.");
     }
 
     // The replay only catches what the recording makes visible. Three things it needs, each of
