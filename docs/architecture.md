@@ -124,6 +124,8 @@ One real run is recorded once, and the whole app replays against it for free (AD
   model call with what the app sent (every message, every `ChatOptions` field the library
   serialises, each tool's name, description and schema) and what came back. The file is written at
   the first reply, so a run that stops before the model leaves the last recording alone.
+  The flags and line 1 come from one table in `RunOptions`, so a new answer cannot be parsed but
+  left off the recording.
 - **Replaying.** `--provider replay --recording <file>` answers from the file. Before each answer it
   compares `Recording.Describe` of the recorded request with the app's, and stops the run at the
   first line that differs. Text is compared as lines; the model's reasoning and tool calls as the
