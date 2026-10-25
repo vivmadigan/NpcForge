@@ -14,8 +14,9 @@ if (!Console.IsInputRedirected)
 
 // No host, no DI container. Everything is wired by hand, in the order it happens:
 // config, then the client, then the options, then connect, interview, roll, run, save. With
-// --lab, the lab takes over after connect and writes a sheet instead of a save. With --load, the load comes straight after connect and the model is never called. With no answer
-// flag, the interview reads the GM's scene, and the roll waits for the GM's yes. The roll comes
+// --lab, the lab takes over after connect and writes a sheet instead of a save. With --load,
+// the load comes straight after connect and the model is never called. With no answer flag,
+// the interview reads the GM's scene, and the roll waits for the GM's yes. The roll comes
 // before the writer's first turn, which is why the order has to stay visible.
 
 var config = new ConfigurationBuilder()
