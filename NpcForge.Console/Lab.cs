@@ -84,6 +84,37 @@ public static class Lab
     // One character to write: a variant and which take of it.
     private sealed record Planned(LabVariant Variant, int Take, string SystemText, string SkillLine);
 
+    // --score: reads a finished blind lab, asks for a guess per letter, and writes scored.md. It
+    // needs no model, no key and no server, so Program.cs runs it before any of them exist. The
+    // dialogue goes to `dialogue` (stderr) and the result to `result` (stdout), like a run.
+    public static async Task ScoreAsync(
+        string folder, TextReader input, TextWriter dialogue, TextWriter result, CancellationToken ct)
+    {
+        var blindPath = Path.Combine(folder, "blind.md");
+        var keyPath = Path.Combine(folder, "key.json");
+        if (!File.Exists(blindPath) || !File.Exists(keyPath))
+            throw new InvalidOperationException(
+                $"--score needs a blind lab: {folder} must hold blind.md and key.json (made by --lab with --mode blind).");
+
+        var blind = await File.ReadAllTextAsync(blindPath, ct);
+        var key = LabSheet.ReadKey(await File.ReadAllTextAsync(keyPath, ct));
+
+        dialogue.WriteLine($"[score] Guess who wrote each character. The labels are: {string.Join(", ", key.Values.Distinct().Order())}.");
+        var guesses = new Dictionary<string, string>();
+        foreach (var letter in key.Keys)
+        {
+            dialogue.Write($"[score] Who wrote {letter}? ");
+            // End of input leaves the rest unguessed, which scores as wrong.
+            guesses[letter] = input.ReadLine()?.Trim() ?? "";
+        }
+        dialogue.WriteLine();
+
+        var (right, total, scored) = LabSheet.Score(blind, key, guesses);
+        await File.WriteAllTextAsync(Path.Combine(folder, "scored.md"), scored, ct);
+        result.WriteLine($"{right} of {total} right");
+        dialogue.WriteLine($"[score] written to {Path.Combine(folder, "scored.md")}");
+    }
+
     // Returns the folder the sheet is in, or null when the lab stopped before any model call.
     public static async Task<string?> RunAsync(
         IChatClient client, ChatOptions options, McpToolSource tools, RunOptions run, TextReader input, CancellationToken ct)

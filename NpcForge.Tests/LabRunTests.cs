@@ -101,7 +101,7 @@ public class LabRunTests : IDisposable
             // The sheet shows the skill line the writer was given.
             Assert.Contains("[skill] ", body);
         }
-        Assert.Equal(1, Regex.Matches(sheet, @"""setting"":").Count);
+        Assert.Single(Regex.Matches(sheet, @"""setting"":"));
         Assert.False(File.Exists(Path.Combine(result.Folder!, "blind.md")));
         Assert.Contains("[lab] 4 characters (2 variants x 2 takes), written by gpt-6-luna.", result.Stderr);
         Assert.Contains("[lab] written to ", result.Stderr);

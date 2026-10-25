@@ -31,9 +31,13 @@ int? load = run.Load;
 int? seed = run.Seed;
 string? recordTo = run.RecordTo;
 
-// --score is not wired in yet. Stop here, so it can never fall through to a normal, paid run.
+// --score reads a finished blind lab and calls no model, so it runs before a client or a server
+// exists, and needs no key.
 if (run.Score is not null)
-    throw new NotSupportedException("--score does not run yet.");
+{
+    await Lab.ScoreAsync(run.Score, Console.In, Console.Error, Console.Out, CancellationToken.None);
+    return;
+}
 
 // Where the recording will land, shown before anything is paid for, so a wrong working directory
 // shows here and not after the run.
