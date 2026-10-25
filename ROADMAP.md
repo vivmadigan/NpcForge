@@ -148,5 +148,6 @@ find it there.
   `dotnet test` replays the whole app against one recorded run for free. See
   `docs/architecture.md` "Replay" and `docs/runs/2026-10-24-01-replay-fixture.md`.
 - **Harden the safety net** (2026-10-25). A mistyped flag stops the run before a model client is built,
-  `NPCFORGE_OFFLINE=1` stops the paid clients, a replay or a recording saves to a temp file, and a test
-  replays the build configuration it was built in. See `docs/architecture.md` "Run options" and lesson 008.
+  `NPCFORGE_OFFLINE=1` stops the paid clients, a replay or a recording saves to a temp file, a test
+  replays the build configuration it was built in, and free tests prove the replay fails on a changed
+  prompt, tool list, option or dropped turn. See `docs/architecture.md` "Run options" and lesson 008.
