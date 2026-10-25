@@ -23,7 +23,7 @@ public sealed record LabPlan(string Axis, IReadOnlyList<LabVariant> Variants)
         // Said apart from "unknown", because it is a real axis the GM read about in the ADR.
         if (axis == "tone")
             throw new ArgumentException(
-                "--lab tone is not built yet: the tone axis arrives with tone itself (ADR-009, PR 7). " +
+                "--lab tone is not built yet: the tone axis arrives with tone itself. " +
                 $"The axes that exist now are: {string.Join(", ", Axes)}.");
 
         if (!Axes.Contains(axis))
@@ -57,20 +57,26 @@ public sealed record LabPlan(string Axis, IReadOnlyList<LabVariant> Variants)
                 throw new ArgumentException($"--lab skill names the folder {path} twice: each variant needs its own skill folder.");
 
         // The folder's own name is the label, short enough to type at --score. Two folders with
-        // the same name in different places fall back to the whole path.
+        // the same name in different places fall back to the whole path. Names are compared
+        // ignoring case, because --score does: x/A and y/a would both match the guess "a".
         var names = full.Select(Path.GetFileName).ToList();
         var variants = full.Select((path, i) => new LabVariant(
-            names.Count(name => name == names[i]) > 1 ? path : names[i]!, path, null));
+            names.Count(name => string.Equals(name, names[i], StringComparison.OrdinalIgnoreCase)) > 1 ? path : names[i]!,
+            path, null));
         return new LabPlan("skill", [.. variants]);
     }
 
     private static LabPlan TemperatureVariants(string[] values)
     {
+        // Compared as numbers, so 0.5 and 0.50 are one temperature written twice.
+        var seen = new HashSet<float>();
         var variants = values.Select(value =>
         {
             if (!float.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out var t)
                 || !float.IsFinite(t) || t < 0)
                 throw new ArgumentException($"--lab temperature needs numbers of 0 or more, and '{value}' is not one.");
+            if (!seen.Add(t))
+                throw new ArgumentException($"--lab temperature names {value} twice: each variant needs its own temperature.");
             return new LabVariant(value, null, t);
         });
         return new LabPlan("temperature", [.. variants]);
@@ -170,7 +176,7 @@ public static class Lab
         // what stops a lab that runs over. Tokens only, no prices.
         var estimate = planned.Sum(p => 2L * (p.SystemText.Length + firstMessage.Length + (options.MaxOutputTokens ?? 0)));
         Console.Error.WriteLine(
-            $"[lab] {planned.Count} characters ({plan.Variants.Count} variants x {run.Repeat} takes), written by {run.Model}.");
+            $"[lab] {planned.Count} characters ({plan.Variants.Count} variants x {run.Repeat} {(run.Repeat == 1 ? "take" : "takes")}), written by {run.Model}.");
         Console.Error.WriteLine(
             $"[lab] About {estimate:N0} tokens, against the session cap of {SpendingCap.TokensPerSession:N0}. " +
             "The cap stops the lab if it runs over.");

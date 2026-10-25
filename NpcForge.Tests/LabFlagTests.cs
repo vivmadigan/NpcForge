@@ -123,6 +123,28 @@ public class LabFlagTests
             message);
     }
 
+    // 0.5 and 0.50 are one number, so they are one variant written twice.
+    [Theory]
+    [InlineData("temperature=0.5,0.50", "0.50")]
+    [InlineData("temperature=0.2,0.9,0.2", "0.2")]
+    [InlineData("temperature=1,1.0", "1.0")]
+    public void The_same_temperature_twice_is_refused_compared_as_a_number(string lab, string repeated)
+    {
+        Assert.Equal(
+            $"--lab temperature names {repeated} twice: each variant needs its own temperature.",
+            Refusal("--lab", lab, "--seed", "1", "--setting", "a farm"));
+    }
+
+    // Labels that differ only by case are one guess to --score, which ignores case. So they fall
+    // back to the whole path, as two folders with the same name do.
+    [Fact]
+    public void Skill_folders_whose_names_differ_only_by_case_are_labelled_by_full_path()
+    {
+        var run = RunOptions.Parse(["--lab", "skill=x/A,y/a", "--seed", "1", "--setting", "a farm"]);
+
+        Assert.Equal([Path.GetFullPath("x/A"), Path.GetFullPath("y/a")], run.Lab!.Variants.Select(v => v.Label));
+    }
+
     [Theory]
     [InlineData("skill=skills/a", "skill", "skill=skills/a,skills/b")]
     [InlineData("skill=", "skill", "skill=skills/a,skills/b")]
@@ -148,7 +170,7 @@ public class LabFlagTests
     public void The_tone_axis_is_refused_until_tone_exists()
     {
         Assert.Equal(
-            "--lab tone is not built yet: the tone axis arrives with tone itself (ADR-009, PR 7). " +
+            "--lab tone is not built yet: the tone axis arrives with tone itself. " +
             "The axes that exist now are: skill, temperature.",
             Refusal("--lab", "tone", "--seed", "1", "--setting", "a farm"));
     }

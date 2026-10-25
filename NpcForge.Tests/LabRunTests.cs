@@ -117,6 +117,15 @@ public class LabRunTests : IDisposable
     }
 
     [Fact]
+    public async Task One_take_is_not_printed_as_takes()
+    {
+        var result = await RunLab(new LabStandIn(), ["--lab", "temperature=0.2,0.9"], "yes\n");
+
+        Assert.Contains("[lab] 2 characters (2 variants x 1 take), written by", result.Stderr);
+        Assert.DoesNotContain("1 takes", result.Stderr);
+    }
+
+    [Fact]
     public async Task A_temperature_lab_sets_the_temperature_on_a_copy_of_the_options()
     {
         var model = new LabStandIn();
