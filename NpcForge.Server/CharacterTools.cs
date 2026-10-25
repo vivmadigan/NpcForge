@@ -102,7 +102,7 @@ namespace NpcForge.Server
             // Count + 1 could save over the last one.
             var number = all.Count == 0 ? 1 : all.Keys.Max() + 1;
 
-            all[number] = new SavedCharacter(brief, text);
+            all[number] = new SavedCharacter(Storage.ToJson(brief), text);
             Storage.Save(all);
             return number;
 

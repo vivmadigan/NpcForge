@@ -20,6 +20,9 @@
 
   <ItemGroup>
     <ProjectReference Include="..\NpcForge.Console\NpcForge.Console.csproj" />
+    <!-- Storage is the server's own code and only the server touches the save file, so the round trip
+         test calls it directly. The console still shares no type with the server. -->
+    <ProjectReference Include="..\NpcForge.Server\NpcForge.Server.csproj" />
   </ItemGroup>
 
 </Project>
