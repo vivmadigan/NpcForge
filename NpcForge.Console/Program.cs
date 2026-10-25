@@ -14,7 +14,7 @@ if (!Console.IsInputRedirected)
 
 // No host, no DI container. Everything is wired by hand, in the order it happens:
 // config, then the client, then the options, then connect, interview, roll, run, save. With
-// --load, the load comes straight after connect and the model is never called. With no answer
+// --lab, the lab takes over after connect and writes a sheet instead of a save. With --load, the load comes straight after connect and the model is never called. With no answer
 // flag, the interview reads the GM's scene, and the roll waits for the GM's yes. The roll comes
 // before the writer's first turn, which is why the order has to stay visible.
 
@@ -31,10 +31,9 @@ int? load = run.Load;
 int? seed = run.Seed;
 string? recordTo = run.RecordTo;
 
-// The lab flags parse and refuse, but the lab itself is not wired in yet. Stop here, so a lab
-// command can never fall through to a normal, paid run. Replaced by the lab branch.
-if (run.Lab is not null || run.Score is not null)
-    throw new NotSupportedException("The lab does not run yet: only its flags and refusals exist.");
+// --score is not wired in yet. Stop here, so it can never fall through to a normal, paid run.
+if (run.Score is not null)
+    throw new NotSupportedException("--score does not run yet.");
 
 // Where the recording will land, shown before anything is paid for, so a wrong working directory
 // shows here and not after the run.
@@ -68,6 +67,14 @@ var options = new ChatOptions
 var charactersPath = run.CharactersPath(Environment.GetEnvironmentVariable("NPCFORGE_CHARACTERS"));
 await using var tools = new McpToolSource(charactersPath, seed);
 await tools.ConnectAsync(CancellationToken.None);
+
+// The lab is one visible branch: it rolls once and writes every variant through the same
+// ChatAgent.WriteAsync a normal run uses. It saves nothing, and asks before any model call.
+if (run.Lab is not null)
+{
+    await Lab.RunAsync(client, options, tools, run, Console.In, CancellationToken.None);
+    return;
+}
 
 // Load: a saved character comes back exactly as it was written. No roll and no model, so it
 // costs nothing. A number that was never saved stops the run here, with the server's reason.
