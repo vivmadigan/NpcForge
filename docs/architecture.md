@@ -39,7 +39,8 @@ are under "Replay".
 
 Every flag is a row in one table in `RunOptions`, which says its default, how its value is read and
 whether it goes on line 1 of a recording. The parser and the recording both read that table, so a
-flag cannot be parsed and left off the recording.
+flag cannot be parsed and left off the recording. The same table names the `roll_character` parameter each answer fills
+(`RollArguments()`).
 
 | Flag | Default | Does |
 | --- | --- | --- |
