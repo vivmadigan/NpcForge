@@ -45,6 +45,8 @@ public class LabRunTests : IDisposable
         return dir;
     }
 
+    private const string RestoredMarker = "<console-error-restored>";
+
     private sealed record Result(string? Folder, string Stderr, int Calls);
 
     // Runs the lab the way Program.cs does, with the stand-in as the whole model. Stderr is captured
@@ -71,7 +73,14 @@ public class LabRunTests : IDisposable
         }
         finally
         {
+            // Straight after RunAsync, before this helper puts anything back: the lab's own finally
+            // must have restored Console.Error, or this test would hide a lab that left it silent.
+            // Written through Console.Error and read from the capture, because SetError wraps the
+            // writer and the two are never the same object.
+            Console.Error.Write(RestoredMarker);
+            var restored = capture.ToString().Contains(RestoredMarker);
             Console.SetError(before);
+            Assert.True(restored, "Lab.RunAsync left Console.Error pointing somewhere else");
         }
 
         // A lab saves nothing: the temp save file was never created.
@@ -223,20 +232,28 @@ public class LabRunTests : IDisposable
         Assert.Contains("[skill]", result.Stderr);
     }
 
+    // The cap is caught inside the lab, so it never tests the finally. Cancellation is the one
+    // exception that escapes the loop, so it is what shows the restore runs when the lab is cut off.
+    // RunLab asserts Console.Error is the capture again as soon as RunAsync has thrown.
     [Fact]
-    public async Task Console_Error_is_back_after_a_blind_lab_even_when_a_variant_throws_the_cap()
+    public async Task Console_Error_is_back_after_a_blind_lab_is_cancelled_mid_run()
+    {
+        var skills = SixSkills();
+        var model = new LabStandIn { Behave = _ => throw new OperationCanceledException() };
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(
+            () => RunLab(model, ["--lab", $"skill={skills[0]},{skills[1]}", "--mode", "blind"], "yes\n"));
+
+        Assert.Single(model.Calls);
+    }
+
+    [Fact]
+    public async Task Console_Error_is_back_after_a_blind_lab_that_hit_the_cap()
     {
         var skills = SixSkills();
         var model = new LabStandIn { Behave = _ => throw new SpendingCapReachedException(1, 1) };
 
         await RunLab(model, ["--lab", $"skill={skills[0]},{skills[1]}", "--mode", "blind"], "yes\n");
-
-        var capture = new StringWriter();
-        var before = Console.Error;
-        Console.SetError(capture);
-        try { Console.Error.WriteLine("back"); }
-        finally { Console.SetError(before); }
-        Assert.Equal("back", capture.ToString().Trim());
     }
 
     [Theory]
