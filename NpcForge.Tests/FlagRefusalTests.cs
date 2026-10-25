@@ -1,4 +1,5 @@
 using System.Diagnostics;               // Process, ProcessStartInfo
+using System.Reflection;                // AssemblyConfigurationAttribute
 
 namespace NpcForge.Tests;
 
@@ -31,7 +32,11 @@ public class FlagRefusalTests
             RedirectStandardOutput = true,
             RedirectStandardError = true,
         };
-        foreach (var arg in new[] { "run", "--project", Path.Combine(repo, "NpcForge.Console"), "--no-build", "--no-launch-profile", "--" })
+        // The configuration this test was built in. With no -c, `dotnet run --no-build` runs the Debug
+        // build, which under `dotnet test -c Release` may be stale or missing.
+        var configuration = typeof(FlagRefusalTests).Assembly
+            .GetCustomAttribute<AssemblyConfigurationAttribute>()!.Configuration;
+        foreach (var arg in new[] { "run", "--project", Path.Combine(repo, "NpcForge.Console"), "--no-build", "-c", configuration, "--no-launch-profile", "--" })
             start.ArgumentList.Add(arg);
         foreach (var flag in flags)
             start.ArgumentList.Add(flag);
