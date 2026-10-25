@@ -48,6 +48,35 @@ public class RunOptionsTests
     }
 
     [Fact]
+    public void RollArguments_with_no_args_are_the_defaults_under_roll_characters_names()
+    {
+        var arguments = RunOptions.Parse([]).RollArguments();
+
+        Assert.Equal(
+            new Dictionary<string, object?>
+            {
+                ["setting"] = "an inn in a major city",
+                ["playersWant"] = "the name of a fence",
+                ["difficulty"] = "Wall",
+                ["occupation"] = "innkeeper",
+            },
+            arguments);
+    }
+
+    [Theory]
+    [InlineData("--setting", "setting")]
+    [InlineData("--want", "playersWant")]
+    [InlineData("--difficulty", "difficulty")]
+    [InlineData("--occupation", "occupation")]
+    public void Each_answer_flag_fills_its_roll_character_parameter(string flag, string parameter)
+    {
+        var arguments = RunOptions.Parse([flag, "typed value"]).RollArguments();
+
+        Assert.Equal("typed value", arguments[parameter]);
+        Assert.Equal(4, arguments.Count);
+    }
+
+    [Fact]
     public void Record_sets_the_recording_file()
     {
         var run = RunOptions.Parse(["--seed", "1", "--record", "out.jsonl"]);

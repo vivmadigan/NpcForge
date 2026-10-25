@@ -21,10 +21,6 @@ var config = new ConfigurationBuilder()
 var run = RunOptions.Parse(args);
 string provider = run.Provider;
 string model = run.Model;
-string setting = run.Setting;
-string occupation = run.Occupation;
-string want = run.Want;
-string difficulty = run.Difficulty;
 int? load = run.Load;
 int? seed = run.Seed;
 string? recordTo = run.RecordTo;
@@ -76,14 +72,9 @@ if (load is not null)
 
 // Roll: the app calls roll_character itself. The model never sees this tool, so it cannot
 // skip the roll. The difficulty goes as text and the server turns it into the enum; a value
-// it does not know stops the run here, before any model is called.
-var briefJson = await tools.CallDirectAsync("roll_character", new()
-{
-    ["setting"] = setting,
-    ["playersWant"] = want,
-    ["difficulty"] = difficulty,
-    ["occupation"] = occupation,
-}, CancellationToken.None);
+// it does not know stops the run here, before any model is called. The parameter names come
+// from the flag table (RunOptions.RollArguments), not from here.
+var briefJson = await tools.CallDirectAsync("roll_character", run.RollArguments(), CancellationToken.None);
 
 // The dice, made visible. Every trait in the writing should trace back to a value on this line,
 // and any that does not was invented by the model.

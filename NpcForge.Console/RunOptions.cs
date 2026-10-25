@@ -9,12 +9,15 @@ public sealed class RunOptions
     // message below. A flag silently left at its default would be a paid run that is not the one
     // the GM asked for (or one that records nothing).
     // Recorded: written to line 1 of a recording. The order of this table is the order on that line.
+    // RollParameter: the roll_character parameter this answer fills, null for a flag that is not
+    // an answer. The order of this table is the order of the arguments.
     private sealed record Flag(
         string Name,
         string? Default,
         Func<string, string> Read,
         bool Recorded = false,
-        string? MissingValue = null);
+        string? MissingValue = null,
+        string? RollParameter = null);
 
     private static string AsIs(string value) => value;
     private static string Lower(string value) => value.ToLower();
@@ -29,10 +32,10 @@ public sealed class RunOptions
         new("--model", "gpt-6-luna", Lower, Recorded: true),
         // Occupation sits with the setting because they change together: a farm run wants
         // --occupation as well as --setting.
-        new("--setting", "an inn in a major city", AsIs, Recorded: true),
-        new("--want", "the name of a fence", AsIs, Recorded: true),
-        new("--difficulty", "Wall", AsIs, Recorded: true),
-        new("--occupation", "innkeeper", AsIs, Recorded: true),
+        new("--setting", "an inn in a major city", AsIs, Recorded: true, RollParameter: "setting"),
+        new("--want", "the name of a fence", AsIs, Recorded: true, RollParameter: "playersWant"),
+        new("--difficulty", "Wall", AsIs, Recorded: true, RollParameter: "difficulty"),
+        new("--occupation", "innkeeper", AsIs, Recorded: true, RollParameter: "occupation"),
         // --load <number> prints a saved character instead of making a new one.
         new("--load", null, Number,
             MissingValue: "--load needs a number, for example --load 3."),
@@ -131,6 +134,12 @@ public sealed class RunOptions
         var kind = RecordTo is not null ? "record" : "replay";
         return Path.Combine(Path.GetTempPath(), $"npcforge-{kind}-{Guid.NewGuid():N}.json");
     }
+
+    // The arguments of the roll_character call, named by the table. Seed is not among them: it goes
+    // to the server, not to the tool.
+    public Dictionary<string, object?> RollArguments() =>
+        Table.Where(flag => flag.RollParameter is not null)
+            .ToDictionary(flag => flag.RollParameter!, flag => (object?)_values[flag.Name]);
 
     // Line 1 of a recording: this run's answers as flags, the values actually used and not what was
     // typed, so a default that changes later cannot change what the replay test runs. No --provider
