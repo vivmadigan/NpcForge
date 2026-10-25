@@ -25,6 +25,7 @@ Decision, Why, Consequences.
 | Tests | xUnit, free: fake models, the real server, no network | Anything that costs money is not a test |
 | Recording paid runs | One file per run in `docs/runs/`, pasted from the console; commit first; the `[skill]` line carries a fingerprint | [docs/runs/README.md](../runs/README.md) |
 | Replay | Seeded dice through `NPCFORGE_SEED`, set only from `--seed`; `--record`; a `replay` provider; and a free test of the whole app against `NpcForge.Tests/Fixtures/replay.jsonl`. The replay compares every message, the model's own included, every `ChatOptions` field the library serialises, and each tool. Re-recorded only after a behavior change, never for a restructure. | [ADR-005](ADR-005-replay-a-recorded-run.md), amended twice: the model's own messages, and every `ChatOptions` field rather than two. The recording command lives in docs/runs/README.md. |
+| The scene interview ("Talk to it") | The model records answers with one console tool, `record_answer(field, value, quote)`; code decides each label. A free-text field takes the GM's own words; only a choice (difficulty, obstacle) may be inferred; anything unrecorded is rolled or takes its default. Labels stay out of the save and the writer. | [ADR-007](ADR-007-scene-interview-labels.md) |
 
 ## Records
 
@@ -33,6 +34,7 @@ Decision, Why, Consequences.
 - [ADR-003 A saved character is the brief and the written text together, loaded by number](ADR-003-saved-character-is-brief-and-text.md) — accepted 2026-09-22
 - [ADR-005 Whole runs are regression-tested by replaying a recorded model](ADR-005-replay-a-recorded-run.md) — accepted 2026-10-01
 - [ADR-006 Agents write the code; the user sets the task, the constraints and what done means](ADR-006-agents-write-the-code.md) — accepted 2026-10-24
+- [ADR-007 The scene interview records the GM's own words, and only a choice may be inferred](ADR-007-scene-interview-labels.md) — accepted 2026-10-25
 
 ADR-004 was reserved for the server layers by a plan that no longer exists, and was never written.
 Older records mention plan versions and `PLAN.md`; those are in git at commit `cd20b60`.

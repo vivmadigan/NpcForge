@@ -55,22 +55,27 @@ the model receives.
 **Constraints.**
 - The model never guesses (AGENTS.md). Each field of the brief is one of three things, labelled at
   the confirmation:
-  - *My words.* The value quotes words I typed. A quote I never typed is rejected.
-  - *Inferred.* The model's reading of my words, shown beside the words it read, such as difficulty
-    "Wall" from "doesn't want to get involved". Kept and labelled, never rejected.
+  - *My words.* A free-text field takes a span of words I typed, kept as I typed them. A quote I
+    never typed is rejected.
+  - *Inferred.* Only for a choice (difficulty, obstacle): the model's reading of my words, shown
+    beside the words it read, such as difficulty "Wall" from "doesn't want to get involved". Kept
+    and labelled. A free-text trait the model can only paraphrase is not recorded, so the dice roll
+    it (ADR-007).
   - *Rolled.* I said nothing about it, so the dice decide. The model never fills a gap itself.
 - What I say about the character settles that trait instead of the dice: "knows nothing about the
-  guild" settles the obstacle as can't, and the dice roll the rest. This changes `roll_character`'s
-  inputs, so a design check and an ADR come first.
+  guild" settles the obstacle as can't, and the dice roll the rest. `roll_character` already takes
+  every trait this way; ADR-007 records the design.
 - No follow-up questions. A gap is rolled, or takes its default (occupation "innkeeper", ADR-002).
 - The roll happens in code after my yes, and `roll_character` stays out of the model's reach.
 - Flags keep working and skip the interview, so the replay test is unchanged.
 - A spending cap per session stops a conversation running up a bill.
 - The matching rules decided on 2026-09-26 still apply (step 13 in `git show eddc444:ROADMAP.md`):
-  one normalising function, and whole-word quotes. Its drift flag becomes the *inferred* label.
+  one normalising function, and whole-word quotes. A quote is one sentence of at most 12 words, and
+  the confirmation shows the whole sentence it came from (ADR-007).
 
 **Done when.**
-- Free tests: a quote I never typed is rejected; an inferred value is kept and labelled; a field I
+- Free tests: a quote I never typed is rejected; an inferred choice is kept and labelled;
+  a free-text value that is not a span of my words is rejected; a field I
   said nothing about is rolled; a trait I described reaches the brief instead of a roll; the model
   can't reach `roll_character`, and nothing is rolled before my yes.
 - The spending cap stops a session at its limit (free test, with a stand-in model).
