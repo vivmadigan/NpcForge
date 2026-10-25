@@ -52,7 +52,10 @@ var options = new ChatOptions
 
 // Connect: start the server, before the model's first turn. Disposed when the run ends,
 // which stops the server on purpose.
-await using var tools = new McpToolSource(seed: seed);
+// A replay or a recording run saves to a temp file unless NPCFORGE_CHARACTERS says otherwise, so
+// it never writes over the characters.json you keep (docs/architecture.md "Storage").
+var charactersPath = run.CharactersPath(Environment.GetEnvironmentVariable("NPCFORGE_CHARACTERS"));
+await using var tools = new McpToolSource(charactersPath, seed);
 await tools.ConnectAsync(CancellationToken.None);
 
 // Load: a saved character comes back exactly as it was written. No roll and no model, so it
@@ -100,5 +103,8 @@ var savedAs = await tools.CallDirectAsync("save_character", new()
     ["text"] = answer,
 }, CancellationToken.None);
 
-Console.Error.WriteLine($"[app] saved as {savedAs}");
+// Where, when this run chose the file, so a save in a temp file can be found.
+Console.Error.WriteLine(charactersPath is null
+    ? $"[app] saved as {savedAs}"
+    : $"[app] saved as {savedAs} in {charactersPath}");
 

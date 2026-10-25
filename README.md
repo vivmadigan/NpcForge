@@ -69,8 +69,12 @@ dotnet run --project NpcForge.Console -- --load 1
 ```
 
 Flags: `--provider openai|anthropic`, `--model <id>`, `--setting`, `--want`,
-`--difficulty Easy|SomeWork|Wall`, `--occupation`, `--load <number>`. Each has a default, so a bare
-run works. A run calls a real model and costs money; `dotnet test` and `--load` do not.
+`--difficulty Easy|SomeWork|Wall`, `--occupation`, `--load <number>`, and for the free replay
+`--seed`, `--record`, `--recording` and `--provider replay`. Each has a default, so a bare run
+works. A flag the app does not know, or one with no value, stops the run before anything is paid for.
+A run calls a real model and costs money; `dotnet test` and `--load` do not. `NPCFORGE_OFFLINE=1`
+makes the app refuse OpenAI and Anthropic outright. A replay or a recording run saves to a temp file,
+named on its `[app] saved as` line, so it never touches `characters.json`.
 
 The character is printed on stdout. A trace on stderr shows each step: `[app]` the rolled brief,
 `[skill]` the writing guidance used, `[loop]` each model turn, `[tool]` and `[server]` each tool
@@ -80,11 +84,13 @@ call.
 
 Works end to end on OpenAI and Anthropic. The success test has passed: the same answers, three
 runs, three genuinely different characters whose levers differ, and a saved one loaded back
-unchanged. The Safety net is in: `dotnet test` replays the whole app against one recorded run, for
-free, so a later change can be checked without paying. Next: talking to the app instead of typing
-flags, better characters
-(tone, names that don't repeat), keeping and editing characters, and in time a website with logins
-and a database so friends can use it. See [ROADMAP.md](ROADMAP.md).
+unchanged. The Safety net is in and hardened: `dotnet test` replays the whole app against one
+recorded run, for free, so a later change can be checked without paying. A mistyped flag cannot start
+a paid run, `NPCFORGE_OFFLINE=1` stops a free run reaching a model, a replay never writes over the
+saved characters, and `dotnet test -c Release` tests the Release build. Next: talking to the app
+instead of typing flags, better characters (tone, names that don't repeat), keeping and editing
+characters, and in time a website with logins and a database so friends can use it. See
+[ROADMAP.md](ROADMAP.md).
 
 ## Out of scope, for now
 

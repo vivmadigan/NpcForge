@@ -162,4 +162,45 @@ public class RunOptionsTests
              "--difficulty", "Wall", "--occupation", "innkeeper"],
             written);
     }
+
+    // Which file a run saves in. A replay and a recording are not real characters, so they go to
+    // a fresh temp file; a paid run and --load keep the tracked file, which is null here because the
+    // console leaves the server on its default.
+    [Fact]
+    public void A_replay_saves_to_a_fresh_temp_file()
+    {
+        var path = RunOptions.Parse(["--provider", "replay", "--recording", "r.jsonl"]).CharactersPath(null);
+
+        Assert.NotNull(path);
+        Assert.StartsWith(Path.GetTempPath(), path);
+        Assert.EndsWith(".json", path);
+        Assert.NotEqual(path, RunOptions.Parse(["--provider", "replay", "--recording", "r.jsonl"]).CharactersPath(null));
+    }
+
+    [Fact]
+    public void A_recording_run_saves_to_a_fresh_temp_file()
+    {
+        var path = RunOptions.Parse(["--seed", "1", "--record", "r.jsonl"]).CharactersPath(null);
+
+        Assert.NotNull(path);
+        Assert.StartsWith(Path.GetTempPath(), path);
+    }
+
+    [Fact]
+    public void A_normal_run_and_a_load_keep_the_tracked_file()
+    {
+        Assert.Null(RunOptions.Parse([]).CharactersPath(null));
+        Assert.Null(RunOptions.Parse(["--provider", "anthropic"]).CharactersPath(null));
+        Assert.Null(RunOptions.Parse(["--load", "3"]).CharactersPath(null));
+    }
+
+    [Theory]
+    [InlineData("--provider", "replay", "--recording", "r.jsonl")]
+    [InlineData("--seed", "1", "--record", "r.jsonl")]
+    [InlineData("--load", "3")]
+    [InlineData("--provider", "openai")]
+    public void A_file_the_caller_named_wins(params string[] args)
+    {
+        Assert.Equal(@"C:\mine\saves.json", RunOptions.Parse(args).CharactersPath(@"C:\mine\saves.json"));
+    }
 }

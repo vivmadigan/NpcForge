@@ -114,6 +114,24 @@ public sealed class RunOptions
             throw new ArgumentException("--record cannot go with --provider replay: a replay never writes a recording.");
     }
 
+    // Which file this run saves its character in. A replay or a recording run is not a real
+    // character, so unless the caller says otherwise it goes in a fresh temp file and the tracked
+    // characters.json stays the owner's. A normal run and --load keep the tracked file (null leaves
+    // the server on its own default). `told` is NPCFORGE_CHARACTERS as the caller set it, and
+    // always wins: the tests name their own file. Either way the answer is returned, so the
+    // console can say where it saved.
+    public string? CharactersPath(string? told)
+    {
+        if (!string.IsNullOrEmpty(told))
+            return told;
+
+        if (Provider != "replay" && RecordTo is null)
+            return null;
+
+        var kind = RecordTo is not null ? "record" : "replay";
+        return Path.Combine(Path.GetTempPath(), $"npcforge-{kind}-{Guid.NewGuid():N}.json");
+    }
+
     // Line 1 of a recording: this run's answers as flags, the values actually used and not what was
     // typed, so a default that changes later cannot change what the replay test runs. No --provider
     // and no --record among them: the replay test adds its own --provider.

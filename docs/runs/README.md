@@ -50,15 +50,16 @@ A re-record can come back with no tool call: the model may write straight from t
 test refuses that recording, because a dropped model turn only shows on a later call. Ask the owner
 before a second paid attempt, and never weaken the check to let a recording pass.
 
-To replay it by hand, for free, in PowerShell. The flags are line 1 of the fixture. Point
-`NPCFORGE_CHARACTERS` somewhere else first, or the replay's save lands in the tracked
-`characters.json`, and clear it afterwards, or later runs in that terminal save there too.
+To replay it by hand, for free, in PowerShell. The flags are line 1 of the fixture. A replay saves
+to a fresh temp file and never to the tracked `characters.json`; the `[app] saved as` line at the end
+says which file. Set `NPCFORGE_CHARACTERS` first only to choose the file yourself.
 
 ```text
-$env:NPCFORGE_CHARACTERS = "$env:TEMP\npcforge-replay.json"
 dotnet run --project NpcForge.Console -- --provider replay --recording NpcForge.Tests/Fixtures/replay.jsonl --seed 1 --model gpt-6-luna --setting "an inn in a major city" --want "the name of a fence" --difficulty Wall --occupation innkeeper
-Remove-Item Env:NPCFORGE_CHARACTERS
 ```
+
+A `--record` run also saves to a temp file, so recording the fixture does not add an entry to
+`characters.json`. Its `[app] saved as` line names the file.
 
 ## Why it is done this way
 

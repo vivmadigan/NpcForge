@@ -5,9 +5,9 @@
 #   npcforge-verify.sh start
 #   npcforge-verify.sh dir
 #   npcforge-verify.sh doctor
-#   npcforge-verify.sh replay  [--split] [--save FILE] NAME [-- extra console flags]
+#   npcforge-verify.sh replay  [--split] [--save FILE|--temp-save] NAME [-- extra console flags]
 #   npcforge-verify.sh load    [--save FILE] N
-#   npcforge-verify.sh run     [--split] [--save FILE] NAME -- console flags
+#   npcforge-verify.sh run     [--split] [--save FILE|--temp-save] NAME -- console flags
 #   npcforge-verify.sh test    [FILTER]
 #   npcforge-verify.sh fixture-flags
 #   npcforge-verify.sh cleanup
@@ -148,15 +148,17 @@ cmd_doctor() {
 }
 
 cmd_run() {
-  local split=0 save=save.json name code
+  local split=0 save=save.json name code temp=0
   while [ $# -gt 0 ]; do
     case $1 in
       --split) split=1; shift ;;
       --save)  save=${2:?--save needs a file name}; shift 2 ;;
+      # Names no save file, as a replay run by hand does: the app picks its own temp file.
+      --temp-save) temp=1; shift ;;
       *) break ;;
     esac
   done
-  [ $# -ge 2 ] && [ "$2" = -- ] || die "usage: run [--split] [--save FILE] NAME -- console flags"
+  [ $# -ge 2 ] && [ "$2" = -- ] || die "usage: run [--split] [--save FILE|--temp-save] NAME -- console flags"
   name=$1; shift 2
 
   local dir savepath
@@ -168,9 +170,11 @@ cmd_run() {
   # proxy instead of paying, as in ReplayTests. The caller's NO_PROXY is removed so it cannot
   # route around the fence. NPCFORGE_CHARACTERS is set for this child only, never exported to the
   # caller's shell, where it would redirect later hand-typed runs.
-  local child=(env -u NO_PROXY -u no_proxy
+  # With --temp-save the variable is removed instead, so the app chooses the file itself.
+  local savearg=(NPCFORGE_CHARACTERS="$savepath")
+  [ $temp -eq 0 ] || savearg=(-u NPCFORGE_CHARACTERS)
+  local child=(env -u NO_PROXY -u no_proxy "${savearg[@]}"
     MSYS_NO_PATHCONV=1
-    NPCFORGE_CHARACTERS="$savepath"
     HTTPS_PROXY=http://127.0.0.1:9 HTTP_PROXY=http://127.0.0.1:9
     https_proxy=http://127.0.0.1:9 http_proxy=http://127.0.0.1:9
     DOTNET_CLI_TELEMETRY_OPTOUT=1
@@ -198,8 +202,14 @@ cmd_run() {
   printf '%s\n' "$code" > "$dir/$name.exit"
   # A save file that exists proves the run got as far as saving, which a clean tracked
   # characters.json alone does not.
-  local saved=absent
-  [ -s "$savepath" ] && saved="present ($(wc -c < "$savepath") bytes)"
+  local saved=absent out="$dir/$name.txt"
+  [ $split -eq 0 ] || out="$dir/$name.stderr"
+  if [ $temp -eq 1 ]; then
+    # The path comes from the app's own "saved as N in <path>" line, which is what the owner reads.
+    savepath=$(sed -n 's/^\[app\] saved as [0-9]* in \(.*[^[:space:]]\)[[:space:]]*$/\1/p' "$out" | tail -1)
+    save="temp save ${savepath:-none printed}"
+  fi
+  [ -n "$savepath" ] && [ -s "$savepath" ] && saved="present ($(wc -c < "$savepath") bytes)"
   printf '%s\t%s\t%s\t%s\n' "$name" "$code" "$save $saved" "$(date -u +%H:%M:%SZ)" >> "$dir/index.tsv"
   printf '[verify] %s exit=%s; %s: %s\n' "$name" "$code" "$save" "$saved"
   return "$code"
@@ -211,10 +221,11 @@ cmd_replay() {
     case $1 in
       --split) pre+=("$1"); shift ;;
       --save)  pre+=("$1" "${2:?--save needs a file name}"); shift 2 ;;
+      --temp-save) pre+=("$1"); shift ;;
       *) break ;;
     esac
   done
-  [ $# -ge 1 ] || die "usage: replay [--split] [--save FILE] NAME [-- extra console flags]"
+  [ $# -ge 1 ] || die "usage: replay [--split] [--save FILE|--temp-save] NAME [-- extra console flags]"
   local name=$1; shift
   [ $# -eq 0 ] || { [ "$1" = -- ] || die "extra flags go after --"; shift; }
   # Read into a variable first. A die inside a process substitution would leave flags empty and
