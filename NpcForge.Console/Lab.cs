@@ -163,14 +163,17 @@ public static class Lab
         var briefJson = await tools.CallDirectAsync("roll_character", run.RollArguments(), ct);
         var firstMessage = ChatAgent.FirstMessage(briefJson, scene: null);
 
-        // It asks first (costly-steps playbook). Each character is two calls at most, each costing
-        // its whole input plus the most the model may answer. Characters stand in for tokens, so
-        // this is an upper bound and says "about". Tokens only, no prices.
+        // It asks first (costly-steps playbook). Two calls per character is the usual case (one to
+        // call lookup_archetype, one to write), each costing its whole input plus the most the model
+        // may answer. The writer loop allows more turns than that, and characters stand in for
+        // tokens, so this is an estimate and not a bound. It says "about", and the spending cap is
+        // what stops a lab that runs over. Tokens only, no prices.
         var estimate = planned.Sum(p => 2L * (p.SystemText.Length + firstMessage.Length + (options.MaxOutputTokens ?? 0)));
         Console.Error.WriteLine(
             $"[lab] {planned.Count} characters ({plan.Variants.Count} variants x {run.Repeat} takes), written by {run.Model}.");
         Console.Error.WriteLine(
-            $"[lab] About {estimate:N0} tokens at most, against the session cap of {SpendingCap.TokensPerSession:N0}.");
+            $"[lab] About {estimate:N0} tokens, against the session cap of {SpendingCap.TokensPerSession:N0}. " +
+            "The cap stops the lab if it runs over.");
 
         if (estimate > SpendingCap.TokensPerSession)
         {

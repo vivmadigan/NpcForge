@@ -275,7 +275,10 @@ public class LabRunTests : IDisposable
         Assert.Contains("Run this lab? Type yes to run it. Anything else stops before any model call.", result.Stderr);
         Assert.Contains("[lab] not run: the GM did not say yes", result.Stderr);
         // The estimate was shown before the question, labelled "about", in tokens.
-        Assert.Matches(@"\[lab\] About [\d,]+ tokens at most, against the session cap of 200,000\.", result.Stderr);
+        Assert.Matches(
+            @"\[lab\] About [\d,]+ tokens, against the session cap of 200,000\. The cap stops the lab if it runs over\.",
+            result.Stderr);
+        Assert.DoesNotContain("at most", result.Stderr);
     }
 
     [Fact]
@@ -310,7 +313,7 @@ public class LabRunTests : IDisposable
 
         var result = await RunLab(model, ["--lab", $"skill={Skill("a")},{Skill("b")}"], "yes\n");
 
-        // The stand-in saw what each call was really sent, so the printed bound is checked against
+        // The stand-in saw what each call was really sent, so the printed estimate is checked against
         // those lengths and MaxOutputTokens (5000) and not against a copy of the formula's inputs.
         var expected = model.Calls.Sum(call => 2L * (call.SystemLength + call.UserLength + 5000));
         var printed = long.Parse(Regex.Match(result.Stderr, @"About ([\d,]+) tokens").Groups[1].Value.Replace(",", ""));
