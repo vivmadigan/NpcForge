@@ -147,6 +147,42 @@ public class SceneInterviewTests(ITestOutputHelper output)
             told!.RollArguments);
     }
 
+    // ADR-009: a stand-in interviewer that records a tone gives "tone: Comic [inferred]" on the screen,
+    // and the five new fields the scene is silent about are rolled.
+    [Fact]
+    public async Task A_tone_read_from_the_scene_shows_as_inferred_and_the_silent_new_fields_are_rolled()
+    {
+        const string scene = "The players meet a clown at a fair. Everything about him is a joke.";
+        var model = new ScriptedInterviewer([Answer("tone", "Comic", "Everything about him is a joke")]);
+
+        var (told, screen) = await Interview(model, scene + "\nyes\n");
+
+        Assert.Contains("  tone: Comic   [inferred]\n    from \"Everything about him is a joke\"", screen);
+        foreach (var field in new[] { "race", "nameLetter", "nameSyllables", "familyLetter" })
+            Assert.Contains($"  {field}: [rolled]", screen);
+        Assert.Equal("Comic", told!.RollArguments["tone"]);
+        Assert.False(told.RollArguments.ContainsKey("race"));
+    }
+
+    // ADR-009: a letter is recorded only when the GM said it. The stand-in claims K on a scene with no K,
+    // then on one that says "starts with K".
+    [Fact]
+    public async Task A_name_letter_is_rejected_without_the_letter_in_the_quote_and_kept_with_it()
+    {
+        var withoutK = new ScriptedInterviewer([Answer("nameLetter", "K", "meet a tavern owner")]);
+        var (toldWithout, screenWithout) = await Interview(withoutK, "My players meet a tavern owner.\nyes\n");
+
+        Assert.StartsWith("Rejected:", withoutK.Results["call-nameLetter"]);
+        Assert.Contains("  nameLetter: [rolled]", screenWithout);
+        Assert.False(toldWithout!.RollArguments.ContainsKey("nameLetter"));
+
+        var withK = new ScriptedInterviewer([Answer("nameLetter", "K", "starts with K")]);
+        var (toldWith, screenWith) = await Interview(withK, "My players meet a baker whose name starts with K.\nyes\n");
+
+        Assert.Contains("  nameLetter: K   [inferred]", screenWith);
+        Assert.Equal("K", toldWith!.RollArguments["nameLetter"]);
+    }
+
     // Done when: a trait I described reaches the brief instead of a roll. The real server, with a
     // seed whose plain roll gives a different obstacle, so the brief can only say Cant if the
     // interview's answer got there.

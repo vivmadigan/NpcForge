@@ -17,6 +17,7 @@ public enum Rejection
     QuoteTooLong,
     QuoteNotTyped,
     ValueNotInQuote,
+    ChoiceNotInQuote,
 }
 
 // One recorded field. Value and Quote are the GM's text as typed, cut from the scene (a choice's
@@ -40,6 +41,10 @@ public sealed class SceneDraft(string scene, IReadOnlyList<RollField> fields)
     // The scene's rule from 2026-09-26 (step 13 in `git show eddc444:ROADMAP.md`): a quote is one
     // sentence of at most 12 words.
     public const int MostWordsInAQuote = 12;
+
+    // ADR-009: a choice list the GM can judge at a glance may be inferred (ADR-007). A longer one,
+    // such as the 26 letters of a name, may not: the value has to be in the GM's words.
+    public const int MostChoicesToInfer = 6;
 
     private readonly IReadOnlyList<Words.Sentence> _sentences = Words.Sentences(scene);
     private readonly Dictionary<string, Answer> _answers = [];
@@ -97,7 +102,14 @@ public sealed class SceneDraft(string scene, IReadOnlyList<RollField> fields)
         var typedQuote = Typed(sentence, at, quoteWords.Count);
 
         if (choice is not null)
+        {
+            // The count comes from the field's own choices, so no field is named here.
+            if (target.Choices!.Count > MostChoicesToInfer && !quoteWords.Any(word => word.Text == Words.Squashed(choice)))
+                return Reject(Rejection.ChoiceNotInQuote,
+                    $"{field} has too many choices to infer, so \"{choice}\" must be a word of the quote. Quote the GM's words that name it, or leave {field} to the dice.");
+
             return Accept(field, new Answer(choice, typedQuote, sentence.Text, Label.Inferred));
+        }
 
         // Free text: the value must be the GM's own words, a run of whole words inside the quote. A
         // value the model can only paraphrase is not recorded, so the dice roll it (ADR-007).

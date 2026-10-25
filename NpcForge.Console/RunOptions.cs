@@ -36,6 +36,13 @@ public sealed class RunOptions
         new("--want", "the name of a fence", AsIs, Recorded: true, RollParameter: "playersWant"),
         new("--difficulty", "Wall", AsIs, Recorded: true, RollParameter: "difficulty"),
         new("--occupation", "innkeeper", AsIs, Recorded: true, RollParameter: "occupation"),
+        // ADR-009: no default. Left off the line, the dice roll them; a flag given is handed to
+        // roll_character and recorded. The server reads a name or a letter in any case.
+        new("--tone", null, AsIs, Recorded: true, RollParameter: "tone"),
+        new("--race", null, AsIs, Recorded: true, RollParameter: "race"),
+        new("--letter", null, AsIs, Recorded: true, RollParameter: "nameLetter"),
+        new("--syllables", null, Number, Recorded: true, RollParameter: "nameSyllables"),
+        new("--family-letter", null, AsIs, Recorded: true, RollParameter: "familyLetter"),
         // --load <number> prints a saved character instead of making a new one.
         new("--load", null, Number,
             MissingValue: "--load needs a number, for example --load 3."),
@@ -245,14 +252,17 @@ public sealed class RunOptions
     }
 
     // The arguments of the roll_character call, named by the table. Seed is not among them: it goes
-    // to the server, not to the tool.
+    // to the server, not to the tool. A flag with no default and no value is left out, so the
+    // server's dice roll it (ADR-009).
     public Dictionary<string, object?> RollArguments() =>
-        Table.Where(flag => flag.RollParameter is not null)
+        Table.Where(flag => flag.RollParameter is not null && _values.ContainsKey(flag.Name))
             .ToDictionary(flag => flag.RollParameter!, flag => (object?)_values[flag.Name]);
 
     // Line 1 of a recording: this run's answers as flags, the values actually used and not what was
     // typed, so a default that changes later cannot change what the replay test runs. No --provider
-    // and no --record among them: the replay test adds its own --provider.
+    // and no --record among them: the replay test adds its own --provider. A flag with no value is
+    // left out, as it is from the roll, so a recording of a run that rolled its race replays rolling it.
     public string[] RecordedFlags() =>
-        [.. Table.Where(flag => flag.Recorded).SelectMany(flag => new[] { flag.Name, _values[flag.Name] })];
+        [.. Table.Where(flag => flag.Recorded && _values.ContainsKey(flag.Name))
+            .SelectMany(flag => new[] { flag.Name, _values[flag.Name] })];
 }
