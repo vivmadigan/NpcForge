@@ -81,7 +81,7 @@ lab. In detail:
 
 ### 1. The brief
 
-Four flat fields, with the same names on `roll_character` and `CharacterBrief`:
+Five flat fields, with the same names on `roll_character` and `CharacterBrief`:
 
 | Field | Server type | In the interview | When not given | Flag |
 | --- | --- | --- | --- | --- |
@@ -89,8 +89,11 @@ Four flat fields, with the same names on `roll_character` and `CharacterBrief`:
 | `race` | `string` | free text, the GM's words only | rolled from `Tables.Races` | `--race` |
 | `nameLetter` | `NameLetter { A ... Z }` | a long choice: only when the letter is in the quote | rolled from `Tables.NameLetters` | `--letter` |
 | `nameSyllables` | `Syllables`, written `"1"`, `"2"`, `"3"` | a short choice, may be inferred ("a short name") | rolled from `Tables.SyllableCounts` | `--syllables` |
+| `familyLetter` | `NameLetter { A ... Z }` | a long choice: only when the letter is in the quote | rolled from `Tables.NameLetters` | `--family-letter` |
 
-- Every value is a string or a string enum, so `ListFrom` reads all four with no console change.
+- Every value is a string or a string enum, so `ListFrom` reads all five with no console change.
+- The family name has its own letter, rolled from the same table as the first name's (the owner's call,
+  2026-10-25). The saves showed family names repeating as much as first names: Venn, Voss and Vale.
 - **The syllable count is written as a number in a string.** Each `Syllables` member carries
   `[JsonStringEnumMemberName("1")]` and so on, so the schema's choices are `"1"`, `"2"`, `"3"` and the
   console reads the count with `int.Parse`. The console keeps no copy of the server's enum. If the MCP
@@ -104,13 +107,13 @@ Four flat fields, with the same names on `roll_character` and `CharacterBrief`:
 - **The server refuses an enum value it does not define.** System.Text.Json's string-enum converter
   accepts integers, so `--tone 7` would bind today. `roll_character` checks `Enum.IsDefined` on every
   enum parameter, `difficulty` and `obstacle` included, and refuses with the field's name.
-- None of the four has a default. The interview labels an unmentioned one rolled, and the four flags
+- None of the five has a default. The interview labels an unmentioned one rolled, and the five flags
   have no default in `RunOptions`. `RollArguments()` and `RecordedFlags()` leave out a flag that has
   no value. Today both would throw on one.
-- The four flags are answer flags, like `--setting`, so any one of them skips the interview. `--tone
+- The five flags are answer flags, like `--setting`, so any one of them skips the interview. `--tone
   Comic` alone gives a flag run with the default setting.
 - **Every die is cast, every time, in one fixed order.** The order is the seven existing dice, then
-  tone, race, letter and syllables. A given value replaces its die's result and never skips the die. One
+  tone, race, letter, syllables and family letter. A given value replaces its die's result and never skips the die. One
   seed then rolls the same race and name dice whatever tone is given. The new dice come after the old
   ones, so a seed's old seven traits stay as they were.
 - `Tables` gains `Races`, `NameLetters` and `SyllableCounts` as weighted tables
@@ -133,7 +136,7 @@ save_character(CharacterBrief brief, CharacterName name, string text)
   defaults write nulls, so an old entry keeps its bytes.
 - "Unknown" exists only on the screen. `--load` prints the saved brief line byte for byte, as today,
   then one more line when the save lacks something: `[app] unknown in save 3: tone, race, nameLetter,
-  nameSyllables, name`. One pure function, `SavedView.Unknown`, lists the roll schema's fields that the
+  nameSyllables, familyLetter, name`. One pure function, `SavedView.Unknown`, lists the roll schema's fields that the
   brief lacks, then `name` when the entry has none, so a brief field added later shows as unknown with no
   edit. A save with a name prints it: `[app] name Kessa Vale`.
 
@@ -158,13 +161,15 @@ save_character(CharacterBrief brief, CharacterName name, string text)
 ### 4. The name
 
 - `Namer.RunAsync` runs before the writer, with its own skill (`skills/namer/SKILL.md`) and one console
-  tool, `give_name(syllables: string[], family: string?)`, for example `["Kes", "sa"], "Vale"`. It has
+  tool, `give_name(syllables: string[], family: string)`, for example `["Kes", "sa"], "Vale"`. It has
   the scene interview's shape: `record_answer` is a console tool, and so is this. The writer's tool list
   does not change, because each `AgentLoop` sets its own tools.
 - The namer is told the race, the name dice and the scene. Code checks the tool's arguments, each check
   with its own rejection reason (lesson 004):
   - **No empty syllable.** An empty or blank syllable, or no syllables, is refused.
   - **The letter, exactly.** The first letter of the first syllable must be `nameLetter`, ignoring case.
+  - **The family letter, exactly.** Every character has a family name, and its first letter must be
+    `familyLetter`, ignoring case.
   - **The count, exactly, as the namer split it.** The number of syllables handed back must equal
     `nameSyllables`. Code cannot hear the name, so a dishonest split still passes. That is a smaller
     and plainer gap than guessing the count from spelling.
@@ -172,23 +177,23 @@ save_character(CharacterBrief brief, CharacterName name, string text)
   in the same loop is refused. The loop ends on the namer's first turn with no tool call, so a named
   character costs at least two model calls.
 - `Namer` runs `AgentLoop` with `maxTurns: 4` and catches `TurnCapReachedException`. With no accepted
-  name, the run stops before the writer is paid: `[app] not written: no name followed the dice (K, 2)`.
+  name, the run stops before the writer is paid: `[app] not written: no name followed the dice (K, 2, V)`.
 - The writer's first message gains one line, `Their name is Kessa Vale.`, before the brief, and the
-  brief stays last (ADR-008). An `[app] name Kessa Vale (K, 2)` line shows on stderr.
+  brief stays last (ADR-008). An `[app] name Kessa Vale (K, 2, V)` line shows on stderr.
 - The save keeps the name. The Done when check "six different first names, each following its dice"
   then reads only structured data.
 - What this cannot prove: that the writer's text uses the name it was told. If it does not, the save
   holds the namer's name beside a text with another one. Only the owner's eyes check the text.
 
 ```csharp
-public sealed record CharacterName(IReadOnlyList<string> Syllables, string? Family);   // server, saved
-public sealed record NameDice(char Letter, int Syllables);                             // console, read from the brief JSON
-public sealed record NamedCharacter(IReadOnlyList<string> Syllables, string? Family)   // console, accepted
+public sealed record CharacterName(IReadOnlyList<string> Syllables, string Family);              // server, saved
+public sealed record NameDice(char Letter, int Syllables, char FamilyLetter);                     // console, read from the brief JSON
+public sealed record NamedCharacter(IReadOnlyList<string> Syllables, string Family)               // console, accepted
 {
     public string Given => string.Concat(Syllables);
-    public string Full => Family is null ? Given : $"{Given} {Family}";
+    public string Full => $"{Given} {Family}";
 }
-public enum NameRejection { None, NoSyllables, EmptySyllable, WrongLetter, WrongSyllableCount, AlreadyNamed }
+public enum NameRejection { None, NoSyllables, EmptySyllable, WrongLetter, WrongSyllableCount, NoFamily, WrongFamilyLetter, AlreadyNamed }
 ```
 
 ### 5. The lab
@@ -252,7 +257,7 @@ ChatAgent.WriteAsync(IChatClient client, ChatOptions options, IToolSource tools,
 ChatAgent.SystemMessage(string skillDir, string briefJson) -> (string Text, string Trace)
 ChatAgent.FirstMessage(string briefJson, string? scene, NamedCharacter? name) -> string
 ToneFiles.Missing(IReadOnlyList<RollField> fields, IEnumerable<string> skillDirs) -> IReadOnlyList<string>
-NameCheck.Check(NameDice dice, IReadOnlyList<string> syllables) -> (NameRejection, string)
+NameCheck.Check(NameDice dice, IReadOnlyList<string> syllables, string family) -> (NameRejection, string)
 Namer.RunAsync(IChatClient client, ChatOptions options, WriterInput input, CancellationToken ct) -> NamedCharacter
 SavedView.Unknown(IReadOnlyList<RollField> fields, JsonElement savedEntry) -> IReadOnlyList<string>
 BriefJson.WithField(string briefJson, string field, string value) -> roll_character arguments
@@ -279,7 +284,7 @@ race and the name dice put that choice back with the dice.
 - **One tone file** keeps the guidance for how to write in the skill, where ADR-008 put it, and keeps the
   first message to facts. The fingerprint then says which tone a run was told.
 - **The namer** is the only option where no state exists in which the model skipped the check: no name,
-  no writer. The cost is two small calls per character, about 2,000 to 3,000 tokens.
+  no writer. Rolling the family letter too means no part of the name is the model's free pick. The cost is two small calls per character, about 2,000 to 3,000 tokens.
 - **The lab as flags on the existing run** gives one way to write a character, used by a run and by
   every variant, so a sheet compares what a real run would produce. A blind lab is silent while it runs,
   because the trace is the easiest place to read the key.
@@ -326,10 +331,10 @@ guards, then passing. A restructure passes the replay fixture unchanged.
 5. **Behavior: every die is cast.** *Free test:* through `McpToolSource`, seed 5 with `attitude` handed
    to `roll_character` rolls the same brief as seed 5 without it, except for attitude. It fails on
    today's code. The fixture hands in no trait, so it passes unchanged.
-6. **Behavior: the four fields join the brief.** Enums, tables with the owner's rows, flags, the
+6. **Behavior: the five fields join the brief.** Enums, tables with the owner's rows, flags, the
    `RunOptions` change for flags with no default, the long-choice rule, the enum refusal, and
    `SavedView.Unknown` on `--load`. *Free tests:* a given tone or race is kept and a missing one is
-   rolled; every brief carries `nameLetter` and `nameSyllables`; under one seed `--tone Comic` and
+   rolled; every brief carries `nameLetter`, `nameSyllables` and `familyLetter`; under one seed `--tone Comic` and
    `--tone Serious` roll the same brief except for tone; a flag with no default and no value stays out of
    the roll arguments and the recorded flags; the schema's syllable choices are `"1"`, `"2"`, `"3"`; a
    stand-in interviewer recording `tone` gives `tone: Comic [inferred]`; one recording `nameLetter` K on
@@ -345,7 +350,8 @@ guards, then passing. A restructure passes the replay fixture unchanged.
    before its confirmation; the lab's tone axis gives briefs that differ only in tone. *Paid:*
    re-record. *Needs my eyes:* the three tone files, which are product.
 8. **Behavior: the namer and the name in the save.** *Free tests:* each rejection has its own reason; a
-   stand-in namer that gives "Tobin" for K, then "Kessa", is rejected once and then accepted; a second
+   stand-in namer that gives "Tobin" for K, then "Kessa", is rejected once and then accepted; a family
+   name with the wrong letter, or none, is rejected; a second
    accepted call is refused; a namer that never follows the dice stops the run at four turns and the
    writer is never called; the name reaches the writer's first message before the brief; a lab names
    once; `save_character` refuses a brief without `nameLetter`; `--load` prints a saved name.
@@ -355,26 +361,24 @@ guards, then passing. A restructure passes the replay fixture unchanged.
    names, and an elf and a dwarf under one seed. *Needs my eyes:* the namer's skill. This PR also closes
    the epic in the docs.
 
+## Settled by the owner (2026-10-25)
+
+1. **The race table.** Human 7, dwarf 3, elf 3, halfling 3, gnome 2, half-orc 2, orc 2, goblin 2,
+   dragonborn 1, goliath 1, tiefling 1. Eleven rows, a total weight of 27, so about one character in
+   four is human.
+2. **The family name** has a rolled letter, `familyLetter`, checked like the first name's.
+3. **Three re-records**, one in each of PRs 6, 7 and 8, so each behavior is proved on its own.
+4. **The namer's extra calls** are accepted: about 2,000 to 3,000 tokens per character.
+5. **Paid runs use OpenAI's `gpt-6-luna`,** the default model, which the replay fixture already uses:
+   the three re-records, the lab runs and the epic's paid checks.
+
 ## Open questions for the owner
 
-1. **The race table and its weights.** Proposed: human 6, dwarf 2, elf 2, halfling 2, gnome 1,
-   half-orc 1, orc 1, goblin 1. Eight rows, and about a third of characters are not human.
-2. **The letter table.** Proposed: every letter but Q, U, X, Y and Z, at equal weight, so 21 rows. A
-   given `--letter Q` is still allowed.
-3. **The syllable weights.** Proposed: one 1, two 2, three 1. Is four wanted, for elves?
-4. **The family name.** The saves repeat family names as much as first names: Venn, Voss and Vale all
-   start with V. As written, the family name is the namer's free choice, which is the model picking.
-   Proposed: roll a second letter for the family name from the same table, checked the same way. The
-   other ways are to leave it free, or to drop family names from this epic.
-5. **One re-record or three.** PRs 6, 7 and 8 each change what the model is sent, so each re-records
-   the fixture: three small paid runs, about two characters' worth each. The other way is to build 6, 7
-   and 8 as one PR with one re-record, which is one larger review. Proposed: three, so each behavior is
-   proved on its own.
-6. **The namer's extra calls.** About 2,000 to 3,000 tokens per character, interview runs included.
-   Proposed: accept them. The other way is option A, a tool inside the writer's own loop, which the
-   model can skip.
-7. **Tokens, not money, at the lab's confirmation.** The epic says the lab asks "with its cost".
+1. **The letter table,** used for both letters. Proposed: every letter but Q, U, X, Y and Z, at equal
+   weight, so 21 rows. A given `--letter Q` is still allowed.
+2. **The syllable weights.** Proposed: one 1, two 2, three 1. Is four wanted, for elves?
+3. **Tokens, not money, at the lab's confirmation.** The epic says the lab asks "with its cost".
    Proposed: tokens only, because a price table needs hand upkeep and goes stale.
-8. **A name the GM gives,** in a scene ("an innkeeper called Bram") or by a flag. Proposed: not in this
+4. **A name the GM gives,** in a scene ("an innkeeper called Bram") or by a flag. Proposed: not in this
    epic. The dice apply and the namer's name wins, as the brief wins. Epic 4 can give a kept character a
    fixed name.
