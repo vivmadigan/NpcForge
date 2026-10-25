@@ -13,6 +13,20 @@
       "PowerShell(git log*)"
     ]
   },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Agent|Task",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "input=$(cat); if printf '%s' \"$input\" | grep -qiE '\"model\"[[:space:]]*:[[:space:]]*\"(fable|claude-fable)'; then echo 'Blocked: Fable is outside the budget. Start this agent on opus, sonnet or haiku instead.' >&2; exit 2; fi; exit 0",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  },
   "enabledPlugins": {
     "pstack@pstack-claude": true
   },

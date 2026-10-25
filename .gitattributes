@@ -61,3 +61,6 @@
 #*.PDF   diff=astextplain
 #*.rtf   diff=astextplain
 #*.RTF   diff=astextplain
+
+# Shell scripts run on Linux (the cloud setup script): LF always, or bash reads a stray carriage return.
+*.sh text eol=lf
