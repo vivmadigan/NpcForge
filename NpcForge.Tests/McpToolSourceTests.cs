@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Microsoft.Extensions.AI;      // FunctionCallContent
+using NpcForge.Server;              // Tables: the rows the dice roll from
 
 
 namespace NpcForge.Tests;
@@ -200,6 +201,132 @@ public class McpToolSourceTests
         Assert.Equal("handed in by the test", actual["attitude"].GetString());
         foreach (var (name, value) in expected.Where(e => e.Key != "attitude"))
             Assert.True(value.ToString() == actual[name].ToString(), $"{name} moved when attitude was handed in");
+    }
+
+    // ADR-009: every brief carries the five new fields, with no flag and no default: the dice give them.
+    [Fact]
+    public async Task Every_brief_carries_the_five_new_fields_rolled_from_their_tables()
+    {
+        var brief = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(await RollWithSeed(5))!;
+
+        Assert.Contains(brief["tone"].GetString(), new[] { "Serious", "Comic", "Heartfelt" });
+        Assert.Contains(brief["race"].GetString(), Tables.Races.Select(r => r.Value));
+        Assert.Contains(brief["nameLetter"].GetString(), Tables.NameLetters.Select(l => l.Value.ToString()));
+        Assert.Contains(brief["nameSyllables"].GetString(), new[] { "1", "2", "3" });     // a string of a digit, on the wire
+        Assert.Contains(brief["familyLetter"].GetString(), Tables.NameLetters.Select(l => l.Value.ToString()));
+    }
+
+    // A given tone, race, letter, count or family letter is kept; the one not given is rolled.
+    [Fact]
+    public async Task A_given_value_is_kept_and_a_value_not_given_is_rolled()
+    {
+        var args = RollArgs();
+        args["tone"] = "Heartfelt";
+        args["race"] = "half-orc";
+        args["nameLetter"] = "Q";                // outside the dice's table, still allowed when handed in
+        args["nameSyllables"] = "3";
+
+        var brief = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(await RollWithSeed(5, args))!;
+
+        Assert.Equal("Heartfelt", brief["tone"].GetString());
+        Assert.Equal("half-orc", brief["race"].GetString());
+        Assert.Equal("Q", brief["nameLetter"].GetString());
+        Assert.Equal("3", brief["nameSyllables"].GetString());
+        Assert.Contains(brief["familyLetter"].GetString(), Tables.NameLetters.Select(l => l.Value.ToString()));   // rolled
+    }
+
+    // Done when: under one seed, --tone Comic and --tone Serious roll the same brief except for tone.
+    [Fact]
+    public async Task One_seed_rolls_the_same_brief_whatever_tone_is_given()
+    {
+        var comic = RollArgs();
+        comic["tone"] = "Comic";
+        var serious = RollArgs();
+        serious["tone"] = "Serious";
+
+        var withComic = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(await RollWithSeed(5, comic))!;
+        var withSerious = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(await RollWithSeed(5, serious))!;
+
+        // The third roll gives no tone. Two given tones could skip the tone die alike and still match
+        // each other, so the control is the roll where the die is the only thing that picks.
+        var untoned = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(await RollWithSeed(5))!;
+
+        Assert.Equal("Comic", withComic["tone"].GetString());
+        Assert.Equal("Serious", withSerious["tone"].GetString());
+        foreach (var (name, value) in untoned.Where(e => e.Key != "tone"))
+        {
+            Assert.True(value.ToString() == withComic[name].ToString(), $"{name} moved with the tone");
+            Assert.True(value.ToString() == withSerious[name].ToString(), $"{name} moved with the tone");
+        }
+    }
+
+    // Each new die, handed in, replaces its result and moves no other die.
+    [Theory]
+    [InlineData("tone", "Heartfelt")]
+    [InlineData("race", "handed-in race")]
+    [InlineData("nameLetter", "Q")]
+    [InlineData("nameSyllables", "3")]
+    [InlineData("familyLetter", "Q")]
+    public async Task A_handed_in_new_value_replaces_its_die_without_moving_the_others(string parameter, string value)
+    {
+        var rolled = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(await RollWithSeed(5))!;
+        var handed = RollArgs();
+        handed[parameter] = value;
+        var withValue = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(await RollWithSeed(5, handed))!;
+
+        Assert.Equal(value, withValue[parameter].GetString());
+        foreach (var (name, was) in rolled.Where(e => e.Key != parameter))
+            Assert.True(was.ToString() == withValue[name].ToString(), $"{name} moved when {parameter} was handed in");
+    }
+
+    // The new dice come after the old seven, so a seed's old traits stay as they were. The fixture's
+    // brief was rolled by the code before the five fields; its seven traits must still be what the
+    // same seed rolls now. Read from the fixture with the library's types, like ReplayTests does.
+    [Fact]
+    public async Task A_seeds_old_seven_traits_are_what_they_were_before_the_new_dice()
+    {
+        var fixture = Path.Combine(ConsoleProcess.RepoRoot, "NpcForge.Tests", "Fixtures", "replay.jsonl");
+        var lines = File.ReadAllLines(fixture);
+        var run = RunOptions.Parse(JsonSerializer.Deserialize<string[]>(lines[0])!);
+        var first = JsonDocument.Parse(lines[1]).RootElement.GetProperty("request").GetProperty("messages").EnumerateArray()
+            .First(m => m.GetProperty("role").GetString() == "user")
+            .GetProperty("contents").EnumerateArray().First().GetProperty("text").GetString()!;
+        var recorded = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(first[first.IndexOf('{')..])!;
+
+        var now = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(await RollWithSeed(run.Seed!.Value, run.RollArguments()))!;
+
+        foreach (var trait in new[] { "characterWants", "obstacle", "attitude", "mannerism", "weakness", "willNotDiscuss", "wrongAbout" })
+            Assert.Equal(recorded[trait].GetString(), now[trait].GetString());
+    }
+
+    // Done when: --tone 7 is refused by name. System.Text.Json's string-enum converter takes a number
+    // too, so without the check it would bind and be written back as a number. Every enum parameter,
+    // difficulty and obstacle included, and the number as text as well as a number (the console sends text).
+    [Theory]
+    [InlineData("tone", 7)]
+    [InlineData("tone", "7")]
+    [InlineData("difficulty", 9)]
+    [InlineData("difficulty", "9")]
+    [InlineData("obstacle", 9)]
+    [InlineData("obstacle", "9")]
+    [InlineData("nameLetter", 99)]
+    [InlineData("nameLetter", "99")]
+    [InlineData("nameSyllables", 4)]
+    [InlineData("nameSyllables", "0")]
+    [InlineData("familyLetter", 99)]
+    [InlineData("familyLetter", "99")]
+    public async Task An_enum_value_that_is_not_defined_is_refused_by_the_name_of_its_field(string parameter, object value)
+    {
+        await using var tools = new McpToolSource();
+        await tools.ConnectAsync(CancellationToken.None);
+        var args = RollArgs();
+        args[parameter] = value;
+
+        var error = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            tools.CallDirectAsync("roll_character", args, CancellationToken.None));
+
+        // The reason, not just a failure (lesson 004): the server's own words, naming the field.
+        Assert.Contains($"{parameter} {value} is not one of its values", error.Message);
     }
 
     private static async Task<string> RollWithSeed(int seed, Dictionary<string, object?> args)

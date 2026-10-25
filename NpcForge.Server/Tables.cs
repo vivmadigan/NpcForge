@@ -8,6 +8,23 @@ namespace NpcForge.Server
     {
         public record Want(string Text, params Difficulty[] Fits);
 
+        // A row that comes up Weight times in the total. The first weighted tables (ADR-009); the
+        // older ones are plain arrays because every row weighs the same.
+        public record Weighted<T>(T Value, int Weight);
+
+        // One cast of the dice per pick, so a weighted die costs the seed exactly what a plain one does.
+        public static T PickWeighted<T>(IReadOnlyList<Weighted<T>> table, Random dice)
+        {
+            var roll = dice.Next(table.Sum(row => row.Weight));
+            foreach (var row in table)
+            {
+                if (roll < row.Weight)
+                    return row.Value;
+                roll -= row.Weight;
+            }
+            throw new InvalidOperationException("A weighted table with no rows cannot be picked from.");
+        }
+
         public static readonly Want[] Wants =
         [
             new("a bit of company",
@@ -159,6 +176,38 @@ namespace NpcForge.Server
             "thinks ignoring a problem usually makes it go away",
             "believes a harmless habit brings terrible luck",
             "thinks a common animal is much more dangerous than it is"
+        ];
+
+        // The owner's rows (ADR-009, settled 2026-10-25): about one character in four is human.
+        public static readonly Weighted<string>[] Races =
+        [
+            new("human", 7),
+            new("dwarf", 3),
+            new("elf", 3),
+            new("halfling", 3),
+            new("gnome", 2),
+            new("half-orc", 2),
+            new("orc", 2),
+            new("goblin", 2),
+            new("dragonborn", 1),
+            new("goliath", 1),
+            new("tiefling", 1),
+        ];
+
+        // Every letter but Q, U, X, Y and Z, at equal weight: few names start with those. Used for the
+        // first name's letter and the family name's. A GM can still hand in a Q.
+        public static readonly Weighted<NameLetter>[] NameLetters =
+        [
+            .. Enum.GetValues<NameLetter>()
+                .Where(letter => letter is not (NameLetter.Q or NameLetter.U or NameLetter.X or NameLetter.Y or NameLetter.Z))
+                .Select(letter => new Weighted<NameLetter>(letter, 1)),
+        ];
+
+        public static readonly Weighted<Syllables>[] SyllableCounts =
+        [
+            new(Syllables.One, 1),
+            new(Syllables.Two, 2),
+            new(Syllables.Three, 1),
         ];
     }
 }
