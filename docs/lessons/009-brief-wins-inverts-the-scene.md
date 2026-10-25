@@ -23,7 +23,8 @@ threat out.
 ## What worked
 
 Telling the skill what the scene is for, in a section of its own: the scene is settled too; the
-character knows what the scene hints at and says it plainly; what the scene says would make them
+character knows what the scene hints at and says it plainly (later narrowed: a trouble the scene
+does not name is left as a gap for the GM, run 03); what the scene says would make them
 give way is the first lever and nothing in the brief overrides it; a brief entry wins only on a
 clash about a trait. And one word in the rules: a lever names the brief entry "or the words of the
 scene" it comes from. The next three runs, on three seeds, passed the control.

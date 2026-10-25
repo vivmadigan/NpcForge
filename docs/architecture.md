@@ -171,7 +171,9 @@ index 0. It sets the output order, what each difficulty and obstacle oblige the 
 every lever names the brief entry or the words of the scene it comes from, and "show the trait,
 never state it". When a scene is sent, it is settled like the brief: the traits are played through
 it, the character knows what the scene hints at, and what the scene says would make them give way is
-the first lever (epic 7, `docs/runs/2026-10-25-02-control-scene-with-the-scene.md`). Nothing
+the first lever. A trouble the scene hints at but does not name is left as a gap in square brackets
+for the GM, unless the scene asks for one to be made up, so a character plugs into any campaign
+(epic 7, `docs/runs/2026-10-25-02-…` and `docs/runs/2026-10-25-03-the-trouble-is-the-gms.md`). Nothing
 parses it, so editing it changes the writing with no code change. The `[skill]` trace line carries
 its length and a short SHA-256, so a run names the guidance it was given.
 
