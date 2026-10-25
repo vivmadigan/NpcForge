@@ -35,7 +35,7 @@ Two rules for every epic, now that the Safety net exists:
 
 | # | Epic | In one line |
 | --- | --- | --- |
-| 2 | Talk to it | Describe the scene in a conversation instead of flags |
+| 2 | Talk to it | Describe the scene in plain words, and see where each part came from |
 | 3 | Better characters | Tone, names that don't repeat, and a writers' lab |
 | 4 | Keep and edit | Choose what to keep, and change it later |
 | 5 | Ready to grow | A structure that can sit behind a website and a database |
@@ -45,34 +45,48 @@ Epics 4 to 6 are drafts: sharpen each one before it starts.
 
 ## 2. Talk to it
 
-**Goal.** I start the app and describe the scene in plain words instead of typing flags. It asks
-for whatever is missing, shows me what it understood next to the words I used, and rolls only after
-I say yes. Once the character is written, I can ask for changes, like "make him warier".
+**Goal.** I start the app with no flags. It greets me and briefly says what it needs. I describe the
+scene in one go, for example: "My players meet a tavern owner at his tavern to ask about a thieves
+guild. He knows nothing about the guild, knows a few people who might, and doesn't want to get
+involved." It works out the brief from my words, shows me where each part of it came from, and rolls
+only after I say yes. Purpose: test like a real user, so I can improve the dialogue and the scenes
+the model receives.
 
 **Constraints.**
-- The model only gathers my answers. The roll still happens in code, after I confirm, and
-  `roll_character` stays out of the model's reach.
-- Every answer it records has to quote words I actually typed. An answer that adds words of its own
-  is flagged at the confirmation. The detailed checks were decided on 2026-09-26: step 13 in
-  `git show eddc444:ROADMAP.md`.
-- Flags keep working, so the replay test is unchanged.
-- A conversation can't run up a bill: a spending cap per session stops it, and Ctrl+C stops the
-  run without killing the app.
+- The model never guesses (AGENTS.md). Each field of the brief is one of three things, labelled at
+  the confirmation:
+  - *My words.* The value quotes words I typed. A quote I never typed is rejected.
+  - *Inferred.* The model's reading of my words, shown beside the words it read, such as difficulty
+    "Wall" from "doesn't want to get involved". Kept and labelled, never rejected.
+  - *Rolled.* I said nothing about it, so the dice decide. The model never fills a gap itself.
+- What I say about the character settles that trait instead of the dice: "knows nothing about the
+  guild" settles the obstacle as can't, and the dice roll the rest. This changes `roll_character`'s
+  inputs, so a design check and an ADR come first.
+- No follow-up questions. A gap is rolled, or takes its default (occupation "innkeeper", ADR-002).
+- The roll happens in code after my yes, and `roll_character` stays out of the model's reach.
+- Flags keep working and skip the interview, so the replay test is unchanged.
+- A spending cap per session stops a conversation running up a bill.
+- The matching rules decided on 2026-09-26 still apply (step 13 in `git show eddc444:ROADMAP.md`):
+  one normalising function, and whole-word quotes. Its drift flag becomes the *inferred* label.
 
 **Done when.**
-- With no flags, the app holds a conversation, asks for what's missing, shows each answer beside my
-  words, and waits for my yes before rolling.
-- An answer that quotes words I never typed is rejected, and the model can't reach the roll (free
-  tests).
-- A follow-up like "make him warier" rewrites the character from the same brief.
+- Free tests: a quote I never typed is rejected; an inferred value is kept and labelled; a field I
+  said nothing about is rolled; a trait I described reaches the brief instead of a roll; the model
+  can't reach `roll_character`, and nothing is rolled before my yes.
+- The spending cap stops a session at its limit (free test, with a stand-in model).
 - The replay test passes unchanged.
-- A few real conversations on OpenAI and Claude behave as above (*needs my eyes*, paid).
+- The tavern scene above gives a written, saved character with nothing typed but "yes". The
+  confirmation shows every field with its label and the words behind it, and the obstacle and
+  attitude come from my words, not the dice (*needs my eyes*, paid, on OpenAI and Claude).
 
 **Tasks.**
-- The scene interview
-- Follow-up changes after the character is written
-- A spending cap and Ctrl+C
-- Open question: is occupation a question in the interview, or does it stay "innkeeper" by default?
+- ADR: details I give about the character settle those traits
+- The scene interview: the interviewer skill, a tool that records each answer with its label and
+  quote, and the confirmation
+- A spending cap per session
+
+**Not in this epic.** Follow-up changes like "make him warier" move to "Keep and edit". Ctrl+C that
+stops a run without closing the app waits until a run is long enough to need it.
 
 ## 3. Better characters
 
@@ -104,7 +118,8 @@ heartfelt), names that stop repeating, and a way to try different writing styles
 ## 4. Keep and edit (draft)
 
 **Goal.** I choose which characters are worth keeping, find them by a name I give them, and change
-a kept character later without starting over.
+a kept character later without starting over, including follow-ups like "make him warier"
+(moved here from "Talk to it").
 
 **Constraints.** Saving and loading stay app-only: the model never touches the saved file. Saves made
 before this epic still load.
