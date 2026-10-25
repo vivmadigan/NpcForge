@@ -124,12 +124,28 @@ public static class Lab
         var folder = run.Out ?? Path.Combine(
             Path.GetTempPath(), $"npcforge-lab-{DateTime.Now:yyyyMMdd-HHmmss}-{plan.Axis}");
 
+        // Made now, before the question, so a --out that cannot be used (an existing file, a path
+        // that is not writable) fails while the lab is still free. The probe write is what finds
+        // a folder that exists but cannot be written to. A folder this call made is removed again
+        // if the lab stops before writing anything.
+        var madeFolder = !Directory.Exists(folder);
+        Directory.CreateDirectory(folder);
+        var probe = Path.Combine(folder, $".npcforge-probe-{Guid.NewGuid():N}");
+        await File.WriteAllTextAsync(probe, "", ct);
+        File.Delete(probe);
+
         // A second sheet beside an old one would put a sheet.md next to a blind.md, and a sheet.md
         // beside a blind lab gives away its key.
         if (new[] { "sheet.md", "blind.md", "key.json", "scored.md" }.Any(name => File.Exists(Path.Combine(folder, name))))
         {
             Console.Error.WriteLine($"[lab] not run: {folder} already holds a lab. Name a new --out folder.");
-            return null;
+            return null;                // an old lab's folder is not ours to remove
+        }
+
+        void RemoveIfMade()
+        {
+            if (madeFolder)
+                Directory.Delete(folder);
         }
 
         // Every skill is read now, so a missing folder stops the lab here and not after the first
@@ -159,6 +175,7 @@ public static class Lab
         if (estimate > SpendingCap.TokensPerSession)
         {
             Console.Error.WriteLine("[lab] not run: that is over the session cap, so no model call is made. Use fewer variants or a smaller --repeat.");
+            RemoveIfMade();
             return null;
         }
 
@@ -166,6 +183,7 @@ public static class Lab
         if (input.ReadLine()?.Trim().Equals("yes", StringComparison.OrdinalIgnoreCase) != true)
         {
             Console.Error.WriteLine("[lab] not run: the GM did not say yes");
+            RemoveIfMade();
             return null;
         }
 
@@ -217,7 +235,6 @@ public static class Lab
                 Console.SetError(shown);
         }
 
-        Directory.CreateDirectory(folder);
         if (blind)
         {
             var (sheet, key) = LabSheet.Blind(briefJson, entries, planned.Count, random);

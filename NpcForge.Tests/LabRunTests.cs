@@ -353,6 +353,22 @@ public class LabRunTests : IDisposable
         Assert.False(File.Exists(Path.Combine(folder, "blind.md")));
     }
 
+    // The folder is made before the question, so a --out that cannot be used fails while the lab
+    // is still free and not after every paid call.
+    [Fact]
+    public async Task An_out_that_is_an_existing_file_stops_before_any_model_call_with_a_reason()
+    {
+        var model = new LabStandIn();
+        var file = TempFolder();
+        File.WriteAllText(file, "not a folder");
+
+        var error = await Assert.ThrowsAnyAsync<IOException>(
+            () => RunLab(model, ["--lab", $"skill={Skill("a")},{Skill("b")}"], "yes\n", file));
+
+        Assert.Contains(file, error.Message);
+        Assert.Empty(model.Calls);
+    }
+
     [Fact]
     public async Task A_skill_folder_that_is_missing_stops_the_lab_before_any_call()
     {
