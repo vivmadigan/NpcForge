@@ -83,11 +83,20 @@ public class SceneInterviewTests(ITestOutputHelper output)
         var told = await SceneInterview.RunAsync(model, new ChatOptions(), Fields, Defaults, gm, screen, CancellationToken.None);
 
         Assert.NotNull(told);
-        Assert.Equal("Cant", told["obstacle"]);
+        Assert.Equal("Cant", told.RollArguments["obstacle"]);
         // What the screen held when the GM was asked the second time: the whole confirmation.
         Assert.Contains("obstacle: Cant", gm.ScreenAtEachRead[1]);
         Assert.DoesNotContain("obstacle: Cant", gm.ScreenAtEachRead[0]);
         Assert.EndsWith(SceneInterview.Question + " ", gm.ScreenAtEachRead[1]);
+    }
+
+    // ADR-008: a yes hands the scene on for the writer, as the GM typed it, trimmed.
+    [Fact]
+    public async Task A_yes_hands_back_the_scene_as_typed()
+    {
+        var (told, _) = await Interview(new ScriptedInterviewer(TavernAnswers), "  " + SceneDraftTests.Tavern + "  \nyes\n");
+
+        Assert.Equal(SceneDraftTests.Tavern, told!.Scene);
     }
 
     // A real model may send one call per turn and keep going. Out of turns, the GM still sees what
@@ -103,7 +112,7 @@ public class SceneInterviewTests(ITestOutputHelper output)
 
         Assert.Equal(Fields.Count + 3, model.Calls);
         Assert.Contains("  obstacle: Cant   [inferred]", screen.ToString());
-        Assert.Equal("Cant", told!["obstacle"]);
+        Assert.Equal("Cant", told!.RollArguments["obstacle"]);
     }
 
     // The rehearsal of the tavern scene. Its screen is in the test output, and in the PR.
@@ -135,7 +144,7 @@ public class SceneInterviewTests(ITestOutputHelper output)
                 ["obstacle"] = "Cant",
                 ["attitude"] = "doesn't want to get involved",
             },
-            told);
+            told!.RollArguments);
     }
 
     // Done when: a trait I described reaches the brief instead of a roll. The real server, with a
@@ -149,7 +158,7 @@ public class SceneInterviewTests(ITestOutputHelper output)
         Assert.NotEqual("Cant", plain.GetProperty("obstacle").GetString());
 
         var (told, _) = await Interview(new ScriptedInterviewer(TavernAnswers), SceneDraftTests.Tavern + "\nyes\n");
-        var brief = await Roll(seed, told!);
+        var brief = await Roll(seed, told!.RollArguments);
 
         Assert.Equal("Cant", brief.GetProperty("obstacle").GetString());
         Assert.Equal("doesn't want to get involved", brief.GetProperty("attitude").GetString());
@@ -193,7 +202,7 @@ public class SceneInterviewTests(ITestOutputHelper output)
             ["field"] = field, ["value"] = value, ["quote"] = quote,
         });
 
-    private static async Task<(Dictionary<string, object?>? Told, string Screen)> Interview(IChatClient model, string typed)
+    private static async Task<(Told? Told, string Screen)> Interview(IChatClient model, string typed)
     {
         var screen = new StringWriter { NewLine = "\n" };
         var told = await SceneInterview.RunAsync(

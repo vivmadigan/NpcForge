@@ -6,6 +6,10 @@ using System.Text.Json;                 // JsonSerializer
 
 namespace NpcForge;
 
+// What a yes hands back: the scene as the GM typed it, for the writer (ADR-008), and the arguments
+// for roll_character. The scene never goes to the roll.
+public sealed record Told(string Scene, Dictionary<string, object?> RollArguments);
+
 // The scene interview (ADR-007): greet the GM, read the scene in one go, let a model record what the
 // scene says through record_answer, show every field with its label and words, and hand back
 // roll_character's arguments only after the GM types yes. It never rolls. It holds no tool source
@@ -18,9 +22,9 @@ public static class SceneInterview
 
     public const string Question = "Roll this character? Type yes to roll it. Anything else stops without rolling.";
 
-    // Returns roll_character's arguments after a "yes", and null after anything else, end of input
-    // included, so a pipe with nothing left in it can never roll.
-    public static async Task<Dictionary<string, object?>?> RunAsync(
+    // Returns the scene and roll_character's arguments after a "yes", and null after anything else,
+    // end of input included, so a pipe with nothing left in it can never roll.
+    public static async Task<Told?> RunAsync(
         IChatClient client,
         ChatOptions options,
         IReadOnlyList<RollField> fields,
@@ -71,7 +75,7 @@ public static class SceneInterview
         if (answer is null)
             screen.WriteLine();         // end of input left the cursor after the question
         return answer?.Trim().Equals("yes", StringComparison.OrdinalIgnoreCase) == true
-            ? draft.RollArguments(defaults)
+            ? new Told(scene, draft.RollArguments(defaults))
             : null;
     }
 
