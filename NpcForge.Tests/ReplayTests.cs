@@ -32,7 +32,8 @@ public class ReplayTests
 
         // The configuration this test was built in, and so the one to replay.
         var configuration = BuildConfiguration();
-        RequireFreshConsoleBuild(repo, configuration);
+        RequireFreshBuild(repo, "NpcForge.Console", configuration);
+        RequireFreshBuild(repo, "NpcForge.Server", configuration);
 
         var start = new ProcessStartInfo("dotnet")
         {
@@ -119,14 +120,15 @@ public class ReplayTests
         ?? throw new InvalidOperationException("The test assembly carries no build configuration.");
 
     // --no-build runs whatever is in bin, so a build that is missing, or older than the source,
-    // would replay old code and pass or fail for the wrong reason. Say so instead. Unlike the
-    // verify script this includes the skill, which is product and is copied to bin.
-    private static void RequireFreshConsoleBuild(string repo, string configuration)
+    // would replay old code and pass or fail for the wrong reason. Say so instead. The console
+    // starts the server in this same configuration, so both are checked. Unlike the verify script
+    // this includes the console's skill, which is product and is copied to bin.
+    private static void RequireFreshBuild(string repo, string name, string configuration)
     {
-        var project = Path.Combine(repo, "NpcForge.Console");
-        var dll = Path.Combine(project, "bin", configuration, "net10.0", "NpcForge.Console.dll");
+        var project = Path.Combine(repo, name);
+        var dll = Path.Combine(project, "bin", configuration, "net10.0", $"{name}.dll");
         Assert.True(File.Exists(dll),
-            $"The {configuration} build of NpcForge.Console is missing ({dll}). Run `dotnet build -c {configuration}`.");
+            $"The {configuration} build of {name} is missing ({dll}). Run `dotnet build -c {configuration}`.");
 
         var newest = Directory.EnumerateFiles(project, "*", SearchOption.AllDirectories)
             .Where(file => !file.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}")
@@ -134,7 +136,7 @@ public class ReplayTests
             .OrderByDescending(File.GetLastWriteTimeUtc)
             .First();
         Assert.True(File.GetLastWriteTimeUtc(dll) >= File.GetLastWriteTimeUtc(newest),
-            $"The {configuration} build of NpcForge.Console is stale: {Path.GetRelativePath(repo, newest)} is newer than the build. Run `dotnet build -c {configuration}`.");
+            $"The {configuration} build of {name} is stale: {Path.GetRelativePath(repo, newest)} is newer than the build. Run `dotnet build -c {configuration}`.");
     }
 
     // The replay only catches what the recording makes visible. Three things it needs, each of
