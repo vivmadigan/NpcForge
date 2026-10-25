@@ -23,7 +23,7 @@ public class AgentLoopTests
     {
         var loop = new AgentLoop(new AlwaysCallsToolChatClient(), new FakeToolSource(), new ChatOptions(), maxTurns: 3);
 
-        await Assert.ThrowsAsync<InvalidOperationException>(
+        await Assert.ThrowsAsync<TurnCapReachedException>(
             () => loop.RunAsync([new(ChatRole.User, "hi")], CancellationToken.None));
     }
 
