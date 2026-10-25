@@ -148,8 +148,9 @@ confirmation with what was recorded, since every answer there already passed its
   sentence it sits in. The greeting, the confirmation and the question go to stderr, so stdout stays
   the character text. Labels and quotes stop there: the writer's first message and the save are the
   same as for a flag run (ADR-003, ADR-005).
-- **Untested here, needs a paid run:** whether a real model quotes the GM exactly and leaves
-  unspoken fields alone. That is the skill's job and the epic's paid check.
+- **Proved only by a paid run:** whether a real model quotes the GM exactly and leaves unspoken
+  fields alone. That is the skill's job. The owner's tavern runs on OpenAI and Claude passed it;
+  no free test can.
 
 ## Spending
 
@@ -344,3 +345,4 @@ agents and named, not numbered.
 | Safety net | A recorded run replays for free, and the same seed rolls the same brief | |
 | Harden the safety net | A typo'd flag, a free run reaching a model, a replay writing over the owner's saves, and a Release test replaying the Debug build all stop or fail loudly | |
 | The writer reads the scene (epic 7) | The GM's scene reaches the writer, and the control scene gives a character who acts inside it on three seeds of three | |
+| Talk to it (epic 2) | A bare run interviews the GM, every field traces to their words or the dice, nothing rolls before a yes, and a spending cap stops a session | |

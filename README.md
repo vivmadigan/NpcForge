@@ -97,11 +97,11 @@ runs, three genuinely different characters whose levers differ, and a saved one 
 unchanged. The Safety net is in and hardened: `dotnet test` replays the whole app against one
 recorded run, for free, so a later change can be checked without paying. A mistyped flag cannot start
 a paid run, `NPCFORGE_OFFLINE=1` stops a free run reaching a model, a replay never writes over the
-saved characters, and `dotnet test -c Release` tests the Release build. Talking to the app is
-built and tested free: a bare `dotnet run` interviews you about the scene, and every trait traces to
-your words or the dice. Its paid run on OpenAI and Anthropic is still to come. The writer is now
-sent your scene as well as the brief, so the character acts inside the situation you described. Next: better characters (tone, names that don't repeat), keeping and editing
-characters, and in time a website with logins and a database so friends can use it. See
+saved characters, and `dotnet test -c Release` tests the Release build. You can talk to it: a
+bare `dotnet run` interviews you about the scene, every trait traces to your words or the dice, and
+it has passed its paid run on OpenAI and Anthropic. The writer is sent your scene as well as the
+brief, so the character acts inside the situation you described. Next: better characters (tone,
+names that don't repeat), keeping and editing characters, and in time a website with logins and a database so friends can use it. See
 [ROADMAP.md](ROADMAP.md).
 
 ## Out of scope, for now
