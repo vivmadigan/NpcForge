@@ -16,78 +16,18 @@ var config = new ConfigurationBuilder()
     .AddUserSecrets<Program>()          // API keys live here, never in appsettings or the repo
     .Build();
 
-string provider = "openai";
-string model = "gpt-6-luna";
-
-// The answers. Defaults so a bare run works; flags for now. Occupation sits with the setting
-// because they change together: a farm run wants --occupation as well as --setting.
-string setting = "an inn in a major city";
-string occupation = "innkeeper";
-string want = "the name of a fence";
-string difficulty = "Wall";
-
-// --load <number> prints a saved character instead of making a new one.
-int? load = null;
-
-// --seed <number> fixes the dice: the same seed rolls the same brief. It goes to the server, never
-// to roll_character, whose parameters are only the brief fields a GM may set.
-int? seed = null;
-
-// --record <file> also writes every model call to a file. --recording <file> is the file the
-// replay provider answers from, and goes with --provider replay only.
-string? recordTo = null;
-string? recording = null;
-
-// Flags, read by hand: --provider openai|anthropic|replay, --model <id>, the four answers, and the
-// ones above.
-for (int i = 0; i < args.Length; i++)
-{
-    if (args[i] == "--provider" && i + 1 < args.Length)
-        provider = args[i + 1].ToLower();
-    if (args[i] == "--model" && i + 1 < args.Length)
-        model = args[i + 1].ToLower();
-    if (args[i] == "--setting" && i + 1 < args.Length)
-        setting = args[i + 1];
-    if (args[i] == "--want" && i + 1 < args.Length)
-        want = args[i + 1];
-    if (args[i] == "--difficulty" && i + 1 < args.Length)
-        difficulty = args[i + 1];
-    if (args[i] == "--occupation" && i + 1 < args.Length)
-        occupation = args[i + 1];
-    if (args[i] == "--load")
-    {
-        // Without a number this would fall through to a paid run and a new save. Stop instead.
-        if (i + 1 == args.Length)
-            throw new ArgumentException("--load needs a number, for example --load 3.");
-        load = int.Parse(args[i + 1]);
-    }
-    if (args[i] == "--seed" && i + 1 < args.Length)
-        seed = int.Parse(args[i + 1]);
-    if (args[i] == "--record")
-    {
-        // Without a file this would fall through to a paid run that records nothing. Stop instead.
-        if (i + 1 == args.Length)
-            throw new ArgumentException("--record needs a file, for example --record NpcForge.Tests/Fixtures/replay.jsonl.");
-        recordTo = args[i + 1];
-    }
-    if (args[i] == "--recording" && i + 1 < args.Length)
-        recording = args[i + 1];
-}
-
-// All of these stop the run before anything is paid for.
-//
-// A recording without a seed could never replay: the dice would roll a different brief, so the
-// first message would differ.
-if (recordTo is not null && seed is null)
-    throw new ArgumentException("--record needs --seed, for example --seed 1.");
-
-// --recording on its own would leave the provider on openai: a paid run that ignores the file.
-if (recording is not null && provider != "replay")
-    throw new ArgumentException("--recording only goes with --provider replay.");
-
-// A replay must never write a recording, least of all over the one it is reading.
-if (recordTo is not null && provider == "replay")
-    throw new ArgumentException("--record cannot go with --provider replay: a replay never writes a recording.");
+// The answers and every flag come from one table (RunOptions), which also writes line 1 of a
+// recording. A bad combination of flags throws there, before anything is paid for.
+var run = RunOptions.Parse(args);
+string provider = run.Provider;
+string model = run.Model;
+string setting = run.Setting;
+string occupation = run.Occupation;
+string want = run.Want;
+string difficulty = run.Difficulty;
+int? load = run.Load;
+int? seed = run.Seed;
+string? recordTo = run.RecordTo;
 
 // Where the recording will land, shown before anything is paid for, so a wrong working directory
 // shows here and not after the run.
@@ -95,25 +35,12 @@ if (recordTo is not null)
     Console.Error.WriteLine($"[app] recording to {Path.GetFullPath(recordTo)}");
 
 // The only line that knows which vendor is behind the model. Everything after it sees IChatClient.
-IChatClient client = ModelClients.Create(provider, model, config, recording);
+IChatClient client = ModelClients.Create(provider, model, config, run.Recording);
 
-// --record wraps the real client, and everything after this still sees one IChatClient. Line 1 of
-// the file is this run's answers as flags: the values actually used, not what was typed, so a
-// default that changes later cannot change what the replay test runs. No --provider and no
-// --record among them: the replay test adds its own --provider.
+// --record wraps the real client, and everything after this still sees one IChatClient. Line 1
+// of the file is this run's answers as flags, from the same table the parser reads.
 if (recordTo is not null)
-{
-    string[] flags =
-    [
-        "--seed", $"{seed}",
-        "--model", model,
-        "--setting", setting,
-        "--want", want,
-        "--difficulty", difficulty,
-        "--occupation", occupation,
-    ];
-    client = new RecordingChatClient(client, recordTo, flags);
-}
+    client = new RecordingChatClient(client, recordTo, run.RecordedFlags());
 
 // Shared by every request. Step 4 fills in Tools from the tool source before the first turn.
 var options = new ChatOptions
