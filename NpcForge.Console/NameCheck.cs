@@ -39,7 +39,11 @@ public sealed record NamedCharacter(IReadOnlyList<string> Syllables, string Fami
     public string Full => $"{Given} {Family}";
 }
 
-public enum NameRejection { None, NoSyllables, EmptySyllable, WrongLetter, WrongSyllableCount, NoFamily, WrongFamilyLetter, AlreadyNamed }
+public enum NameRejection
+{
+    None, NoSyllables, EmptySyllable, SyllableWithoutLetters, SyllableWithSpace, WrongLetter, WrongSyllableCount,
+    NoFamily, FamilyWithoutLetters, FamilyWithSpace, WrongFamilyLetter, AlreadyNamed,
+}
 
 // Checks a name handed back through give_name against the dice. Code cannot hear a name, so it checks
 // only what the arguments declare: the letters, and the count as the namer split it. Each rejection
@@ -57,8 +61,20 @@ public static class NameCheck
             return (NameRejection.EmptySyllable,
                 $"Refused: syllable {blank + 1} of {syllables.Count} is empty. Every syllable needs letters.");
 
+        // A syllable is a piece of one word: a "-", a "1" or a zero-width space is not one, and a space
+        // inside it would make Full ambiguous about where the first name ends.
+        var noLetters = syllables.ToList().FindIndex(s => !s.Any(char.IsLetter));
+        if (noLetters >= 0)
+            return (NameRejection.SyllableWithoutLetters,
+                $"Refused: syllable {noLetters + 1} of {syllables.Count} (\"{syllables[noLetters]}\") has no letter in it. Every syllable needs letters.");
+
+        var spaced = syllables.ToList().FindIndex(s => s.Trim().Any(char.IsWhiteSpace));
+        if (spaced >= 0)
+            return (NameRejection.SyllableWithSpace,
+                $"Refused: syllable {spaced + 1} of {syllables.Count} (\"{syllables[spaced]}\") has a space inside it. A syllable is part of one word.");
+
         var given = string.Concat(syllables.Select(s => s.Trim()));
-        if (char.ToUpperInvariant(given[0]) != dice.Letter)
+        if (!StartsWith(given, dice.Letter))
             return (NameRejection.WrongLetter,
                 $"Refused: the first name must start with {dice.Letter}, and \"{given}\" starts with {given[0]}.");
 
@@ -72,12 +88,25 @@ public static class NameCheck
                 $"Refused: no family name was given. Every character has one, and it must start with {dice.FamilyLetter}.");
 
         var surname = family.Trim();
-        if (char.ToUpperInvariant(surname[0]) != dice.FamilyLetter)
+        if (!surname.Any(char.IsLetter))
+            return (NameRejection.FamilyWithoutLetters,
+                $"Refused: the family name \"{surname}\" has no letter in it. It must be a word starting with {dice.FamilyLetter}.");
+
+        if (surname.Any(char.IsWhiteSpace))
+            return (NameRejection.FamilyWithSpace,
+                $"Refused: the family name \"{surname}\" has a space inside it. Give it as one word starting with {dice.FamilyLetter}.");
+
+        if (!StartsWith(surname, dice.FamilyLetter))
             return (NameRejection.WrongFamilyLetter,
                 $"Refused: the family name must start with {dice.FamilyLetter}, and \"{surname}\" starts with {surname[0]}.");
 
         return (NameRejection.None, $"Accepted: {given} {surname}.");
     }
+
+    // Compared as ordinal text, so a dotless i does not stand in for I and a long s does not stand
+    // in for S, as a char-by-char upper-casing would let them.
+    private static bool StartsWith(string name, char letter) =>
+        string.Equals(name[..1], letter.ToString(), StringComparison.OrdinalIgnoreCase);
 
     // A second name after one was accepted. The first accepted name wins, so the namer cannot swap it
     // for one it likes better.

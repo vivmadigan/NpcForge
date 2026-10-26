@@ -30,6 +30,13 @@ public class NameCheckTests
         { ["Kess"], "Vale", NameRejection.WrongSyllableCount, "must have 2 syllables, and \"Kess\" was handed back as 1" },
         { ["Kes", "sa"], "", NameRejection.NoFamily, "no family name was given" },
         { ["Kes", "sa"], "Mott", NameRejection.WrongFamilyLetter, "family name must start with V, and \"Mott\" starts with M" },
+        { ["Kes", "-"], "Vale", NameRejection.SyllableWithoutLetters, "syllable 2 of 2 (\"-\") has no letter" },
+        { ["Kes", "1"], "Vale", NameRejection.SyllableWithoutLetters, "syllable 2 of 2 (\"1\") has no letter" },
+        { ["Kes", "\u200B"], "Vale", NameRejection.SyllableWithoutLetters, "has no letter in it" },
+        { ["Kes", "s a"], "Vale", NameRejection.SyllableWithSpace, "syllable 2 of 2 (\"s a\") has a space inside it" },
+        { ["Kes", "sa"], "-", NameRejection.FamilyWithoutLetters, "family name \"-\" has no letter" },
+        { ["Kes", "sa"], "\u200B", NameRejection.FamilyWithoutLetters, "has no letter in it" },
+        { ["Kes", "sa"], "Van Dyke", NameRejection.FamilyWithSpace, "family name \"Van Dyke\" has a space inside it" },
     };
 
     [Theory]
@@ -43,14 +50,32 @@ public class NameCheckTests
         Assert.StartsWith("Refused: ", text);
     }
 
-    // Six rules, six different reasons: no two rejections read the same to the namer.
+    // Every rule has its own reason: no two rejections read the same to the namer. One row per rule,
+    // and every rule but None has a row, so a new NameRejection with no row here fails this test.
     [Fact]
     public void No_two_rejections_share_a_reason()
     {
-        var reasons = Broken.Select(row => NameCheck.Check(KTwoV, (string[])row[0], (string)row[1]).Item2).ToList();
+        var rows = Broken.Select(row => (Check: NameCheck.Check(KTwoV, (string[])row[0], (string)row[1]), Expected: (NameRejection)row[2]))
+            .GroupBy(r => r.Check.Rejection).Select(g => g.First()).ToList();
+        var reasons = rows.Select(r => r.Check.Reason).ToList();
         reasons.Add(NameCheck.AlreadyNamed(new NamedCharacter(["Kes", "sa"], "Vale")).Reason);
 
+        var covered = rows.Select(r => r.Check.Rejection).Append(NameRejection.AlreadyNamed).Order();
+        Assert.Equal(Enum.GetValues<NameRejection>().Where(r => r != NameRejection.None).Order(), covered);
         Assert.Equal(reasons.Count, reasons.Distinct().Count());
+    }
+
+    // Dotless i upper-cases to I in some cultures and long s to S, so a check that upper-cased the
+    // first character would accept them. Neither is the letter the dice named.
+    [Fact]
+    public void A_dotless_i_is_not_I_and_a_long_s_is_not_S()
+    {
+        Assert.Equal(NameRejection.WrongLetter, NameCheck.Check(new NameDice('I', 2, 'V'), ["\u0131n", "ga"], "Vale").Item1);
+        Assert.Equal(NameRejection.WrongLetter, NameCheck.Check(new NameDice('S', 2, 'V'), ["\u017Fil", "ka"], "Vale").Item1);
+        Assert.Equal(NameRejection.WrongFamilyLetter, NameCheck.Check(new NameDice('K', 2, 'I'), ["Kes", "sa"], "\u0131ron").Item1);
+        Assert.Equal(NameRejection.WrongFamilyLetter, NameCheck.Check(new NameDice('K', 2, 'S'), ["Kes", "sa"], "\u017Fmith").Item1);
+        // And the ordinary letters still match.
+        Assert.Equal(NameRejection.None, NameCheck.Check(new NameDice('I', 2, 'S'), ["in", "ga"], "Smith").Item1);
     }
 
     [Fact]
