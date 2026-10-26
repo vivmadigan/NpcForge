@@ -123,7 +123,7 @@ public class NamerTests
         await Name(model, scene: "A dusty mill by a river.");
 
         var first = model.NamerCalls[0];
-        Assert.Equal(File.ReadAllText(Namer.SkillPath), first.System);
+        Assert.Equal(File.ReadAllText(Namer.SkillPath).ReplaceLineEndings("\n"), first.System);
         Assert.Equal(["give_name"], first.Tools);
         Assert.Equal(
             "Name this character.\n\nRace: dwarf\nFirst name: starts with K, 2 syllables\nFamily name: starts with V\n\n" +
@@ -144,6 +144,30 @@ public class NamerTests
         Assert.Equal(
             "Name this character.\n\nRace: dwarf\nFirst name: starts with K, 2 syllables\nFamily name: starts with V",
             model.NamerCalls[0].FirstUser);
+    }
+
+    // A Windows checkout has CRLF files and a Linux one LF. The namer is sent "\n" either way, so a
+    // recording made on one machine has the namer's fingerprint of the other.
+    [Fact]
+    public void The_namer_is_sent_the_same_text_whatever_line_endings_the_file_has()
+    {
+        var dir = Directory.CreateTempSubdirectory("npcforge-namer-").FullName;
+        try
+        {
+            var crlf = Path.Combine(dir, "crlf.md");
+            var lf = Path.Combine(dir, "lf.md");
+            File.WriteAllText(crlf, "Name one.\r\nTwo lines.\r\n");
+            File.WriteAllText(lf, "Name one.\nTwo lines.\n");
+
+            var fromCrlf = Namer.SystemMessage(crlf);
+            var fromLf = Namer.SystemMessage(lf);
+
+            Assert.DoesNotContain('\r', fromCrlf.Text);
+            Assert.Equal(fromLf.Text, fromCrlf.Text);
+            // The "(N chars, hash)" end of the [skill] line; the path before it differs by design.
+            Assert.Equal(fromLf.Trace[fromLf.Trace.LastIndexOf('(')..], fromCrlf.Trace[fromCrlf.Trace.LastIndexOf('(')..]);
+        }
+        finally { Directory.Delete(dir, recursive: true); }
     }
 
     // The writer's options are not changed by the namer's tool list.

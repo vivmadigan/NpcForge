@@ -50,10 +50,15 @@ public static class Namer
         return name;
     }
 
-    public static (string Text, string Trace) SystemMessage()
+    // The path is a parameter only so a test can hand in a file with other line endings.
+    public static (string Text, string Trace) SystemMessage(string? skillPath = null)
     {
-        var text = File.ReadAllText(SkillPath);
-        return (text, $"[skill] {SkillPath} ({text.Length} chars, {Fingerprint.Of(text)})");
+        skillPath ??= SkillPath;
+        // "\n" throughout, as the writer's is (ChatAgent.SystemMessage): git checks the file out with
+        // CRLF on Windows, and one commit must send the same text and print the same fingerprint on
+        // either machine, or a recording made on one would not replay on the other.
+        var text = File.ReadAllText(skillPath).ReplaceLineEndings("\n");
+        return (text, $"[skill] {skillPath} ({text.Length} chars, {Fingerprint.Of(text)})");
     }
 
     // What the namer is told: the race, the name dice and the scene, and nothing else of the brief.
