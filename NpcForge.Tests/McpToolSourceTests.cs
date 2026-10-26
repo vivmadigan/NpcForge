@@ -81,6 +81,7 @@ public class McpToolSourceTests
             var savedAs = await tools.CallDirectAsync("save_character", new()
             {
                 ["brief"] = brief.RootElement,
+                ["name"] = KessaVale,
                 ["text"] = text,
             }, CancellationToken.None);
 
@@ -95,6 +96,7 @@ public class McpToolSourceTests
             Assert.Equal("1", savedAs);
             Assert.Equal(briefJson, saved.RootElement.GetProperty("brief").GetRawText());
             Assert.Equal(text, saved.RootElement.GetProperty("text").GetString());
+            Assert.Equal("""{"syllables":["Kes","sa"],"family":"Vale"}""", saved.RootElement.GetProperty("name").GetRawText());
 
             // The save went to the temp file. Without this, a path that never reached the server
             // would pass everything above while writing to your real characters.json.
@@ -145,12 +147,14 @@ public class McpToolSourceTests
             await tools.CallDirectAsync("save_character", new()
             {
                 ["brief"] = brief.RootElement,
+                ["name"] = KessaVale,
                 ["text"] = "saved by the app",
             }, CancellationToken.None);
 
             var save = new FunctionCallContent("call-1", "save_character", new Dictionary<string, object?>
             {
                 ["brief"] = brief.RootElement,
+                ["name"] = KessaVale,
                 ["text"] = "saved by the model",
             });
             var load = new FunctionCallContent("call-2", "load_character", new Dictionary<string, object?>
@@ -345,6 +349,52 @@ public class McpToolSourceTests
     }
 
     // A fresh file per test, so tests never share saves with each other or with you.
+    // A name as Program.cs sends it: a JSON object, the first name split as the namer split it.
+    private static readonly JsonElement KessaVale =
+        JsonSerializer.SerializeToElement(new { syllables = new[] { "Kes", "sa" }, family = "Vale" });
+
+    // ADR-009: the server binds the brief through CharacterBrief, so a brief that lacks a name die is
+    // refused and nothing is saved. Everything else in the call would save (lesson 004): the control
+    // saves the same brief with nameLetter.
+    [Fact]
+    public async Task Save_refuses_a_brief_without_nameLetter_and_saves_nothing()
+    {
+        var file = TempSaveFile();
+        try
+        {
+            await using var tools = new McpToolSource(file);
+            await tools.ConnectAsync(CancellationToken.None);
+            var briefJson = await tools.CallDirectAsync("roll_character", RollArgs(), CancellationToken.None);
+            var full = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(briefJson)!;
+            var lacking = new Dictionary<string, JsonElement>(full);
+            Assert.True(lacking.Remove("nameLetter"));
+
+            var refused = await Assert.ThrowsAsync<InvalidOperationException>(() => tools.CallDirectAsync("save_character", new()
+            {
+                ["brief"] = JsonSerializer.SerializeToElement(lacking),
+                ["name"] = KessaVale,
+                ["text"] = "A character.",
+            }, CancellationToken.None));
+            Assert.False(File.Exists(file), "a refused save writes nothing");
+
+            var savedAs = await tools.CallDirectAsync("save_character", new()
+            {
+                ["brief"] = JsonSerializer.SerializeToElement(full),
+                ["name"] = KessaVale,
+                ["text"] = "A character.",
+            }, CancellationToken.None);
+
+            // The SDK reports a binding failure without its reason, so the control above, the same
+            // call with nameLetter, is what shows the missing field is why it was refused.
+            Assert.Contains("save_character failed", refused.Message);
+            Assert.Equal("1", savedAs);
+        }
+        finally
+        {
+            File.Delete(file);
+        }
+    }
+
     private static string TempSaveFile() =>
         Path.Combine(Path.GetTempPath(), $"npcforge-test-{Guid.NewGuid():N}.json");
 

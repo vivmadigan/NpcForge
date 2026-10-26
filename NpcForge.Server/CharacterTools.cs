@@ -141,9 +141,10 @@ namespace NpcForge.Server
 
         // App-only. The app saves every run once the model has written. Returns the new number.
         // The brief must arrive as a JSON object, not as the text the roll returned: sent as
-        // text, it fails with no reason given.
-        [McpServerTool(Name = "save_character"), Description("Keep a written character and the brief it was written from.")]
-        public static int SaveCharacter(CharacterBrief brief, string text)
+        // text, it fails with no reason given. It binds through CharacterBrief, so a brief missing
+        // any field, its name dice included, is refused. Every new save has a name (ADR-009).
+        [McpServerTool(Name = "save_character"), Description("Keep a written character, its name, and the brief it was written from.")]
+        public static int SaveCharacter(CharacterBrief brief, CharacterName name, string text)
         {
             var all = Storage.Load();
 
@@ -151,7 +152,7 @@ namespace NpcForge.Server
             // Count + 1 could save over the last one.
             var number = all.Count == 0 ? 1 : all.Keys.Max() + 1;
 
-            all[number] = new SavedCharacter(Storage.ToJson(brief), text);
+            all[number] = new SavedCharacter(Storage.ToJson(brief), name, text);
             Storage.Save(all);
             return number;
 

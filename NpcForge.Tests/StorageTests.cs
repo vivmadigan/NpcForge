@@ -36,7 +36,7 @@ public class StorageTests
             var oldCount = Storage.Load().Count;
 
             // Through the tool, as the app saves: a typed brief in, the file written whole.
-            var number = CharacterTools.SaveCharacter(NewBrief(), "A new character.");
+            var number = CharacterTools.SaveCharacter(NewBrief(), NewName, "A new character.");
 
             var after = File.ReadAllText(copy);
             Assert.Equal(oldCount + 1, number);
@@ -67,13 +67,17 @@ public class StorageTests
             Storage.Save(Storage.Load());                    // the file as Storage writes it
             var before = File.ReadAllText(file);
 
-            CharacterTools.SaveCharacter(NewBrief(), "New.");
+            CharacterTools.SaveCharacter(NewBrief(), NewName, "New.");
 
             var after = File.ReadAllText(file);
             var oldEntry = OldEntries(before);
             Assert.StartsWith(oldEntry + "," + Environment.NewLine, after);
             Assert.DoesNotContain("unknown", after);
             Assert.DoesNotContain("null", oldEntry);         // no "tone": null written into the old entry
+            Assert.DoesNotContain("\"name\"", oldEntry);     // and no name: an old save never had one
+            // The new entry keeps its name, split as the namer split it.
+            Assert.Contains("\"name\": {", after[oldEntry.Length..]);
+            Assert.Contains("\"Tam\"", after[oldEntry.Length..]);
         }
         finally
         {
@@ -101,6 +105,8 @@ public class StorageTests
             File.Delete(copy);
         }
     }
+
+    private static readonly CharacterName NewName = new(["Tam", "sin"], "Brook");
 
     private static CharacterBrief NewBrief() => new()
     {

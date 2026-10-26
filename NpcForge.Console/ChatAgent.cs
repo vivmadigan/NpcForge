@@ -9,12 +9,15 @@ namespace NpcForge;
 
 public static class ChatAgent
 {
-    // The one way to write (ADR-009). Returns the answer; Program.cs prints it, the same way for a
-    // run and for a load. Scene on the input is the GM's scene from the interview, or null for a
-    // run with answer flags.
-    public static async Task<string> WriteAsync(
+    // The one way to write (ADR-009). Returns the name and the answer; Program.cs prints the answer,
+    // the same way for a run and for a load. Scene on the input is the GM's scene from the interview,
+    // or null for a run with answer flags. With no name on the input the namer runs first, and its
+    // NoNameException stops the run here, before the writer is paid for.
+    public static async Task<Written> WriteAsync(
         IChatClient client, ChatOptions options, IToolSource tools, WriterInput input, CancellationToken ct)
     {
+        var name = input.Name ?? await Namer.RunAsync(client, options, input, ct);
+
         var loop = new AgentLoop(client, tools, options);
 
         var system = SystemMessage(input.SkillDir, input.BriefJson);
@@ -25,10 +28,10 @@ public static class ChatAgent
         var history = new List<ChatMessage>
         {
             new(ChatRole.System, system.Text),
-            new(ChatRole.User, FirstMessage(input.BriefJson, input.Scene)),
+            new(ChatRole.User, FirstMessage(input.BriefJson, input.Scene, name)),
         };
 
-        return await loop.RunAsync(history, ct);
+        return new Written(name, await loop.RunAsync(history, ct));
     }
 
     // What the model is told, and the line that proves which files that was: the skill, a blank
@@ -60,14 +63,19 @@ public static class ChatAgent
             : throw new InvalidOperationException("The brief names no tone, so no tone file can be chosen for the writer.");
     }
 
-    // The writer's facts (ADR-008). With no scene, today's message to the byte, so the replay
-    // fixture, a flag run, still matches. The scene goes in as typed and code never reads it. The
-    // brief stays last, so a replay of a scene run can find it from the end (the scene may hold a
-    // brace), and it wins on a clash, so the dice keep their job. How to use the scene is the skill's business, not this message's.
-    public static string FirstMessage(string briefJson, string? scene) =>
-        scene is null
-            ? $"Write this character. The brief is settled; do not change it.\n\n{briefJson}"
-            : "Write this character. The brief is settled; do not change it.\n\n" +
-              "This is the scene the GM described, in their own words. Where it and the brief disagree, the brief wins.\n\n" +
-              $"<scene>\n{scene}\n</scene>\n\n{briefJson}";
+    // The writer's facts (ADR-008). With no scene and no name, the message from before the namer, to
+    // the byte. The scene goes in as typed and code never reads it. The name is told as every trait
+    // is (ADR-009). The brief stays last, so a replay can find it from the end (the scene may hold a
+    // brace), and it wins on a clash, so the dice keep their job. How to use the scene is the
+    // skill's business, not this message's.
+    public static string FirstMessage(string briefJson, string? scene, NamedCharacter? name)
+    {
+        var message = "Write this character. The brief is settled; do not change it.\n\n";
+        if (scene is not null)
+            message += "This is the scene the GM described, in their own words. Where it and the brief disagree, the brief wins.\n\n" +
+                       $"<scene>\n{scene}\n</scene>\n\n";
+        if (name is not null)
+            message += $"Their name is {name.Full}.\n\n";
+        return message + briefJson;
+    }
 }

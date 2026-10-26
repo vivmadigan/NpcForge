@@ -147,6 +147,10 @@ public class LabRunTests : IDisposable
 
     private static readonly string[] AllTones = ["Serious", "Comic", "Heartfelt"];
 
+    // The line the writer is told its name in, as it appears in the first message.
+    private static string NameLine(LabStandIn.Call call) =>
+        Regex.Match(call.UserText, @"Their name is [^\n]+\.\n\n").Value;
+
     // What each call was sent: the brief is the JSON at the end of the first message, as ReplayTests
     // reads it, and the tone file is told apart by its heading.
     private static JsonObject BriefOf(LabStandIn.Call call) =>
@@ -449,7 +453,10 @@ public class LabRunTests : IDisposable
 
         // The stand-in saw what each call was really sent, so the printed estimate is checked against
         // those lengths and MaxOutputTokens (5000) and not against a copy of the formula's inputs.
-        var expected = model.Calls.Sum(call => 2L * (call.SystemLength + call.UserLength + 5000));
+        // The estimate is made before the namer runs, so it counts the writer's message without the
+        // name line the writer is then sent.
+        var expected = model.Calls.Sum(call =>
+            2L * (call.SystemLength + call.UserLength - NameLine(call).Length + 5000));
         var printed = long.Parse(Regex.Match(result.Stderr, @"About ([\d,]+) tokens").Groups[1].Value.Replace(",", ""));
         Assert.Equal(expected, printed);
     }
@@ -561,6 +568,7 @@ public class LabRunTests : IDisposable
             string SystemFirstLine, float? Temperature, int SystemLength, int UserLength, string SystemText, string UserText);
 
         public List<Call> Calls { get; } = [];
+        public NamerStandIn Namer { get; } = NamerStandIn.FollowsTheDice();
         public Func<Call, string?>? Behave { get; init; }
         public int TokensPerCall { get; init; }
 
@@ -572,6 +580,11 @@ public class LabRunTests : IDisposable
         public Task<ChatResponse> GetResponseAsync(
             IEnumerable<ChatMessage> messages, ChatOptions? options = null, CancellationToken cancellationToken = default)
         {
+            // The namer's calls name the character after its dice, free, and are kept apart from the
+            // writer's: Calls is the writing.
+            if (NamerStandIn.IsNamer(messages))
+                return Namer.GetResponseAsync(messages, options, cancellationToken);
+
             if (CallsATool && messages.Last().Role != ChatRole.Tool)
             {
                 var ask = new FunctionCallContent("call-1", "lookup_archetype",

@@ -230,7 +230,7 @@ public static class Lab
         // tokens, so this is an estimate and not a bound. It says "about", and the spending cap is
         // what stops a lab that runs over. Tokens only, no prices.
         var estimate = planned.Sum(p =>
-            2L * (p.SystemText.Length + ChatAgent.FirstMessage(p.BriefJson, scene: null).Length + (options.MaxOutputTokens ?? 0)));
+            2L * (p.SystemText.Length + ChatAgent.FirstMessage(p.BriefJson, scene: null, name: null).Length + (options.MaxOutputTokens ?? 0)));
         Console.Error.WriteLine(
             $"[lab] {planned.Count} characters ({variants.Count} variants x {run.Repeat} {(run.Repeat == 1 ? "take" : "takes")}), written by {run.Model}.");
         // Invariant, because the app speaks English: a Swedish machine would print "200 000".
@@ -283,7 +283,7 @@ public static class Lab
                 var writer = new WriterInput(item.BriefJson, null, item.Variant.SkillDir ?? WriterInput.DefaultSkillDir);
                 try
                 {
-                    var text = await ChatAgent.WriteAsync(client, variantOptions, tools, writer, ct);
+                    var text = (await ChatAgent.WriteAsync(client, variantOptions, tools, writer, ct)).Text;
                     entries.Add(new LabEntry(item.Variant.Label, item.Take, item.SkillLine, text, null));
                 }
                 catch (SpendingCapReachedException)

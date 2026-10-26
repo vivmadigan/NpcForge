@@ -19,24 +19,43 @@ public class SavedViewTests
         , "tone": "Comic", "race": "dwarf", "nameLetter": "K", "nameSyllables": "2", "familyLetter": "V"
         """;
 
-    private static JsonElement Entry(string briefFields)
+    // A name as the server saves it.
+    private const string Kessa = """ "name": { "syllables": ["Kes", "sa"], "family": "Vale" }, """;
+
+    private static JsonElement Entry(string briefFields, string name = "")
     {
-        using var entry = JsonDocument.Parse($$"""{ "brief": { {{briefFields}} }, "text": "A character." }""");
+        using var entry = JsonDocument.Parse($$"""{ "brief": { {{briefFields}} },{{name}} "text": "A character." }""");
         return entry.RootElement.Clone();
     }
 
     [Fact]
-    public void An_old_save_lacks_the_five_fields_and_they_are_listed_in_schema_order()
+    public void An_old_save_lacks_the_five_fields_and_a_name_and_they_are_listed_in_schema_order_then_name()
     {
         var unknown = SavedView.Unknown(SceneDraftTests.Fields, Entry(OldBrief));
 
-        Assert.Equal(["tone", "race", "nameLetter", "nameSyllables", "familyLetter"], unknown);
+        Assert.Equal(["tone", "race", "nameLetter", "nameSyllables", "familyLetter", "name"], unknown);
     }
 
     [Fact]
-    public void A_save_with_every_field_has_nothing_unknown()
+    public void A_save_with_every_field_and_a_name_has_nothing_unknown()
     {
-        Assert.Empty(SavedView.Unknown(SceneDraftTests.Fields, Entry(OldBrief + NewFields)));
+        Assert.Empty(SavedView.Unknown(SceneDraftTests.Fields, Entry(OldBrief + NewFields, Kessa)));
+    }
+
+    [Fact]
+    public void A_save_with_every_brief_field_and_no_name_lists_only_name()
+    {
+        Assert.Equal(["name"], SavedView.Unknown(SceneDraftTests.Fields, Entry(OldBrief + NewFields)));
+    }
+
+    [Fact]
+    public void The_saved_name_is_read_as_the_namer_split_it()
+    {
+        var name = SavedView.NameOf(Entry(OldBrief + NewFields, Kessa));
+
+        Assert.Equal("Kessa Vale", name!.Full);
+        Assert.Equal(["Kes", "sa"], name.Syllables);
+        Assert.Null(SavedView.NameOf(Entry(OldBrief)));
     }
 
     // Read from the schema it is handed, not from a list of its own: a field the console has never
@@ -46,7 +65,7 @@ public class SavedViewTests
     {
         RollField[] fields = [.. SceneDraftTests.Fields, new("pet", "A pet", null, Required: false)];
 
-        var unknown = SavedView.Unknown(fields, Entry(OldBrief + NewFields));
+        var unknown = SavedView.Unknown(fields, Entry(OldBrief + NewFields, Kessa));
 
         Assert.Equal(["pet"], unknown);
     }
@@ -58,28 +77,32 @@ public class SavedViewTests
     public async Task Load_prints_the_unknown_line_after_the_brief_line_for_an_old_save()
     {
         var old = await LoadOf(OldBrief);
-        var full = await LoadOf(OldBrief + NewFields);
+        var full = await LoadOf(OldBrief + NewFields, Kessa);
 
         Assert.True(old.ExitCode == 0, old.Stderr);
         var lines = old.Stderr.Split('\n').Select(l => l.TrimEnd('\r')).ToList();
         var brief = lines.FindIndex(l => l.StartsWith("[app] brief {"));
         Assert.True(brief >= 0, old.Stderr);
-        Assert.Equal("[app] unknown in save 1: tone, race, nameLetter, nameSyllables, familyLetter", lines[brief + 1]);
+        Assert.Equal("[app] unknown in save 1: tone, race, nameLetter, nameSyllables, familyLetter, name", lines[brief + 1]);
+        Assert.DoesNotContain("[app] name ", old.Stderr);
         Assert.DoesNotContain("tone", lines[brief]);                    // the brief line stays the save as written
         Assert.Equal("A character.", old.Stdout.Trim());
 
         Assert.True(full.ExitCode == 0, full.Stderr);
         Assert.Contains("[app] brief {", full.Stderr);
         Assert.DoesNotContain("unknown in save", full.Stderr);
+        // A save with a name prints it, after the brief line (ADR-009).
+        var fullLines = full.Stderr.Split('\n').Select(l => l.TrimEnd('\r')).ToList();
+        Assert.Equal("[app] name Kessa Vale", fullLines[fullLines.FindIndex(l => l.StartsWith("[app] brief {")) + 1]);
     }
 
-    private static async Task<ConsoleProcess.Result> LoadOf(string briefFields)
+    private static async Task<ConsoleProcess.Result> LoadOf(string briefFields, string name = "")
     {
         var fixture = Path.Combine(ConsoleProcess.RepoRoot, "NpcForge.Tests", "Fixtures", "replay.jsonl");
         var file = Path.Combine(Path.GetTempPath(), $"npcforge-view-{Guid.NewGuid():N}.json");
         try
         {
-            File.WriteAllText(file, $$"""{ "1": { "brief": { {{briefFields}} }, "text": "A character." } }""");
+            File.WriteAllText(file, $$"""{ "1": { "brief": { {{briefFields}} },{{name}} "text": "A character." } }""");
             return await ConsoleProcess.RunAsync(
                 ["--provider", "replay", "--recording", fixture, "--load", "1"],
                 offline: true, environment: new() { ["NPCFORGE_CHARACTERS"] = file });
