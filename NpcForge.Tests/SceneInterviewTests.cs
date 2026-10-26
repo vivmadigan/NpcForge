@@ -164,23 +164,24 @@ public class SceneInterviewTests(ITestOutputHelper output)
         Assert.False(told.RollArguments.ContainsKey("race"));
     }
 
-    // ADR-009: a letter is recorded only when the GM said it. The stand-in claims K on a scene with no K,
-    // then on one that says "starts with K".
+    // ADR-009, amended 2026-10-26: a name letter is never recorded from a scene, even when the GM
+    // says it outright, so no sentence can be made to look like it named one. It stays rolled.
     [Fact]
-    public async Task A_name_letter_is_rejected_without_the_letter_in_the_quote_and_kept_with_it()
+    public async Task A_name_letter_is_never_recorded_from_a_scene_even_when_the_GM_says_it()
     {
-        var withoutK = new ScriptedInterviewer([Answer("nameLetter", "K", "meet a tavern owner")]);
-        var (toldWithout, screenWithout) = await Interview(withoutK, "My players meet a tavern owner.\nyes\n");
+        foreach (var (scene, quote) in new[]
+        {
+            ("My players meet a tavern owner.", "meet a tavern owner"),
+            ("My players meet a baker whose name starts with K.", "whose name starts with K"),
+        })
+        {
+            var model = new ScriptedInterviewer([Answer("nameLetter", "K", quote)]);
+            var (told, screen) = await Interview(model, scene + "\nyes\n");
 
-        Assert.StartsWith("Rejected:", withoutK.Results["call-nameLetter"]);
-        Assert.Contains("  nameLetter: [rolled]", screenWithout);
-        Assert.False(toldWithout!.RollArguments.ContainsKey("nameLetter"));
-
-        var withK = new ScriptedInterviewer([Answer("nameLetter", "K", "starts with K")]);
-        var (toldWith, screenWith) = await Interview(withK, "My players meet a baker whose name starts with K.\nyes\n");
-
-        Assert.Contains("  nameLetter: K   [inferred]", screenWith);
-        Assert.Equal("K", toldWith!.RollArguments["nameLetter"]);
+            Assert.StartsWith("Rejected:", model.Results["call-nameLetter"]);
+            Assert.Contains("  nameLetter: [rolled]", screen);
+            Assert.False(told!.RollArguments.ContainsKey("nameLetter"));
+        }
     }
 
     // Done when: a trait I described reaches the brief instead of a roll. The real server, with a

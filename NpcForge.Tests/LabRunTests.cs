@@ -1,4 +1,5 @@
 using Microsoft.Extensions.AI;
+using System.Globalization;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 
@@ -303,6 +304,26 @@ public class LabRunTests : IDisposable
             @"\[lab\] About [\d,]+ tokens, against the session cap of 200,000\. The cap stops the lab if it runs over\.",
             result.Stderr);
         Assert.DoesNotContain("at most", result.Stderr);
+    }
+
+    // The app's output is English, so its numbers are too: on a Swedish machine N0 would print
+    // "200 000" with a non-breaking space, and the GM's screen would mix two number styles.
+    [Fact]
+    public async Task The_confirmation_prints_its_numbers_the_same_on_a_Swedish_machine()
+    {
+        var culture = CultureInfo.CurrentCulture;
+        try
+        {
+            CultureInfo.CurrentCulture = new CultureInfo("sv-SE");
+
+            var result = await RunLab(new LabStandIn(), ["--lab", $"skill={Skill("a")},{Skill("b")}"], "no\n");
+
+            Assert.Matches(@"\[lab\] About [\d,]+ tokens, against the session cap of 200,000\.", result.Stderr);
+        }
+        finally
+        {
+            CultureInfo.CurrentCulture = culture;
+        }
     }
 
     [Fact]

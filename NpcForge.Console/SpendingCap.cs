@@ -1,4 +1,5 @@
 using Microsoft.Extensions.AI;
+using System.Globalization;             // CultureInfo
 
 namespace NpcForge;
 
@@ -36,4 +37,6 @@ public sealed class SpendingCap(IChatClient inner, long maxTokens) : DelegatingC
 }
 
 public sealed class SpendingCapReachedException(long spent, long cap)
-    : InvalidOperationException($"Spending cap reached: this session has used {spent:N0} tokens of {cap:N0}. Nothing more is sent to the model.");
+    // Invariant, as the lab's confirmation is: the app speaks English whatever the machine's culture.
+    : InvalidOperationException(string.Create(CultureInfo.InvariantCulture,
+        $"Spending cap reached: this session has used {spent:N0} tokens of {cap:N0}. Nothing more is sent to the model."));

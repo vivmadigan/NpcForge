@@ -41,10 +41,11 @@ public class StorageTests
             var after = File.ReadAllText(copy);
             Assert.Equal(oldCount + 1, number);
 
-            // The old file ends "  }\n}". The new one is that text with the closing brace moved
-            // past the new entry, so everything before it must be unchanged.
-            var oldEntries = before[..before.LastIndexOf("\n}", StringComparison.Ordinal)];
-            Assert.StartsWith(oldEntries + ",\n", after);
+            // The old file ends "  }", a line break, "}". The new one is that text with the closing
+            // brace moved past the new entry, so everything before it must be unchanged. The break
+            // is the writer's own, "\r\n" on Windows, so the test cuts at the brace, not at "\n".
+            var oldEntries = OldEntries(before);
+            Assert.StartsWith(oldEntries + "," + Environment.NewLine, after);
         });
     }
 
@@ -69,8 +70,8 @@ public class StorageTests
             CharacterTools.SaveCharacter(NewBrief(), "New.");
 
             var after = File.ReadAllText(file);
-            var oldEntry = before[..before.LastIndexOf("\n}", StringComparison.Ordinal)];
-            Assert.StartsWith(oldEntry + ",\n", after);
+            var oldEntry = OldEntries(before);
+            Assert.StartsWith(oldEntry + "," + Environment.NewLine, after);
             Assert.DoesNotContain("unknown", after);
             Assert.DoesNotContain("null", oldEntry);         // no "tone": null written into the old entry
         }
@@ -80,6 +81,9 @@ public class StorageTests
             File.Delete(file);
         }
     }
+
+    // Everything before the file's closing brace and the line break in front of it.
+    private static string OldEntries(string file) => file[..file.LastIndexOf('}')].TrimEnd();
 
     private static void WithCopyOfRealSaves(Action<string> test)
     {
