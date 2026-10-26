@@ -24,9 +24,11 @@ public static class RecordedRun
 
     // The brief is the JSON at the end of the writer's first message, after a blank line (see
     // ChatAgent.FirstMessage). Found from the end, so a brace in the scene or the name cannot move it.
-    public static string BriefJson(JsonNode writerCall)
+    public static string BriefJson(JsonNode writerCall) =>
+        BriefIn(Messages(writerCall).First(m => m.Role == ChatRole.User).Text);
+
+    public static string BriefIn(string text)
     {
-        var text = Messages(writerCall).First(m => m.Role == ChatRole.User).Text;
         var at = text.LastIndexOf("\n\n{", StringComparison.Ordinal);
         Assert.True(at >= 0, "the writer's first message holds no brief after a blank line");
         return text[(at + 2)..];
