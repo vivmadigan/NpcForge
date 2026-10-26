@@ -46,8 +46,27 @@ namespace NpcForge.Server
             [Description("A subject the character will not talk about, such as their family")]
             string? willNotDiscuss = null,
             [Description("Something the character believes that is not true")]
-            string? wrongAbout = null)
+            string? wrongAbout = null,
+            [Description("How the character is written: Serious, Comic or Heartfelt. It changes the writing, not what is true of them")]
+            Tone? tone = null,
+            [Description("The character's people, such as dwarf or half-orc")]
+            string? race = null,
+            [Description("The letter the character's first name starts with")]
+            NameLetter? nameLetter = null,
+            [Description("How many syllables the character's first name has: 1, 2 or 3")]
+            Syllables? nameSyllables = null,
+            [Description("The letter the character's family name starts with")]
+            NameLetter? familyLetter = null)
         {
+            // The SDK's string-enum converter also accepts a number, so an undefined enum would bind
+            // and be written back as that number. Refused here, before any die is cast, by name.
+            RequireDefined(nameof(difficulty), difficulty);
+            RequireDefined(nameof(obstacle), obstacle);
+            RequireDefined(nameof(tone), tone);
+            RequireDefined(nameof(nameLetter), nameLetter);
+            RequireDefined(nameof(nameSyllables), nameSyllables);
+            RequireDefined(nameof(familyLetter), familyLetter);
+
             // The difficulty filter, in code. Left to the model, it would pick something agreeable.
             var wants = Tables.Wants.Where(w => w.Fits.Contains(difficulty)).ToArray();
 
@@ -65,6 +84,11 @@ namespace NpcForge.Server
             var rolledWeakness = Pick(Tables.Weaknesses);
             var rolledWillNotDiscuss = Pick(Tables.WillNotDiscuss);
             var rolledWrongAbout = Pick(Tables.WrongAbout);
+            var rolledTone = Pick(Enum.GetValues<Tone>());
+            var rolledRace = Tables.PickWeighted(Tables.Races, Dice);
+            var rolledNameLetter = Tables.PickWeighted(Tables.NameLetters, Dice);
+            var rolledNameSyllables = Tables.PickWeighted(Tables.SyllableCounts, Dice);
+            var rolledFamilyLetter = Tables.PickWeighted(Tables.NameLetters, Dice);
 
             return new CharacterBrief
             {
@@ -79,8 +103,22 @@ namespace NpcForge.Server
                 Weakness = weakness ?? rolledWeakness,
                 WillNotDiscuss = willNotDiscuss ?? rolledWillNotDiscuss,
                 WrongAbout = wrongAbout ?? rolledWrongAbout,
+                Tone = tone ?? rolledTone,
+                Race = race ?? rolledRace,
+                NameLetter = nameLetter ?? rolledNameLetter,
+                NameSyllables = nameSyllables ?? rolledNameSyllables,
+                FamilyLetter = familyLetter ?? rolledFamilyLetter,
             };
         }
+
+        private static void RequireDefined<T>(string parameter, T? value) where T : struct, Enum
+        {
+            if (value is { } given && !Enum.IsDefined(given))
+                throw new McpException($"{parameter} {Convert.ToInt32(given)} is not one of its values.");
+        }
+
+        private static void RequireDefined<T>(string parameter, T value) where T : struct, Enum
+            => RequireDefined(parameter, (T?)value);
 
         // The dice: the whole of the variety, and the model cannot reach them. An empty table
         // throws here, and the app's CallDirectAsync turns that into a stopped run.

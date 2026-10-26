@@ -20,4 +20,25 @@ public class FlagRefusalTests
         Assert.DoesNotContain("Missing user secret", run.Stderr);
         Assert.DoesNotContain("[loop]", run.Stderr);
     }
+
+    // ADR-009: the parser takes any text for --tone, so the server's roll is what refuses 7. The run stops
+    // there, by the field's name, before the writer is called. The replay provider and the dead proxy keep
+    // it free; the recording is never read, because no model call is made.
+    [Theory]
+    [InlineData("--tone", "7", "tone 7")]
+    [InlineData("--letter", "99", "nameLetter 99")]
+    [InlineData("--syllables", "7", "nameSyllables 7")]
+    [InlineData("--family-letter", "99", "familyLetter 99")]
+    [InlineData("--difficulty", "7", "difficulty 7")]
+    public async Task The_app_stops_at_the_roll_on_an_undefined_enum_value_and_names_the_field(string flag, string value, string reason)
+    {
+        var fixture = Path.Combine(ConsoleProcess.RepoRoot, "NpcForge.Tests", "Fixtures", "replay.jsonl");
+
+        var run = await ConsoleProcess.RunAsync(["--provider", "replay", "--recording", fixture, flag, value], offline: true);
+
+        Assert.NotEqual(0, run.ExitCode);
+        Assert.Contains($"{reason} is not one of its values", run.Stderr);
+        Assert.DoesNotContain("[loop]", run.Stderr);
+        Assert.DoesNotContain("[app] brief", run.Stderr);
+    }
 }

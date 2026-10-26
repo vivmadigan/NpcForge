@@ -179,8 +179,9 @@ public static class Lab
         var estimate = planned.Sum(p => 2L * (p.SystemText.Length + firstMessage.Length + (options.MaxOutputTokens ?? 0)));
         Console.Error.WriteLine(
             $"[lab] {planned.Count} characters ({plan.Variants.Count} variants x {run.Repeat} {(run.Repeat == 1 ? "take" : "takes")}), written by {run.Model}.");
-        Console.Error.WriteLine(
-            $"[lab] About {estimate:N0} tokens, against the session cap of {SpendingCap.TokensPerSession:N0}. " +
+        // Invariant, because the app speaks English: a Swedish machine would print "200 000".
+        Console.Error.WriteLine(string.Create(CultureInfo.InvariantCulture,
+            $"[lab] About {estimate:N0} tokens, against the session cap of {SpendingCap.TokensPerSession:N0}. ") +
             "The cap stops the lab if it runs over.");
 
         if (estimate > SpendingCap.TokensPerSession)

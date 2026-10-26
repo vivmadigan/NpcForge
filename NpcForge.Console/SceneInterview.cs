@@ -105,7 +105,9 @@ public static class SceneInterview
         var skillPath = Path.Combine(AppContext.BaseDirectory, "skills", "scene-interviewer", "SKILL.md");
         var skill = File.ReadAllText(skillPath);
 
-        var list = string.Join("\n", fields.Select(field => field.Choices is null
+        // A long choice is never recorded from a scene (SceneDraft.IsLongChoice), so the interviewer is
+        // not told about it and spends no turn on it. The confirmation still shows it, as rolled.
+        var list = string.Join("\n", fields.Where(field => !SceneDraft.IsLongChoice(field)).Select(field => field.Choices is null
             ? $"- `{field.Name}` (free text): {field.Description}"
             : $"- `{field.Name}` (choice: {string.Join(", ", field.Choices)}): {field.Description}"));
 

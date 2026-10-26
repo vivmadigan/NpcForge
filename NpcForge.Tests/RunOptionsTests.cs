@@ -76,6 +76,60 @@ public class RunOptionsTests
         Assert.Equal(4, arguments.Count);
     }
 
+    // ADR-009: the five new flags have no default. Left off, they are not in the roll at all, so
+    // the server's dice pick them.
+    [Theory]
+    [InlineData("--tone", "tone", "Comic")]
+    [InlineData("--race", "race", "half-orc")]
+    [InlineData("--letter", "nameLetter", "K")]
+    [InlineData("--syllables", "nameSyllables", "2")]
+    [InlineData("--family-letter", "familyLetter", "V")]
+    public void Each_new_flag_fills_its_parameter_and_is_left_out_when_not_given(string flag, string parameter, string value)
+    {
+        Assert.DoesNotContain(parameter, RunOptions.Parse([]).RollArguments().Keys);
+
+        var arguments = RunOptions.Parse([flag, value]).RollArguments();
+
+        Assert.Equal(value, arguments[parameter]);
+        Assert.Equal(5, arguments.Count);
+    }
+
+    [Fact]
+    public void A_race_is_kept_as_typed()
+    {
+        Assert.Equal("Half-Orc", RunOptions.Parse(["--race", "Half-Orc"]).RollArguments()["race"]);
+    }
+
+    [Fact]
+    public void A_new_flag_goes_on_line_one_when_given_and_is_left_off_when_not()
+    {
+        var withNone = RunOptions.Parse(["--seed", "1"]).RecordedFlags();
+        var withTone = RunOptions.Parse(["--seed", "1", "--tone", "Comic", "--family-letter", "V"]).RecordedFlags();
+
+        Assert.DoesNotContain("--tone", withNone);
+        Assert.Equal(
+            ["--seed", "1", "--model", "gpt-6-luna",
+             "--setting", "an inn in a major city", "--want", "the name of a fence",
+             "--difficulty", "Wall", "--occupation", "innkeeper",
+             "--tone", "Comic", "--family-letter", "V"],
+            withTone);
+    }
+
+    // The five are answers, like --setting: any one of them skips the interview, and a recording of a
+    // run that gave only a tone is a recording of flags.
+    [Theory]
+    [InlineData("--tone", "Comic")]
+    [InlineData("--race", "dwarf")]
+    [InlineData("--letter", "K")]
+    [InlineData("--syllables", "2")]
+    [InlineData("--family-letter", "V")]
+    public void A_new_flag_alone_skips_the_interview_and_is_enough_to_record(string flag, string value)
+    {
+        var run = RunOptions.Parse([flag, value, "--seed", "1", "--record", "f.jsonl"]);
+
+        Assert.False(run.Interview);
+    }
+
     [Fact]
     public void Record_sets_the_recording_file()
     {
@@ -85,7 +139,7 @@ public class RunOptionsTests
     }
 
     private const string Known =
-        "The flags are: --provider, --seed, --model, --setting, --want, --difficulty, --occupation, --load, --record, --recording, --lab, --repeat, --mode, --out, --score.";
+        "The flags are: --provider, --seed, --model, --setting, --want, --difficulty, --occupation, --tone, --race, --letter, --syllables, --family-letter, --load, --record, --recording, --lab, --repeat, --mode, --out, --score.";
 
     [Fact]
     public void An_unknown_flag_stops_the_run_and_names_the_flags_the_app_knows()
@@ -123,6 +177,11 @@ public class RunOptionsTests
     [InlineData("--want", "--want needs a value after it.")]
     [InlineData("--difficulty", "--difficulty needs a value after it.")]
     [InlineData("--occupation", "--occupation needs a value after it.")]
+    [InlineData("--tone", "--tone needs a value after it.")]
+    [InlineData("--race", "--race needs a value after it.")]
+    [InlineData("--letter", "--letter needs a value after it.")]
+    [InlineData("--syllables", "--syllables needs a value after it.")]
+    [InlineData("--family-letter", "--family-letter needs a value after it.")]
     [InlineData("--load", "--load needs a number, for example --load 3.")]
     [InlineData("--record", "--record needs a file, for example --record NpcForge.Tests/Fixtures/replay.jsonl.")]
     [InlineData("--recording", "--recording needs a file, for example --recording NpcForge.Tests/Fixtures/replay.jsonl.")]
@@ -146,6 +205,11 @@ public class RunOptionsTests
     [InlineData("--want")]
     [InlineData("--difficulty")]
     [InlineData("--occupation")]
+    [InlineData("--tone")]
+    [InlineData("--race")]
+    [InlineData("--letter")]
+    [InlineData("--syllables")]
+    [InlineData("--family-letter")]
     [InlineData("--load")]
     [InlineData("--record")]
     [InlineData("--recording")]

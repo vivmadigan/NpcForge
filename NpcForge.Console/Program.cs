@@ -93,6 +93,13 @@ if (load is not null)
     using var saved = JsonDocument.Parse(savedJson);
     Console.Error.WriteLine($"[app] loaded {load}");
     Console.Error.WriteLine($"[app] brief {saved.RootElement.GetProperty("brief").GetRawText()}");
+
+    // The brief line above is the save exactly as it was written. This one says what a save made
+    // before a field existed does not have, so a missing tone is not read as a plain one.
+    var unknown = SavedView.Unknown(RollField.ListFrom(tools.SchemaOf("roll_character")), saved.RootElement);
+    if (unknown.Count > 0)
+        Console.Error.WriteLine($"[app] unknown in save {load}: {string.Join(", ", unknown)}");
+
     Console.WriteLine(saved.RootElement.GetProperty("text").GetString());
     return;
 }

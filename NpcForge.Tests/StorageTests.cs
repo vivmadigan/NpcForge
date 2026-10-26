@@ -41,12 +41,49 @@ public class StorageTests
             var after = File.ReadAllText(copy);
             Assert.Equal(oldCount + 1, number);
 
-            // The old file ends "  }\n}". The new one is that text with the closing brace moved
-            // past the new entry, so everything before it must be unchanged.
-            var oldEntries = before[..before.LastIndexOf("\n}", StringComparison.Ordinal)];
-            Assert.StartsWith(oldEntries + ",\n", after);
+            // The old file ends "  }", a line break, "}". The new one is that text with the closing
+            // brace moved past the new entry, so everything before it must be unchanged. The break
+            // is the writer's own, "\r\n" on Windows, so the test cuts at the brace, not at "\n".
+            var oldEntries = OldEntries(before);
+            Assert.StartsWith(oldEntries + "," + Environment.NewLine, after);
         });
     }
+
+    // ADR-009: an old save loads with an "unknown" line on screen only. The next save must leave that
+    // entry as it was: no tone, no "unknown", not one byte different.
+    [Fact]
+    public void Saving_after_an_old_entry_leaves_its_json_byte_for_byte_with_no_unknown_in_the_file()
+    {
+        var file = Path.Combine(Path.GetTempPath(), $"npcforge-storage-{Guid.NewGuid():N}.json");
+        var told = Environment.GetEnvironmentVariable("NPCFORGE_CHARACTERS");
+        try
+        {
+            Environment.SetEnvironmentVariable("NPCFORGE_CHARACTERS", file);
+            File.WriteAllText(file, """
+                { "1": { "brief": { "setting": "an inn", "playersWant": "a name", "difficulty": "Wall", "occupation": "innkeeper",
+                  "characterWants": "to be left alone", "obstacle": "Cant", "attitude": "distrustful", "mannerism": "fidgets",
+                  "weakness": "flattery", "willNotDiscuss": "their age", "wrongAbout": "thinks they lie well" }, "text": "Old." } }
+                """);
+            Storage.Save(Storage.Load());                    // the file as Storage writes it
+            var before = File.ReadAllText(file);
+
+            CharacterTools.SaveCharacter(NewBrief(), "New.");
+
+            var after = File.ReadAllText(file);
+            var oldEntry = OldEntries(before);
+            Assert.StartsWith(oldEntry + "," + Environment.NewLine, after);
+            Assert.DoesNotContain("unknown", after);
+            Assert.DoesNotContain("null", oldEntry);         // no "tone": null written into the old entry
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable("NPCFORGE_CHARACTERS", told);
+            File.Delete(file);
+        }
+    }
+
+    // Everything before the file's closing brace and the line break in front of it.
+    private static string OldEntries(string file) => file[..file.LastIndexOf('}')].TrimEnd();
 
     private static void WithCopyOfRealSaves(Action<string> test)
     {
@@ -78,5 +115,10 @@ public class StorageTests
         Weakness = "gambling",
         WillNotDiscuss = "his brother",
         WrongAbout = "the tides",
+        Tone = Tone.Serious,
+        Race = "human",
+        NameLetter = NameLetter.T,
+        NameSyllables = Syllables.Two,
+        FamilyLetter = NameLetter.B,
     };
 }

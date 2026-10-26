@@ -147,6 +147,43 @@ public class SceneInterviewTests(ITestOutputHelper output)
             told!.RollArguments);
     }
 
+    // ADR-009: a stand-in interviewer that records a tone gives "tone: Comic [inferred]" on the screen,
+    // and the five new fields the scene is silent about are rolled.
+    [Fact]
+    public async Task A_tone_read_from_the_scene_shows_as_inferred_and_the_silent_new_fields_are_rolled()
+    {
+        const string scene = "The players meet a clown at a fair. Everything about him is a joke.";
+        var model = new ScriptedInterviewer([Answer("tone", "Comic", "Everything about him is a joke")]);
+
+        var (told, screen) = await Interview(model, scene + "\nyes\n");
+
+        Assert.Contains("  tone: Comic   [inferred]\n    from \"Everything about him is a joke\"", screen);
+        foreach (var field in new[] { "race", "nameLetter", "nameSyllables", "familyLetter" })
+            Assert.Contains($"  {field}: [rolled]", screen);
+        Assert.Equal("Comic", told!.RollArguments["tone"]);
+        Assert.False(told.RollArguments.ContainsKey("race"));
+    }
+
+    // ADR-009, amended 2026-10-26: a name letter is never recorded from a scene, even when the GM
+    // says it outright, so no sentence can be made to look like it named one. It stays rolled.
+    [Fact]
+    public async Task A_name_letter_is_never_recorded_from_a_scene_even_when_the_GM_says_it()
+    {
+        foreach (var (scene, quote) in new[]
+        {
+            ("My players meet a tavern owner.", "meet a tavern owner"),
+            ("My players meet a baker whose name starts with K.", "whose name starts with K"),
+        })
+        {
+            var model = new ScriptedInterviewer([Answer("nameLetter", "K", quote)]);
+            var (told, screen) = await Interview(model, scene + "\nyes\n");
+
+            Assert.StartsWith("Rejected:", model.Results["call-nameLetter"]);
+            Assert.Contains("  nameLetter: [rolled]", screen);
+            Assert.False(told!.RollArguments.ContainsKey("nameLetter"));
+        }
+    }
+
     // Done when: a trait I described reaches the brief instead of a roll. The real server, with a
     // seed whose plain roll gives a different obstacle, so the brief can only say Cant if the
     // interview's answer got there.
@@ -196,6 +233,22 @@ public class SceneInterviewTests(ITestOutputHelper output)
         }
     }
 
+    // ADR-009, amended 2026-10-26: a letter field is never read from a scene, so the interviewer is
+    // not told about it and spends no turn on it. The confirmation still shows it, rolled.
+    [Fact]
+    public async Task The_interviewer_is_not_told_about_the_letter_fields_and_they_show_as_rolled()
+    {
+        var model = new ScriptedInterviewer([]);
+
+        var (_, screen) = await Interview(model, SceneDraftTests.Tavern + "\nno\n");
+
+        Assert.Contains("- `tone` (choice:", model.Told);
+        Assert.DoesNotContain("`nameLetter`", model.Told);
+        Assert.DoesNotContain("`familyLetter`", model.Told);
+        Assert.Contains("  nameLetter: [rolled]", screen);
+        Assert.Contains("  familyLetter: [rolled]", screen);
+    }
+
     private static FunctionCallContent Answer(string field, string value, string quote) =>
         new($"call-{field}", "record_answer", new Dictionary<string, object?>
         {
@@ -224,6 +277,7 @@ public class SceneInterviewTests(ITestOutputHelper output)
     {
         public int Calls { get; private set; }
         public IReadOnlyList<string> Offered { get; private set; } = [];
+        public string Told { get; private set; } = "";
         public Dictionary<string, string> Results { get; } = [];
 
         public Task<ChatResponse> GetResponseAsync(
@@ -233,6 +287,7 @@ public class SceneInterviewTests(ITestOutputHelper output)
             if (Calls == 1)
             {
                 Offered = [.. (options?.Tools ?? []).Select(t => t.Name)];
+                Told = messages.First(m => m.Role == ChatRole.System).Text;
                 return Task.FromResult(new ChatResponse(new ChatMessage(ChatRole.Assistant, [.. calls])));
             }
 

@@ -34,6 +34,9 @@ Rules that depend on the kind of field:
 - **A choice field** (it lists its choices) takes one of its choices, exactly as listed. Choose only
   when the GM's words point to one, and quote those words, such as `Cant` from
   `has never heard of it`. If the scene does not point to one, do not record it.
+- **A tone** is how the scene is told, not who the character is: a scene played for laughs points to
+  `Comic`, a quiet or tender one to `Heartfelt`. Record it only when the way the GM tells the scene
+  shows it, and quote the sentence that does.
 
 ## When a call is rejected
 

@@ -15,20 +15,45 @@ public class RollFieldTests
         // The brief's order, as CharacterBrief and roll_character have it.
         Assert.Equal(
             ["setting", "playersWant", "difficulty", "occupation", "characterWants", "obstacle",
-             "attitude", "mannerism", "weakness", "willNotDiscuss", "wrongAbout"],
+             "attitude", "mannerism", "weakness", "willNotDiscuss", "wrongAbout",
+             "tone", "race", "nameLetter", "nameSyllables", "familyLetter"],
             fields.Select(f => f.Name));
 
         // Required means supplied, never rolled: these four take a flag default when the scene is silent.
         Assert.Equal(["setting", "playersWant", "difficulty", "occupation"],
             fields.Where(f => f.Required).Select(f => f.Name));
 
-        // The two choice fields, and the nullable one without the SDK's null among its choices.
+        // The choice fields, and the nullable ones without the SDK's null among their choices.
         Assert.Equal(["Easy", "SomeWork", "Wall"], fields.Single(f => f.Name == "difficulty").Choices);
         Assert.Equal(["Wont", "Cant", "ForAPrice"], fields.Single(f => f.Name == "obstacle").Choices);
-        Assert.All(fields.Where(f => f.Name is not ("difficulty" or "obstacle")), f => Assert.Null(f.Choices));
+        Assert.Equal(["Serious", "Comic", "Heartfelt"], fields.Single(f => f.Name == "tone").Choices);
+        Assert.All(fields.Where(f => f.Name is not ("difficulty" or "obstacle" or "tone" or "nameLetter" or "nameSyllables" or "familyLetter")),
+            f => Assert.Null(f.Choices));
 
         // The interviewer reads these to know each field.
         Assert.All(fields, f => Assert.False(string.IsNullOrWhiteSpace(f.Description)));
+    }
+
+    // ADR-009: the syllable count is a number in a string, "1", "2", "3". The attribute on the server's
+    // enum must reach the schema, or the console would read the member names (One, Two, Three).
+    [Fact]
+    public async Task The_syllable_choices_are_written_as_digits()
+    {
+        var fields = await FieldsFromServer();
+
+        Assert.Equal(["1", "2", "3"], fields.Single(f => f.Name == "nameSyllables").Choices);
+    }
+
+    // Both name letters offer the whole alphabet: the table the dice use leaves out Q, U, X, Y and Z,
+    // but a GM may still ask for one.
+    [Fact]
+    public async Task Both_name_letters_offer_all_26_letters()
+    {
+        var fields = await FieldsFromServer();
+        var alphabet = Enumerable.Range('A', 26).Select(c => ((char)c).ToString()).ToList();
+
+        Assert.Equal(alphabet, fields.Single(f => f.Name == "nameLetter").Choices);
+        Assert.Equal(alphabet, fields.Single(f => f.Name == "familyLetter").Choices);
     }
 
     [Fact]

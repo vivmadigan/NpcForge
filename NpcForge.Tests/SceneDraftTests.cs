@@ -14,6 +14,9 @@ public class SceneDraftTests
 
     // roll_character's fields as the server lists them today. RollFieldTests holds this to the real
     // server; these tests stay pure.
+    // Declared first: static fields start in the order they are written, and Fields reads this.
+    private static readonly string[] Alphabet = [.. Enumerable.Range('A', 26).Select(c => ((char)c).ToString())];
+
     public static readonly IReadOnlyList<RollField> Fields =
     [
         new("setting", "Where", null, Required: true),
@@ -27,6 +30,11 @@ public class SceneDraftTests
         new("weakness", "A weakness", null, Required: false),
         new("willNotDiscuss", "A subject", null, Required: false),
         new("wrongAbout", "A false belief", null, Required: false),
+        new("tone", "How it is written", ["Serious", "Comic", "Heartfelt"], Required: false),
+        new("race", "Their people", null, Required: false),
+        new("nameLetter", "First name letter", Alphabet, Required: false),
+        new("nameSyllables", "First name syllables", ["1", "2", "3"], Required: false),
+        new("familyLetter", "Family name letter", Alphabet, Required: false),
     ];
 
     public static readonly IReadOnlyDictionary<string, object?> Defaults = RunOptions.Parse([]).RollArguments();
@@ -165,6 +173,74 @@ public class SceneDraftTests
 
         Assert.Equal(Rejection.None, result.Reason);
         Assert.Equal(scene, draft.Answers["wrongAbout"].Sentence);
+    }
+
+    // ADR-009: tone and syllables are short choices, so they are inferred as ADR-007 allows.
+    [Fact]
+    public void A_tone_read_from_how_the_scene_is_told_is_kept_and_labelled_inferred()
+    {
+        var draft = Draft("The players meet a clown at a fair. Everything about him is a joke.");
+
+        var result = draft.Record("tone", "comic", "Everything about him is a joke");
+
+        Assert.Equal(Rejection.None, result.Reason);
+        var line = draft.Lines(Defaults).Single(l => l.Field.Name == "tone");
+        Assert.Equal("Comic", line.Value);
+        Assert.Equal(Label.Inferred, line.Label);
+    }
+
+    [Fact]
+    public void A_syllable_count_is_inferred_without_its_digit_in_the_quote()
+    {
+        var draft = Draft("The players meet a smith. She has a short name.");
+
+        var result = draft.Record("nameSyllables", "1", "She has a short name");
+
+        Assert.Equal(Rejection.None, result.Reason);
+        Assert.Equal("1", draft.Answers["nameSyllables"].Value);
+    }
+
+    // ADR-009, amended 2026-10-26: a list of 26 letters is never read from a scene, because "a" and
+    // "I" are letters and words alike. Even a GM who says the letter outright gets it from the dice
+    // or the flag, so no sentence can be made to look like it named one.
+    [Theory]
+    [InlineData("nameLetter", "K", "starts with K")]
+    [InlineData("nameLetter", "A", "meet a tavern owner")]
+    [InlineData("familyLetter", "I", "I think")]
+    public void A_letter_is_never_recorded_from_a_scene_and_is_left_to_the_dice(string field, string value, string quote)
+    {
+        var draft = Draft("My players meet a tavern owner. I think her name starts with K.");
+
+        var result = draft.Record(field, value, quote);
+
+        Assert.Equal(Rejection.LongChoiceNotFromAScene, result.Reason);
+        Assert.Empty(draft.Answers);
+        Assert.Equal(Label.Rolled, draft.Lines(Defaults).Single(l => l.Field.Name == field).Label);
+    }
+
+    // The rule reads the count from the field's own choices, so it holds for a field the console has
+    // never heard of, and stops at six.
+    [Theory]
+    [InlineData(6, Rejection.None)]
+    [InlineData(7, Rejection.LongChoiceNotFromAScene)]
+    public void The_long_choice_rule_follows_the_fields_choice_count(int choices, Rejection expected)
+    {
+        var field = new RollField("mood", "A mood", [.. Enumerable.Range(1, choices).Select(n => $"mood{n}")], Required: false);
+        var draft = new SceneDraft(Tavern, [field]);
+
+        var result = draft.Record("mood", "mood1", "doesn't want to get involved");
+
+        Assert.Equal(expected, result.Reason);
+    }
+
+    [Fact]
+    public void A_race_is_free_text_and_must_be_the_GMs_words()
+    {
+        var draft = Draft("The players meet a dwarf smith at her forge.");
+
+        Assert.Equal(Rejection.None, draft.Record("race", "dwarf", "meet a dwarf smith").Reason);
+        Assert.Equal(Label.MyWords, draft.Answers["race"].Label);
+        Assert.Equal(Rejection.ValueNotInQuote, draft.Record("race", "gnome", "meet a dwarf smith").Reason);
     }
 
     [Fact]
