@@ -177,7 +177,7 @@ public class LabRunTests : IDisposable
         var sheet = File.ReadAllText(Path.Combine(result.Folder!, "sheet.md"));
         foreach (var tone in AllTones)
             Assert.Contains($"## {tone}, take 1", sheet);
-        Assert.Contains($"tones/Comic.md", sheet);
+        Assert.Contains("tones/Comic.md", sheet);
         // The brief on the sheet is shown once and without the tone, which the labels already give.
         Assert.Single(Regex.Matches(sheet, @"""setting"":"));
         Assert.DoesNotContain(@"""tone"":", sheet);

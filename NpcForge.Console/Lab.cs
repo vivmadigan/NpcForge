@@ -167,10 +167,9 @@ public static class Lab
         // call (ADR-009). A missing folder is reported as the missing SKILL.md it is.
         var skillDirs = plan.Variants.Select(variant => variant.SkillDir).Append(null)
             .Select(dir => dir ?? WriterInput.DefaultSkillDir).Distinct().ToList();
-        foreach (var dir in skillDirs)
-            if (!File.Exists(Path.Combine(dir, "SKILL.md")))
-                throw new FileNotFoundException(
-                    $"The skill {Path.Combine(dir, "SKILL.md")} is missing.", Path.Combine(dir, "SKILL.md"));
+        foreach (var skillPath in skillDirs.Select(dir => Path.Combine(dir, "SKILL.md")))
+            if (!File.Exists(skillPath))
+                throw new FileNotFoundException($"The skill {skillPath} is missing.", skillPath);
         var fields = RollField.ListFrom(tools.SchemaOf("roll_character"));
         ToneFiles.Require(fields, skillDirs);
 
