@@ -44,7 +44,7 @@ public class ReplayTests
             var lastReply = Reply(calls[^1]);
 
             var userText = Messages(calls[0]).First(m => m.Role == ChatRole.User).Text;
-            var recordedBrief = JsonNode.Parse(userText[userText.IndexOf('{')..]);   // the brief is the JSON at its end
+            var recordedBrief = JsonNode.Parse(RecordedRun.BriefJson(calls[0]));
 
             var saved = JsonNode.Parse(File.ReadAllText(saveFile))!["1"]!;
 
@@ -115,12 +115,7 @@ public class ReplayTests
         }
     }
 
-    // The writer's calls, found by their system message, which is the npc-writer skill: the namer's
-    // calls come first and are not the writer's (ADR-009). Found by what they are, not by where they
-    // sit, so a call added before the writer cannot move the brief or the text this test reads.
-    private static List<JsonNode> WriterCalls(string[] lines) =>
-        [.. lines.Skip(1).Select(line => JsonNode.Parse(line)!)
-            .Where(call => Messages(call).First(m => m.Role == ChatRole.System).Text.Contains("name: npc-writer"))];
+    private static List<JsonNode> WriterCalls(string[] lines) => RecordedRun.WriterCalls(lines);
 
     // The replay only catches what the recording makes visible. Three things it needs, each of
     // which a thin recording lacks without anyone noticing. All three are about the writer's calls.
@@ -144,9 +139,7 @@ public class ReplayTests
             $"The last response has no text, so the saved text is not checked.{reRecord}");
     }
 
-    // Read with the library's own types, as the console wrote them.
-    private static List<ChatMessage> Messages(JsonNode call) =>
-        call["request"]!["messages"].Deserialize<List<ChatMessage>>(AIJsonUtilities.DefaultOptions)!;
+    private static List<ChatMessage> Messages(JsonNode call) => RecordedRun.Messages(call);
 
     private static ChatResponse Reply(JsonNode call) =>
         call["response"].Deserialize<ChatResponse>(AIJsonUtilities.DefaultOptions)!;

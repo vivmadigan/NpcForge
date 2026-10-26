@@ -286,16 +286,20 @@ public class McpToolSourceTests
     // The new dice come after the old seven, so a seed's old traits stay as they were. The fixture's
     // brief was rolled by the code before the five fields; its seven traits must still be what the
     // same seed rolls now. Read from the fixture with the library's types, like ReplayTests does.
-    [Fact]
-    public async Task A_seeds_old_seven_traits_are_what_they_were_before_the_new_dice()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task A_seeds_old_seven_traits_are_what_they_were_before_the_new_dice(bool namerCallFirst)
     {
-        var fixture = Path.Combine(ConsoleProcess.RepoRoot, "NpcForge.Tests", "Fixtures", "replay.jsonl");
-        var lines = File.ReadAllLines(fixture);
+        // Run on the fixture as recorded and on a copy with a namer call in front, as a re-recorded
+        // fixture will have: the writer's call is found by what it is, not by its line.
+        var fixture = namerCallFirst ? RecordedRun.CopyWithNamerFirst() : RecordedRun.Fixture;
+        string[] lines;
+        try { lines = File.ReadAllLines(fixture); }
+        finally { if (namerCallFirst) File.Delete(fixture); }
         var run = RunOptions.Parse(JsonSerializer.Deserialize<string[]>(lines[0])!);
-        var first = JsonDocument.Parse(lines[1]).RootElement.GetProperty("request").GetProperty("messages").EnumerateArray()
-            .First(m => m.GetProperty("role").GetString() == "user")
-            .GetProperty("contents").EnumerateArray().First().GetProperty("text").GetString()!;
-        var recorded = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(first[first.IndexOf('{')..])!;
+        var recorded = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(
+            RecordedRun.BriefJson(RecordedRun.WriterCalls(lines)[0]))!;
 
         var now = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(await RollWithSeed(run.Seed!.Value, run.RollArguments()))!;
 

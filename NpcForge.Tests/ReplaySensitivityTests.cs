@@ -14,25 +14,10 @@ namespace NpcForge.Tests;
 // namer call in front, so a lookup by place would fail the second.
 public class ReplaySensitivityTests : IDisposable
 {
-    private static readonly string Recorded = Path.GetFullPath(Path.Combine(
-        AppContext.BaseDirectory, "..", "..", "..", "..", "NpcForge.Tests", "Fixtures", "replay.jsonl"));
+    private static readonly string Recorded = RecordedRun.Fixture;
 
-    // A temp copy of the fixture with one namer call before the writer's. The fixture itself is
-    // never written.
-    private readonly string _withNamer = Path.Combine(Path.GetTempPath(), $"npcforge-namerfirst-{Guid.NewGuid():N}.jsonl");
-
-    public ReplaySensitivityTests()
-    {
-        var lines = File.ReadAllLines(Recorded);
-        var writer = JsonSerializer.Deserialize<RecordedCall>(lines[1], Recording.Json)!;
-        var namer = new RecordedCall(
-            new RecordedRequest(
-                [new(ChatRole.System, "---\nname: namer\n---\nName one character."), new(ChatRole.User, "Name this character.")],
-                writer.Request.Options,
-                [new RecordedTool("give_name", "Give the character's name.", JsonDocument.Parse("""{"type":"object"}""").RootElement)]),
-            new ChatResponse(new ChatMessage(ChatRole.Assistant, "Kessa Vale")));
-        File.WriteAllLines(_withNamer, [lines[0], JsonSerializer.Serialize(namer, Recording.Json), .. lines.Skip(1)]);
-    }
+    // A temp copy of the fixture with one namer call before the writer's.
+    private readonly string _withNamer = RecordedRun.CopyWithNamerFirst();
 
     public void Dispose() => File.Delete(_withNamer);
 
