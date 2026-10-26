@@ -200,6 +200,12 @@ public sealed class RunOptions
         // Throws its own reason for a bad axis, a repeated skill folder or fewer than two values.
         var plan = LabPlan.Parse(_values["--lab"]);
 
+        // The lab sets the tone of every variant. A tone given as well would be ignored, which is a
+        // lab the GM did not ask for.
+        if (plan.Axis == "tone" && _given.Contains("--tone"))
+            throw new ArgumentException(
+                "--lab tone cannot go with --tone: the lab sets each variant's tone, so a tone given as well would be ignored.");
+
         // Every variant must be written from one brief, and a seed is what makes the roll repeatable.
         if (Seed is null)
             throw new ArgumentException("--lab needs --seed, for example --seed 1: every variant is written from the same brief.");
