@@ -17,8 +17,9 @@ against a changed skill or prompt, so a change can be judged instead of guessed 
    <the run command> 2>&1 | tee <file>; echo "exit: ${PIPESTATUS[0]}"
    ```
 
-4. Add a header: the model, the answers, the rolled obstacle, the `[skill]` fingerprint, the commit
-   (and its PR, on a branch) and the token counts. Most of it is on the `[app]`, `[skill]` and
+4. Add a header: the model, the answers, the rolled obstacle, both `[skill]` fingerprints, the commit
+   (and its PR, on a branch) and the token counts. A run prints two `[skill]` lines, the namer's
+   first and then the writer's: record each, named. Most of it is on the `[app]`, `[skill]` and
    `[loop]` lines.
 5. End with what the run showed.
 
@@ -75,6 +76,6 @@ exact records.
 
 **Commit first, and fingerprint the skill.** Tuning a skill happens against a dirty tree, so two runs
 an hour apart can share a SHA, and `git diff` between them is empty. A run file has to stand on its
-own: commit so the SHA means something, and let the `[skill]` line's fingerprint name the guidance
+own: commit so the SHA means something, and let the `[skill]` lines' fingerprints name the guidance
 whatever git says. A length alone is not enough, because two edits of the same length differ only in
 the hash.

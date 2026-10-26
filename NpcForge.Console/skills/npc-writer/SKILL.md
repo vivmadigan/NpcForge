@@ -50,7 +50,8 @@ how rude they are.
 
 ## Output, in this order
 
-1. **Who they are** — a name and one line of history. A line, not a backstory.
+1. **Who they are** — their name, exactly as the first message gives it ("Their name is ..."), and
+   one line of history. A line, not a backstory. Invent no other name for them.
 2. **Where they stand** — what they know about what the players want, and their position on it.
 3. **How they seem, and what is underneath** — the surface manner, then the real state of things.
 4. **Levers** — two or three things that would move this person, each with a line of dialogue.
