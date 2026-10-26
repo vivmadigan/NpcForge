@@ -187,6 +187,39 @@ public class LabRunTests : IDisposable
         Assert.DoesNotContain(@"""tone"":", sheet);
     }
 
+    // One name for the whole lab (ADR-009): the namer runs once, on the base brief, and every variant
+    // is told that name, so the sheet shows one character in three moods.
+    [Fact]
+    public async Task A_lab_names_its_character_once_and_writes_every_variant_with_that_name()
+    {
+        var model = new LabStandIn();
+
+        var result = await RunLab(model, ["--lab", "tone"], "yes\n");
+
+        // One give_name turn and the closing turn, for three characters.
+        Assert.Equal(2, model.Namer.NamerCalls.Count);
+        Assert.Equal(3, model.Calls.Count);
+        var names = model.Calls.Select(NameLine).ToList();
+        Assert.All(names, line => Assert.Equal(names[0], line));
+        Assert.Matches(@"^Their name is \w+ \w+\.", names[0]);
+        Assert.Single(Regex.Matches(result.Stderr, @"\[app\] name "));
+    }
+
+    [Fact]
+    public async Task A_lab_whose_namer_gives_no_name_writes_nothing_and_says_why()
+    {
+        var model = new LabStandIn { Namer = NamerStandIn.Always(new NamerStandIn.Turn((["Qq", "q"], "Q"))) };
+        var folder = TempFolder();
+
+        var result = await RunLab(model, ["--lab", "tone"], "yes\n", folder);
+
+        Assert.Null(result.Folder);
+        Assert.Empty(model.Calls);
+        Assert.Equal(4, model.Namer.NamerCalls.Count);
+        Assert.Matches(@"\[lab\] not written: no name followed the dice \(\w, \d, \w\)", result.Stderr);
+        Assert.False(Directory.Exists(folder));
+    }
+
     [Fact]
     public async Task A_tone_lab_with_names_writes_only_those_in_the_order_given_spelled_as_the_schema_does()
     {
@@ -457,6 +490,9 @@ public class LabRunTests : IDisposable
         // name line the writer is then sent.
         var expected = model.Calls.Sum(call =>
             2L * (call.SystemLength + call.UserLength - NameLine(call).Length + 5000));
+        // And the namer, once for the lab, at two calls of what its first call was sent.
+        var naming = model.Namer.NamerCalls[0];
+        expected += 2L * (naming.System.Length + naming.FirstUser.Length + 5000);
         var printed = long.Parse(Regex.Match(result.Stderr, @"About ([\d,]+) tokens").Groups[1].Value.Replace(",", ""));
         Assert.Equal(expected, printed);
     }
@@ -568,7 +604,7 @@ public class LabRunTests : IDisposable
             string SystemFirstLine, float? Temperature, int SystemLength, int UserLength, string SystemText, string UserText);
 
         public List<Call> Calls { get; } = [];
-        public NamerStandIn Namer { get; } = NamerStandIn.FollowsTheDice();
+        public NamerStandIn Namer { get; init; } = NamerStandIn.FollowsTheDice();
         public Func<Call, string?>? Behave { get; init; }
         public int TokensPerCall { get; init; }
 

@@ -228,9 +228,13 @@ public static class Lab
         // call lookup_archetype, one to write), each costing its whole input plus the most the model
         // may answer. The writer loop allows more turns than that, and characters stand in for
         // tokens, so this is an estimate and not a bound. It says "about", and the spending cap is
-        // what stops a lab that runs over. Tokens only, no prices.
-        var estimate = planned.Sum(p =>
-            2L * (p.SystemText.Length + ChatAgent.FirstMessage(p.BriefJson, scene: null, name: null).Length + (options.MaxOutputTokens ?? 0)));
+        // what stops a lab that runs over. Tokens only, no prices. The namer runs once for the whole
+        // lab, counted the same way at two calls. The writer's message is counted without the name
+        // line, which does not exist until the namer has run.
+        var maxOutput = options.MaxOutputTokens ?? 0;
+        var naming = 2L * (Namer.SystemMessage().Text.Length + Namer.FirstMessage(briefJson, scene: null).Length + maxOutput);
+        var estimate = naming + planned.Sum(p =>
+            2L * (p.SystemText.Length + ChatAgent.FirstMessage(p.BriefJson, scene: null, name: null).Length + maxOutput));
         Console.Error.WriteLine(
             $"[lab] {planned.Count} characters ({variants.Count} variants x {run.Repeat} {(run.Repeat == 1 ? "take" : "takes")}), written by {run.Model}.");
         // Invariant, because the app speaks English: a Swedish machine would print "200 000".
@@ -271,16 +275,34 @@ public static class Lab
         var shown = Console.Error;
         if (blind)
             Console.SetError(TextWriter.Null);
+        NoNameException? noName = null;
         try
         {
-            foreach (var item in order)
+            // One name for the whole lab (ADR-009): the namer runs once, on the base brief, and every
+            // variant is written with that name, so a sheet shows one character. Inside the window,
+            // because its trace is a trace like any other.
+            NamedCharacter? name = null;
+            try
+            {
+                name = await Namer.RunAsync(client, options, new WriterInput(briefJson, null, WriterInput.DefaultSkillDir), ct);
+            }
+            catch (SpendingCapReachedException)
+            {
+                capReached = true;
+            }
+            catch (NoNameException ex)
+            {
+                noName = ex;
+            }
+
+            foreach (var item in name is null ? [] : order)
             {
                 // A copy per variant, so a temperature or a tool list never leaks into the next.
                 var variantOptions = options.Clone();
                 if (item.Variant.Temperature is { } temperature)
                     variantOptions.Temperature = temperature;
 
-                var writer = new WriterInput(item.BriefJson, null, item.Variant.SkillDir ?? WriterInput.DefaultSkillDir);
+                var writer = new WriterInput(item.BriefJson, null, item.Variant.SkillDir ?? WriterInput.DefaultSkillDir, name);
                 try
                 {
                     var text = (await ChatAgent.WriteAsync(client, variantOptions, tools, writer, ct)).Text;
@@ -303,6 +325,14 @@ public static class Lab
         {
             if (blind)
                 Console.SetError(shown);
+        }
+
+        // No name followed the dice, so no variant was written: there is no sheet to keep.
+        if (noName is not null)
+        {
+            Console.Error.WriteLine($"[lab] not written: {noName.Message}");
+            RemoveIfMade();
+            return null;
         }
 
         if (blind)
