@@ -1,8 +1,5 @@
 using Microsoft.Extensions.AI;
 using System.ComponentModel;            // Description
-using System.Security.Cryptography;     // SHA256
-using System.Text;                      // Encoding
-using System.Text.Json;                 // JsonSerializer
 
 namespace NpcForge;
 
@@ -54,7 +51,7 @@ public static class SceneInterview
         string closing;
         try
         {
-            closing = await new AgentLoop(client, new RecordAnswerTool(draft), options, maxTurns: fields.Count + 3)
+            closing = await new AgentLoop(client, new RecordAnswer(draft).Tool(), options, maxTurns: fields.Count + 3)
                 .RunAsync(history, ct);
         }
         catch (TurnCapReachedException ex)
@@ -114,9 +111,7 @@ public static class SceneInterview
         var instructions = skill.TrimEnd() + "\n\n" + list + "\n";
 
         // The same fingerprint the writer's skill gets, over what the model is sent.
-        var fingerprint = Convert.ToHexString(
-            SHA256.HashData(Encoding.UTF8.GetBytes(instructions)))[..8].ToLowerInvariant();
-        Console.Error.WriteLine($"[skill] {skillPath} ({instructions.Length} chars, {fingerprint})");
+        Console.Error.WriteLine($"[skill] {skillPath} ({instructions.Length} chars, {Fingerprint.Of(instructions)})");
 
         return instructions;
     }
@@ -153,53 +148,17 @@ public static class SceneInterview
         }
     }
 
-    // The interview's only tool. The model is offered record_answer and nothing else, so it cannot
-    // reach roll_character, save_character or load_character (AGENTS.md, McpToolSource.AppOnly).
-    private sealed class RecordAnswerTool : IToolSource
+    // The interview's only tool, answered by the console (ConsoleTool). No label argument: code
+    // decides the label from the field's kind (ADR-007).
+    private sealed class RecordAnswer(SceneDraft draft)
     {
-        private readonly SceneDraft _draft;
-        private readonly AIFunction _record;
-
-        public RecordAnswerTool(SceneDraft draft)
-        {
-            _draft = draft;
-            // No label argument: code decides the label from the field's kind (ADR-007).
-            _record = AIFunctionFactory.Create((Func<string, string, string, string>)RecordAnswer, name: "record_answer");
-        }
+        public ConsoleTool Tool() => new(AIFunctionFactory.Create((Func<string, string, string, string>)Record, name: "record_answer"));
 
         [Description("Record what the GM said about one field of the character, with the GM's own words that say it.")]
-        private string RecordAnswer(
+        private string Record(
             [Description("The field's name, from the list of fields")] string field,
             [Description("What the GM said the field is. For free text, words copied from the quote; for a choice, one of its choices")] string value,
             [Description("The GM's own words that say it, copied exactly from the scene: one sentence, at most 12 words")] string quote)
-            => _draft.Record(field, value, quote).Message;
-
-        public Task<IReadOnlyList<AITool>> ListAsync(CancellationToken ct)
-            => Task.FromResult<IReadOnlyList<AITool>>([_record]);
-
-        // Same contract as the other sources: one [tool] trace line, and every failure comes back as
-        // text the model can read.
-        public async Task<string> InvokeAsync(FunctionCallContent call, CancellationToken ct)
-        {
-            try
-            {
-                Console.Error.WriteLine($"[tool] {call.Name} {JsonSerializer.Serialize(call.Arguments)}");
-
-                // Only the name it was offered. roll_character and the rest fail here, by name.
-                if (call.Name != _record.Name)
-                    throw new InvalidOperationException($"No tool named '{call.Name}'.");
-
-                var result = await _record.InvokeAsync(new AIFunctionArguments(call.Arguments), ct);
-                var text = result is JsonElement element && element.ValueKind == JsonValueKind.String
-                    ? element.GetString()!
-                    : result?.ToString() ?? "";
-                Console.Error.WriteLine($"[tool]   {text}");
-                return text;
-            }
-            catch (Exception ex)
-            {
-                return $"Tool failed: {ex.Message}";          // a result, not an exception
-            }
-        }
+            => draft.Record(field, value, quote).Message;
     }
 }

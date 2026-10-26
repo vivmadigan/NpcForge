@@ -1,6 +1,4 @@
 using Microsoft.Extensions.AI;
-using System.Security.Cryptography;     // SHA256
-using System.Text;                      // Encoding
 using System.Text.Json;                 // JsonDocument
 
 namespace NpcForge;
@@ -51,15 +49,7 @@ public static class ChatAgent
 
         // Proves which files the model was actually given, and that they came from bin rather
         // than the repo. If editing SKILL.md changes nothing, this line is where you look.
-        // The count is the readable half: 2097 to 2239 says it grew by 142. The hash is the
-        // reliable half, because two same-length edits have the same count and different
-        // hashes, and telling skill versions apart is the whole premise of docs/runs. Hash
-        // what the model is sent, not the files on disk, so a BOM or a line-ending change on
-        // its own does not read as a different skill.
-        var fingerprint = Convert.ToHexString(
-            SHA256.HashData(Encoding.UTF8.GetBytes(text)))[..8].ToLowerInvariant();
-
-        return (text, $"[skill] {skillPath} + tones/{tone}.md ({text.Length} chars, {fingerprint})");
+        return (text, $"[skill] {skillPath} + tones/{tone}.md ({text.Length} chars, {Fingerprint.Of(text)})");
     }
 
     private static string ToneOf(string briefJson)
