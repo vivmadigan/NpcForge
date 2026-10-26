@@ -94,5 +94,26 @@
       "wrongAbout": "believes they have an excellent singing voice"
     },
     "text": "## Who they are\n**Merrit Vale** owns the Big Table Inn and has spent years learning which guests know more than they let on.\n\n## Where they stand\nMerrit knows Johny Cash and can offer **[the information about Johny Cash the players need]**. They won’t hand it over just for asking: first, the players must help Merrit settle **[their petty score]**.\n\n## How they seem, and what is underneath\nMerrit is nosy, leaning in with questions and punctuating each one with sweeping hand gestures. They’ll readily trade information for the right price, but they’re watching to see whether the players will help with their personal score. They’re also easy to tempt with food or drink—and genuinely believe they have an excellent singing voice.\n\n## Levers\n- **Settle the petty score** (*characterWants*): “Do me this little favor, and Johny Cash’s business is yours.”\n- **Offer food or drink** (*weakness*): “Now, that’s a decent bottle. Pull up a chair—we can talk.”\n- **Praise their singing** (*wrongAbout*): Merrit launches into a tuneless snippet, hands conducting the air. “You’ve got an ear for it. I knew that song could stop a room.”\n\n## Anti-levers\n- **Demand the information without meeting their price** (*difficulty: Wall; characterWants*): “You’ve heard my terms. Are you helping me or not?”\n- **Dismiss the petty score as beneath you** (*characterWants*): Merrit’s hands go still. “Then I suppose Johny Cash can stay your problem.”\n- **Ask about someone they have a crush on** (*willNotDiscuss*): “That’s none of your business.” Merrit changes the subject and won’t answer.\n\n## Afterwards\nIf the players settle the score, Merrit gives them **[the information about Johny Cash the players need]**. If they leave without doing so, Merrit keeps it to themself and waits for someone willing to pay the price."
+  },
+  "7": {
+    "brief": {
+      "setting": "hunters cabin",
+      "playersWant": "information about a witch that haunts this forest",
+      "difficulty": "Wall",
+      "occupation": "witch",
+      "characterWants": "to be left alone",
+      "obstacle": "Cant",
+      "attitude": "nosy",
+      "mannerism": "sighs before answering",
+      "weakness": "feels obliged to repay small kindnesses",
+      "willNotDiscuss": "how they lost a tooth",
+      "wrongAbout": "believes they are an excellent liar",
+      "tone": "Heartfelt",
+      "race": "human",
+      "nameLetter": "K",
+      "nameSyllables": "2",
+      "familyLetter": "V"
+    },
+    "text": "### Who they are\n**Kellan Voss** has kept a hunter’s cabin in the forest for years.\n\n### Where they stand\nHe knows the witch is himself, disguised as a human hunter. He wants the players to leave him alone and is willing to give them false information. What is actually happening in the forest is **[what is really happening in the forest]**.\n\n### How they seem, and what is underneath\nKellan is nosy, asking what brought the players so deep into the forest and what they’ve seen along the way. He sighs before answering, then speaks with heartfelt concern. Under the disguise, he is the witch—and he believes he is an excellent liar.\n\n### Levers\n- **Small kindness (weakness):** A little help with something in the cabin makes Kellan feel obliged to repay them. He’ll offer more false information, though not the truth. “You didn’t have to do that. Let me give you something in return: **[false information about the witch]**.”\n- **Let him satisfy his curiosity (attitude: nosy):** Answer his questions, and he’ll be more forthcoming with a convincing false lead. “You’ve been honest with me, so I’ll tell you what I’ve heard: **[false information about the witch]**.”\n- **Make clear you’ll leave (characterWants: to be left alone):** He’s eager to send them on their way and may offer a false account to steer them off. “If you’re heading out, take the north path. The witch is said to haunt **[false location]**.”\n\nNo lever gets them the real information; Kellan can offer only a false account.\n\n### Anti-levers\n- **Demand the truth about the witch (scene: willing to share false information):** He sticks to his cover story. “I’ve told you what I know. **[false information about the witch]**.”\n- **Insist on staying or make him keep talking (characterWants: to be left alone):** His answers grow short; he wants them gone. “I’m sorry, but I’ve said all I can. You should go.”\n- **Ask how he lost a tooth (willNotDiscuss):** He shuts the subject down. “That’s not something I discuss.”\n\n### Afterwards\n**Didn’t.** The players leave with false information, not the truth. Kellan is relieved to have them gone, and hasn’t made an enemy—unless they refused to leave."
   }
 }
