@@ -14,8 +14,9 @@ if (!Console.IsInputRedirected)
 
 // No host, no DI container. Everything is wired by hand, in the order it happens:
 // config, then the client, then the options, then connect, interview, roll, run, save. With
-// --load, the load comes straight after connect and the model is never called. With no answer
-// flag, the interview reads the GM's scene, and the roll waits for the GM's yes. The roll comes
+// --lab, the lab takes over after connect and writes a sheet instead of a save. With --load,
+// the load comes straight after connect and the model is never called. With no answer flag,
+// the interview reads the GM's scene, and the roll waits for the GM's yes. The roll comes
 // before the writer's first turn, which is why the order has to stay visible.
 
 var config = new ConfigurationBuilder()
@@ -30,6 +31,14 @@ string model = run.Model;
 int? load = run.Load;
 int? seed = run.Seed;
 string? recordTo = run.RecordTo;
+
+// --score reads a finished blind lab and calls no model, so it runs before a client or a server
+// exists, and needs no key.
+if (run.Score is not null)
+{
+    await Lab.ScoreAsync(run.Score, Console.In, Console.Error, Console.Out, CancellationToken.None);
+    return;
+}
 
 // Where the recording will land, shown before anything is paid for, so a wrong working directory
 // shows here and not after the run.
@@ -63,6 +72,14 @@ var options = new ChatOptions
 var charactersPath = run.CharactersPath(Environment.GetEnvironmentVariable("NPCFORGE_CHARACTERS"));
 await using var tools = new McpToolSource(charactersPath, seed);
 await tools.ConnectAsync(CancellationToken.None);
+
+// The lab is one visible branch: it rolls once and writes every variant through the same
+// ChatAgent.WriteAsync a normal run uses. It saves nothing, and asks before any model call.
+if (run.Lab is not null)
+{
+    await Lab.RunAsync(client, options, tools, run, Console.In, CancellationToken.None);
+    return;
+}
 
 // Load: a saved character comes back exactly as it was written. No roll and no model, so it
 // costs nothing. A number that was never saved stops the run here, with the server's reason.
@@ -129,7 +146,8 @@ if (scene is not null)
     Console.Error.WriteLine($"[app] scene sent ({scene.Length} chars)");
 
 // Run.
-var answer = await ChatAgent.RunAsync(client, options, tools, briefJson, scene);
+var answer = await ChatAgent.WriteAsync(
+    client, options, tools, new WriterInput(briefJson, scene, WriterInput.DefaultSkillDir), CancellationToken.None);
 Console.WriteLine(answer);
 
 // Save: every run is kept, the brief with the character written from it. The brief goes as a

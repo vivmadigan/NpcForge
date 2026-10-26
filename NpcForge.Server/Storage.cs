@@ -5,8 +5,9 @@ using System.Text.Json;
 namespace NpcForge.Server
 {
     // One saved run. The brief has no name and the model writes differently each time, so the
-    // text is saved too.
-    public sealed record SavedCharacter(CharacterBrief Brief, string Text);
+    // text is saved too. The brief stays the JSON it was saved as: an old entry is never passed
+    // through CharacterBrief, so a field added to the brief later cannot appear in it (ADR-009).
+    public sealed record SavedCharacter(JsonElement Brief, string Text);
 
     // All saved characters in one JSON file, numbered from 1. Only the server touches the file.
     public static class Storage
@@ -26,6 +27,10 @@ namespace NpcForge.Server
             WriteIndented = true,
             Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
         };
+
+        // A new brief as the JSON the file holds, written with the same options as the file.
+        public static JsonElement ToJson(CharacterBrief brief) =>
+            JsonSerializer.SerializeToElement(brief, Options);
 
         // All saved characters by number; empty if nothing is saved yet. If the file will not
         // parse, throw McpException with the path, so the app is told why.

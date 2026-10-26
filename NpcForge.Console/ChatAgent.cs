@@ -10,16 +10,35 @@ namespace NpcForge;
 
 public static class ChatAgent
 {
-    // scene is the GM's scene from the interview, or null for a run with answer flags. No default,
-    // so every caller says which it is.
-    public static async Task<string> RunAsync(IChatClient client, ChatOptions options, IToolSource tools, string briefJson, string? scene)
+    // The one way to write (ADR-009). Returns the answer; Program.cs prints it, the same way for a
+    // run and for a load. Scene on the input is the GM's scene from the interview, or null for a
+    // run with answer flags.
+    public static async Task<string> WriteAsync(
+        IChatClient client, ChatOptions options, IToolSource tools, WriterInput input, CancellationToken ct)
     {
         var loop = new AgentLoop(client, tools, options);
 
-        // Read from next to the exe, not from the repo: the csproj copies skills\ into the
-        // output folder as content. Nothing here parses the file. Whatever it says is what
+        var system = SystemMessage(input.SkillDir);
+        Console.Error.WriteLine(system.Trace);
+
+        // The caller owns the history. Guidance at index 0, facts at index 1, and neither is
+        // ever repeated. AgentLoop only appends, so the system message stays where it is put.
+        var history = new List<ChatMessage>
+        {
+            new(ChatRole.System, system.Text),
+            new(ChatRole.User, FirstMessage(input.BriefJson, input.Scene)),
+        };
+
+        return await loop.RunAsync(history, ct);
+    }
+
+    // What the model is told, and the line that proves which file that was.
+    public static (string Text, string Trace) SystemMessage(string skillDir)
+    {
+        // Read from next to the exe, not from the repo, for the default folder (see
+        // WriterInput.DefaultSkillDir). Nothing here parses the file. Whatever it says is what
         // the model is told, which is the whole point of it being a file and not a string.
-        var skillPath = Path.Combine(AppContext.BaseDirectory, "skills", "npc-writer", "SKILL.md");
+        var skillPath = Path.Combine(skillDir, "SKILL.md");
         var skill = File.ReadAllText(skillPath);
 
         // Proves which file the model was actually given, and that it came from bin rather
@@ -32,20 +51,7 @@ public static class ChatAgent
         var fingerprint = Convert.ToHexString(
             SHA256.HashData(Encoding.UTF8.GetBytes(skill)))[..8].ToLowerInvariant();
 
-        Console.Error.WriteLine($"[skill] {skillPath} ({skill.Length} chars, {fingerprint})");
-
-        // The caller owns the history. Guidance at index 0, facts at index 1, and neither is
-        // ever repeated. AgentLoop only appends, so the system message stays where it is put.
-        var history = new List<ChatMessage>
-        {
-            new(ChatRole.System, skill),
-            new(ChatRole.User, FirstMessage(briefJson, scene)),
-        };
-
-        var answer = await loop.RunAsync(history, CancellationToken.None);
-        // Returned, not printed: Program.cs prints it, the same way for a run and for a load.
-        return answer;
-
+        return (skill, $"[skill] {skillPath} ({skill.Length} chars, {fingerprint})");
     }
 
     // The writer's facts (ADR-008). With no scene, today's message to the byte, so the replay

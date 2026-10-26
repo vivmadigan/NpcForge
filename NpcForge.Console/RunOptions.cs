@@ -45,6 +45,17 @@ public sealed class RunOptions
         // --recording <file> is the file the replay provider answers from.
         new("--recording", null, AsIs,
             MissingValue: "--recording needs a file, for example --recording NpcForge.Tests/Fixtures/replay.jsonl."),
+        // The writers' lab (ADR-009). None of these is an answer, and none goes on line 1 of a
+        // recording: a lab is not recorded. Folders are read as typed, not lower-cased.
+        new("--lab", null, AsIs,
+            MissingValue: "--lab needs an axis and its values, for example --lab skill=skills/a,skills/b."),
+        new("--repeat", "1", Number,
+            MissingValue: "--repeat needs a number, for example --repeat 2."),
+        new("--mode", "side", Lower),
+        new("--out", null, AsIs,
+            MissingValue: "--out needs a folder, for example --out lab-1."),
+        new("--score", null, AsIs,
+            MissingValue: "--score needs the folder of a blind lab, for example --score lab-1."),
     ];
 
     private readonly Dictionary<string, string> _values;
@@ -71,6 +82,14 @@ public sealed class RunOptions
     public int? Load => Int("--load");
     public string? RecordTo => _values.GetValueOrDefault("--record");
     public string? Recording => _values.GetValueOrDefault("--recording");
+
+    // The lab: null for a normal run. Parsed from the flag each time, and already proved good by
+    // RequireFlagsThatGoTogether, so a caller never sees a half-valid plan.
+    public LabPlan? Lab => _values.TryGetValue("--lab", out var text) ? LabPlan.Parse(text) : null;
+    public int Repeat => int.Parse(_values["--repeat"]);
+    public string Mode => _values["--mode"];
+    public string? Out => _values.GetValueOrDefault("--out");
+    public string? Score => _values.GetValueOrDefault("--score");
 
     private int? Int(string name) => _values.TryGetValue(name, out var value) ? int.Parse(value) : null;
 
@@ -118,6 +137,8 @@ public sealed class RunOptions
     // All of these stop the run before anything is paid for.
     private void RequireFlagsThatGoTogether()
     {
+        RequireLabFlagsThatGoTogether();
+
         // A recording without a seed could never replay: the dice would roll a different brief, so
         // the first message would differ.
         if (RecordTo is not null && Seed is null)
@@ -139,6 +160,70 @@ public sealed class RunOptions
                 "a recording replays flags, and a described scene is not one.");
     }
 
+    // The lab's refusals (ADR-009 section 5), each with its own reason. Same stop as the others: before
+    // a model client is built, so a lab that cannot run costs nothing.
+    private void RequireLabFlagsThatGoTogether()
+    {
+        // --score reads a finished folder. Any other flag beside it would be silently ignored, and a
+        // score that ignores a flag is a run the GM did not ask for.
+        if (_given.Contains("--score"))
+        {
+            var others = _given.Where(name => name != "--score").ToList();
+            if (others.Count > 0)
+                throw new ArgumentException(
+                    $"--score takes no other flag, and {string.Join(", ", others)} was given: " +
+                    "it reads a finished blind lab and calls no model.");
+            return;
+        }
+
+        if (!_given.Contains("--lab"))
+        {
+            foreach (var name in new[] { "--repeat", "--mode", "--out" })
+                if (_given.Contains(name))
+                    throw new ArgumentException($"{name} only goes with --lab.");
+            return;
+        }
+
+        if (Repeat < 1)
+            throw new ArgumentException("--repeat needs a number of 1 or more.");
+
+        if (Mode is not ("side" or "blind"))
+            throw new ArgumentException($"--mode is side or blind, not '{Mode}'.");
+
+        // Throws its own reason for a bad axis, a repeated skill folder or fewer than two values.
+        var plan = LabPlan.Parse(_values["--lab"]);
+
+        // Every variant must be written from one brief, and a seed is what makes the roll repeatable.
+        if (Seed is null)
+            throw new ArgumentException("--lab needs --seed, for example --seed 1: every variant is written from the same brief.");
+
+        // An interview cannot be confirmed before the model is called, and cannot be repeated.
+        if (!AnyAnswerGiven)
+            throw new ArgumentException(
+                "--lab needs the answers as flags (--setting, --want, --difficulty or --occupation): " +
+                "an interview cannot be repeated, and a lab of a typed scene waits for a later epic.");
+
+        if (Load is not null)
+            throw new ArgumentException("--lab cannot go with --load: a lab writes new characters and loads none.");
+
+        if (RecordTo is not null)
+            throw new ArgumentException("--lab cannot go with --record: a lab is compared on its sheet and is never recorded.");
+
+        if (Provider == "replay")
+            throw new ArgumentException("--lab cannot go with --provider replay: a replay answers from one recording, so every variant would read the same.");
+
+        // claude-opus-5 and claude-sonnet-5 reject a temperature with a 400 (see Program.cs), so the
+        // whole lab would be paid for and fail.
+        if (plan.Axis == "temperature" && Provider == "anthropic")
+            throw new ArgumentException("--lab temperature cannot go with --provider anthropic: its models reject a temperature with a 400.");
+
+        // A blind sheet letters its characters A to Z.
+        if (Mode == "blind" && plan.Variants.Count * Repeat > LabSheet.MostBlindCharacters)
+            throw new ArgumentException(
+                $"--mode blind letters its characters A to Z, so it writes at most {LabSheet.MostBlindCharacters}: " +
+                $"{plan.Variants.Count} variants x {Repeat} takes is too many.");
+    }
+
     // Which file this run saves its character in. A replay or a recording run is not a real
     // character, so unless the caller says otherwise it goes in a fresh temp file and the tracked
     // characters.json stays the owner's. A normal run and --load keep the tracked file (null leaves
@@ -150,10 +235,12 @@ public sealed class RunOptions
         if (!string.IsNullOrEmpty(told))
             return told;
 
-        if (Provider != "replay" && RecordTo is null)
+        // A lab saves nothing. This is the second, independent stop behind that: even a bug in the
+        // lab could only write a temp file, never the owner's characters.json.
+        if (Provider != "replay" && RecordTo is null && Lab is null)
             return null;
 
-        var kind = RecordTo is not null ? "record" : "replay";
+        var kind = RecordTo is not null ? "record" : Lab is not null ? "lab" : "replay";
         return Path.Combine(Path.GetTempPath(), $"npcforge-{kind}-{Guid.NewGuid():N}.json");
     }
 

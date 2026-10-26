@@ -32,7 +32,7 @@ namespace NpcForge.Server
             Difficulty difficulty,
             [Description("Who the character is, such as innkeeper or farmer")]
             string occupation,
-            // Any rolled trait can be handed in instead. Only what is missing gets rolled.
+            // Any rolled trait can be handed in instead. Its die is still cast; the handed-in value wins.
             [Description("What the character wants for themselves, such as to be left alone")]
             string? characterWants = null,
             [Description("Why the character does not simply give the players what they want: Wont (will not), Cant (cannot) or ForAPrice (will, at a price)")]
@@ -55,19 +55,30 @@ namespace NpcForge.Server
             // an ask that almost any attempt clears.
             ObstacleKind[] obstacles = Enum.GetValues<ObstacleKind>().Where(o => !(difficulty == Difficulty.Easy && o == ObstacleKind.Wont)).ToArray();
 
+            // Every die is cast, every time, in this order, and a handed-in value replaces its die's
+            // result instead of skipping the die. One seed then rolls the same dice whatever is
+            // handed in (ADR-009). `x ?? Pick(...)` would skip the die and move every die after it.
+            var rolledWants = Pick(wants).Text;
+            var rolledObstacle = Pick(obstacles);
+            var rolledAttitude = Pick(Tables.Attitudes);
+            var rolledMannerism = Pick(Tables.Mannerisms);
+            var rolledWeakness = Pick(Tables.Weaknesses);
+            var rolledWillNotDiscuss = Pick(Tables.WillNotDiscuss);
+            var rolledWrongAbout = Pick(Tables.WrongAbout);
+
             return new CharacterBrief
             {
                 Setting = setting,
                 PlayersWant = playersWant,
                 Difficulty = difficulty,
                 Occupation = occupation,
-                CharacterWants = characterWants ?? Pick(wants).Text,
-                Obstacle = obstacle ?? Pick(obstacles),
-                Attitude = attitude ?? Pick(Tables.Attitudes),
-                Mannerism = mannerism ?? Pick(Tables.Mannerisms),
-                Weakness = weakness ?? Pick(Tables.Weaknesses),
-                WillNotDiscuss = willNotDiscuss ?? Pick(Tables.WillNotDiscuss),
-                WrongAbout = wrongAbout ?? Pick(Tables.WrongAbout),
+                CharacterWants = characterWants ?? rolledWants,
+                Obstacle = obstacle ?? rolledObstacle,
+                Attitude = attitude ?? rolledAttitude,
+                Mannerism = mannerism ?? rolledMannerism,
+                Weakness = weakness ?? rolledWeakness,
+                WillNotDiscuss = willNotDiscuss ?? rolledWillNotDiscuss,
+                WrongAbout = wrongAbout ?? rolledWrongAbout,
             };
         }
 
@@ -102,7 +113,7 @@ namespace NpcForge.Server
             // Count + 1 could save over the last one.
             var number = all.Count == 0 ? 1 : all.Keys.Max() + 1;
 
-            all[number] = new SavedCharacter(brief, text);
+            all[number] = new SavedCharacter(Storage.ToJson(brief), text);
             Storage.Save(all);
             return number;
 
