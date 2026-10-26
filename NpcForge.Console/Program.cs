@@ -104,6 +104,10 @@ if (load is not null)
     return;
 }
 
+// Every tone the server can roll needs a file in the skill folder. A gap is found now, before the
+// interview and before the writer is paid for, and not when a roll lands on that tone (ADR-009).
+ToneFiles.Require(RollField.ListFrom(tools.SchemaOf("roll_character")), [WriterInput.DefaultSkillDir]);
+
 // The answers: from the flags, or from the GM's scene when no answer flag was given (ADR-007).
 // Either way a plain set of roll_character arguments. The interview never rolls; it only says
 // what to roll with, and only after the GM's yes.

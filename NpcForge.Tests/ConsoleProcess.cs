@@ -25,7 +25,8 @@ internal static class ConsoleProcess
     // paid model clients. `environment` adds or overrides variables for the child only. `input` is
     // what the GM types; the console's stdin is closed after it.
     public static async Task<Result> RunAsync(
-        string[] flags, bool offline = false, Dictionary<string, string?>? environment = null, string input = "")
+        string[] flags, bool offline = false, Dictionary<string, string?>? environment = null, string input = "",
+        string? consoleDll = null)
     {
         // --no-build runs whatever is in bin, so a missing or old build would run old code and
         // pass or fail for the wrong reason. The console starts the server in this same
@@ -41,11 +42,15 @@ internal static class ConsoleProcess
             // `input`, then end of input, which stops without rolling instead of waiting for a GM.
             RedirectStandardInput = true,
         };
-        foreach (var arg in new[]
-        {
-            "run", "--project", Path.Combine(RepoRoot, "NpcForge.Console"),
-            "--no-build", "-c", BuildConfiguration, "--no-launch-profile", "--",
-        })
+        // consoleDll: a copy of the console's build output that a test has changed, such as one with
+        // a tone file deleted. Run directly, because `dotnet run` would build the repo's own.
+        foreach (var arg in consoleDll is null
+            ? new[]
+            {
+                "run", "--project", Path.Combine(RepoRoot, "NpcForge.Console"),
+                "--no-build", "-c", BuildConfiguration, "--no-launch-profile", "--",
+            }
+            : [consoleDll])
             start.ArgumentList.Add(arg);
         foreach (var flag in flags)
             start.ArgumentList.Add(flag);

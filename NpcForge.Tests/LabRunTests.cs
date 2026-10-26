@@ -36,6 +36,10 @@ public class LabRunTests : IDisposable
         _cleanup.Add(parent);
         var dir = Directory.CreateDirectory(Path.Combine(parent, name)).FullName;
         File.WriteAllText(Path.Combine(dir, "SKILL.md"), $"SKILL-{name}\nWrite a character.\n");
+        // A skill folder carries its tones (ADR-009); one file per tone the server can roll.
+        Directory.CreateDirectory(Path.Combine(dir, "tones"));
+        foreach (var tone in new[] { "Serious", "Comic", "Heartfelt" })
+            File.WriteAllText(ToneFiles.PathOf(dir, tone), $"TONE-{tone}\n");
         return dir;
     }
 
@@ -444,6 +448,23 @@ public class LabRunTests : IDisposable
             () => RunLab(model, ["--lab", $"skill={Skill("a")},{missing}"], "yes\n"));
 
         Assert.Contains(missing, error.Message);
+        Assert.Empty(model.Calls);
+    }
+
+    // A skill folder is compared together with its tones (ADR-009), so one that lacks a tone stops the
+    // lab before its question, though the input holds a "yes": no model is called.
+    [Fact]
+    public async Task A_skill_folder_missing_a_tone_file_stops_the_lab_before_its_confirmation()
+    {
+        var model = new LabStandIn();
+        var bare = Skill("bare");
+        File.Delete(ToneFiles.PathOf(bare, "Heartfelt"));
+
+        var error = await Assert.ThrowsAsync<InvalidOperationException>(
+            () => RunLab(model, ["--lab", $"skill={Skill("a")},{bare}"], "yes\n"));
+
+        Assert.Contains(ToneFiles.PathOf(bare, "Heartfelt"), error.Message);
+        Assert.DoesNotContain("Serious", error.Message);
         Assert.Empty(model.Calls);
     }
 

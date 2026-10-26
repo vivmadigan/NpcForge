@@ -129,6 +129,18 @@ public static class Lab
     {
         var plan = run.Lab ?? throw new ArgumentException("Lab.RunAsync needs a --lab run.");
         var blind = run.Mode == "blind";
+
+        // Every skill folder the lab will use, the default one included, must hold SKILL.md and a
+        // file for every tone, so a gap stops the lab here, before its question and before a paid
+        // call (ADR-009). A missing folder is reported as the missing SKILL.md it is.
+        var skillDirs = plan.Variants.Select(variant => variant.SkillDir).Append(null)
+            .Select(dir => dir ?? WriterInput.DefaultSkillDir).Distinct().ToList();
+        foreach (var dir in skillDirs)
+            if (!File.Exists(Path.Combine(dir, "SKILL.md")))
+                throw new FileNotFoundException(
+                    $"The skill {Path.Combine(dir, "SKILL.md")} is missing.", Path.Combine(dir, "SKILL.md"));
+        ToneFiles.Require(RollField.ListFrom(tools.SchemaOf("roll_character")), skillDirs);
+
         var folder = run.Out ?? Path.Combine(
             Path.GetTempPath(), $"npcforge-lab-{DateTime.Now:yyyyMMdd-HHmmss}-{plan.Axis}");
 
@@ -156,19 +168,20 @@ public static class Lab
                 Directory.Delete(folder);
         }
 
-        // Every skill is read now, so a missing folder stops the lab here and not after the first
+        // The roll is free, and the system message needs the brief's tone. The seed is the server's,
+        // so every variant is written from this one brief.
+        var briefJson = await tools.CallDirectAsync("roll_character", run.RollArguments(), ct);
+
+        // Every skill is read now, so an unreadable one stops the lab here and not after the first
         // paid call. Temperature variants all use the bundled skill.
         var planned = plan.Variants
             .SelectMany(variant => Enumerable.Range(1, run.Repeat).Select(take =>
             {
-                var system = ChatAgent.SystemMessage(variant.SkillDir ?? WriterInput.DefaultSkillDir);
+                var system = ChatAgent.SystemMessage(variant.SkillDir ?? WriterInput.DefaultSkillDir, briefJson);
                 return new Planned(variant, take, system.Text, system.Trace);
             }))
             .ToList();
 
-        // The roll is free, and the estimate needs the first message it makes. The seed is the
-        // server's, so every variant is written from this one brief.
-        var briefJson = await tools.CallDirectAsync("roll_character", run.RollArguments(), ct);
         var firstMessage = ChatAgent.FirstMessage(briefJson, scene: null);
 
         // It asks first (costly-steps playbook). Two calls per character is the usual case (one to
