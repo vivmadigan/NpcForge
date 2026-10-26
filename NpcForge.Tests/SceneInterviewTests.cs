@@ -232,6 +232,22 @@ public class SceneInterviewTests(ITestOutputHelper output)
         }
     }
 
+    // ADR-009, amended 2026-10-26: a letter field is never read from a scene, so the interviewer is
+    // not told about it and spends no turn on it. The confirmation still shows it, rolled.
+    [Fact]
+    public async Task The_interviewer_is_not_told_about_the_letter_fields_and_they_show_as_rolled()
+    {
+        var model = new ScriptedInterviewer([]);
+
+        var (_, screen) = await Interview(model, SceneDraftTests.Tavern + "\nno\n");
+
+        Assert.Contains("- `tone` (choice:", model.Told);
+        Assert.DoesNotContain("`nameLetter`", model.Told);
+        Assert.DoesNotContain("`familyLetter`", model.Told);
+        Assert.Contains("  nameLetter: [rolled]", screen);
+        Assert.Contains("  familyLetter: [rolled]", screen);
+    }
+
     private static FunctionCallContent Answer(string field, string value, string quote) =>
         new($"call-{field}", "record_answer", new Dictionary<string, object?>
         {
@@ -260,6 +276,7 @@ public class SceneInterviewTests(ITestOutputHelper output)
     {
         public int Calls { get; private set; }
         public IReadOnlyList<string> Offered { get; private set; } = [];
+        public string Told { get; private set; } = "";
         public Dictionary<string, string> Results { get; } = [];
 
         public Task<ChatResponse> GetResponseAsync(
@@ -269,6 +286,7 @@ public class SceneInterviewTests(ITestOutputHelper output)
             if (Calls == 1)
             {
                 Offered = [.. (options?.Tools ?? []).Select(t => t.Name)];
+                Told = messages.First(m => m.Role == ChatRole.System).Text;
                 return Task.FromResult(new ChatResponse(new ChatMessage(ChatRole.Assistant, [.. calls])));
             }
 

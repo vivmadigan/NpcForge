@@ -200,54 +200,29 @@ public class SceneDraftTests
         Assert.Equal("1", draft.Answers["nameSyllables"].Value);
     }
 
-    // ADR-009: a list of 26 letters is not one the GM can judge at a glance, so the letter has to be
-    // in the GM's words. Done when: K on a quote with no K is rejected, and kept on "starts with K".
-    [Theory]
-    [InlineData("nameLetter")]
-    [InlineData("familyLetter")]
-    public void A_letter_the_quote_never_says_is_rejected_and_left_to_the_dice(string field)
-    {
-        var draft = Draft();
-
-        var result = draft.Record(field, "K", "meet a tavern owner at his tavern");
-
-        Assert.Equal(Rejection.ChoiceNotInQuote, result.Reason);
-        Assert.Empty(draft.Answers);
-        Assert.Equal(Label.Rolled, draft.Lines(Defaults).Single(l => l.Field.Name == field).Label);
-    }
-
+    // ADR-009, amended 2026-10-26: a list of 26 letters is never read from a scene, because "a" and
+    // "I" are letters and words alike. Even a GM who says the letter outright gets it from the dice
+    // or the flag, so no sentence can be made to look like it named one.
     [Theory]
     [InlineData("nameLetter", "K", "starts with K")]
-    [InlineData("nameLetter", "k", "starts with K")]
-    [InlineData("familyLetter", "K", "family name starts with K")]
-    public void A_letter_the_GM_says_as_a_word_is_kept_and_labelled_inferred(string field, string value, string quote)
+    [InlineData("nameLetter", "A", "meet a tavern owner")]
+    [InlineData("familyLetter", "I", "I think")]
+    public void A_letter_is_never_recorded_from_a_scene_and_is_left_to_the_dice(string field, string value, string quote)
     {
-        var draft = Draft("Her name starts with K. Her family name starts with K.");
+        var draft = Draft("My players meet a tavern owner. I think her name starts with K.");
 
         var result = draft.Record(field, value, quote);
 
-        Assert.Equal(Rejection.None, result.Reason);
-        var line = draft.Lines(Defaults).Single(l => l.Field.Name == field);
-        Assert.Equal("K", line.Value);
-        Assert.Equal(Label.Inferred, line.Label);
-    }
-
-    // "Kessa" holds a K but is not the word K: the letter has to be said, not found inside a name.
-    [Fact]
-    public void A_letter_inside_a_longer_word_does_not_count()
-    {
-        var draft = Draft("Her name is Kessa.");
-
-        var result = draft.Record("nameLetter", "K", "Her name is Kessa");
-
-        Assert.Equal(Rejection.ChoiceNotInQuote, result.Reason);
+        Assert.Equal(Rejection.LongChoiceNotFromAScene, result.Reason);
+        Assert.Empty(draft.Answers);
+        Assert.Equal(Label.Rolled, draft.Lines(Defaults).Single(l => l.Field.Name == field).Label);
     }
 
     // The rule reads the count from the field's own choices, so it holds for a field the console has
     // never heard of, and stops at six.
     [Theory]
     [InlineData(6, Rejection.None)]
-    [InlineData(7, Rejection.ChoiceNotInQuote)]
+    [InlineData(7, Rejection.LongChoiceNotFromAScene)]
     public void The_long_choice_rule_follows_the_fields_choice_count(int choices, Rejection expected)
     {
         var field = new RollField("mood", "A mood", [.. Enumerable.Range(1, choices).Select(n => $"mood{n}")], Required: false);

@@ -137,9 +137,14 @@ the only code that knows which one. `UseFunctionInvocation` stays off: it would 
 - **Supplied:** `setting`, `playersWant`, `difficulty`, `occupation`.
 - **Rolled, inside what the difficulty allows:** `characterWants`, `obstacle`, `attitude`,
   `mannerism`, `weakness`, `willNotDiscuss`, `wrongAbout`.
+- **Given, inferred or rolled (ADR-009):** `tone` (Serious, Comic or Heartfelt), `race` (free text,
+  rolled from a weighted table), and the name dice `nameLetter`, `nameSyllables` (written "1", "2",
+  "3") and `familyLetter`. Their dice are cast after the seven above, so a seed's old traits stay as
+  they were. A letter field is never read from a scene: it is rolled or set by flag.
 
 The difficulty filter is code: each want is tagged with the difficulties it fits, and `Easy` never
-rolls `Wont`. Enums travel as their names. The brief is settled once and never changes, and it is
+rolls `Wont`. Enums travel as their names, and `roll_character` refuses a value an enum does not
+define. The brief is settled once and never changes, and it is
 half of the save format (ADR-003).
 
 A trait handed in to `roll_character` is used as given. The difficulty filter shapes the dice, not a
