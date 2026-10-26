@@ -98,7 +98,11 @@ the sheets, which are pure.
   brief after the `yes`, and every variant and take is written with that name through
   `ChatAgent.WriteAsync`, the call a normal run makes. Every sheet then shows one character. A namer
   that gives no name stops the lab with `[lab] not written: no name followed the dice (K, 2, V)`
-  and no sheet. It saves nothing, and `CharactersPath` sends it to a temp file as a second stop.
+  and no sheet, and the exit code is 1, as it is for a normal run. It saves nothing, and
+  `CharactersPath` sends it to a temp file as a second stop.
+- **No empty folder is left behind.** A `--out` folder the lab made itself is removed again when the
+  lab stops without a sheet, and when anything escapes it (a replay mismatch, a 500 from the namer).
+  A folder that was already there stays, and so does one with anything in it.
 - **It asks first.** Before any model call it prints the number of characters and an estimate in
   tokens against the session cap, and waits for `yes`. An estimate over the cap is refused. The
   estimate counts two calls per character, the usual case, and two for the namer, with the writer's
@@ -110,7 +114,9 @@ the sheets, which are pure.
 - **Blind mode** writes `blind.md` (characters as A, B, C), `blind.json` (the same, as data) and
   `key.json` (letter to label, and any failures), and no `sheet.md`. The run order and the letters are
   shuffled from `--seed`. While the namer and the variants run, `Console.Error` goes to a null
-  writer, so no trace line gives the key away; afterwards only a count of failures is printed.
+  writer, so no trace line gives the key away. Afterwards the accepted name is printed as
+  `[app] name Kessa Vale (K, 2, V)`, because every variant shares it and it is kept nowhere else, and
+  then only a count of failures.
 - **`--score <dir>`** reads `blind.json` and `key.json`, asks for a guess per letter, prints
   `n of m right` and writes `scored.md`. It reads no model prose as markup and runs before any client
   or server.
@@ -177,9 +183,12 @@ console tool, `give_name(syllables, family)`, for example `["Kes", "sa"], "Vale"
 tool list does not change, because the namer runs on a copy of the options.
 
 - **The check** is `NameCheck.Check`, pure, on the call's arguments, each rule with its own
-  `NameRejection` and reason: no syllables, an empty syllable, the wrong first letter, the wrong
-  syllable count as the namer split it, no family name, the wrong family letter. Letters ignore
-  case. `NameDice` reads the dice from the brief's JSON (`nameSyllables` is "1" to "3").
+  `NameRejection` and reason: no syllables, an empty syllable, a syllable with no letter in it
+  ("-", "1", a zero-width space), a syllable with a space inside, the wrong first letter, the wrong
+  syllable count as the namer split it, no family name, a family name with no letter or with a space
+  inside, the wrong family letter. Letters ignore case as ordinal text, so a dotless `ı` is not `I`
+  and a long `ſ` is not `S`. The namer's skill is sent with `\n` line endings, as the writer's is, so
+  a recording made on Windows has the same fingerprint. `NameDice` reads the dice from the brief's JSON (`nameSyllables` is "1" to "3").
 - **The first accepted name wins.** A later call is refused (`AlreadyNamed`). The loop ends on the
   first turn with no tool call, so a named character costs at least two calls.
 - **No name, no writer.** Four turns at most (`Namer.MaxTurns`). A name accepted before the cap
@@ -252,7 +261,8 @@ JSON, so the model is never shown the other two. A tone file says how to write; 
 what is true (ADR-009). `ToneFiles.Missing` compares the schema's tone choices with a skill folder's
 `tones/`, and `Program.cs` stops with the missing paths straight after connect, before the interview.
 `SKILL.md` sets the output order, what each difficulty and obstacle oblige the writer to do, that
-every lever names the brief entry or the words of the scene it comes from, and "show the trait,
+every lever names the brief entry or the words of the scene it comes from, that the writer uses the
+name it was told ("Their name is ...") exactly and invents no other, and "show the trait,
 never state it". When a scene is sent, it is settled like the brief: the traits are played through
 it, the character knows what the scene hints at, and what the scene says would make them give way is
 the first lever. A trouble the scene hints at but does not name is left as a gap in square brackets
