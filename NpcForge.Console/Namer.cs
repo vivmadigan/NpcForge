@@ -32,10 +32,10 @@ public static class Namer
             new(ChatRole.User, FirstMessage(input.BriefJson, input.Scene)),
         };
 
-        // A copy of the options, so give_name never reaches the writer's tool list.
         var giveName = new GiveName(dice);
         try
         {
+            // A copy of the options, so give_name never reaches the writer's tool list.
             await new AgentLoop(client, giveName.Tool(), options.Clone(), MaxTurns).RunAsync(history, ct);
         }
         catch (TurnCapReachedException)
