@@ -6,6 +6,7 @@ description: Writes one non-player character from a settled character brief, in 
 You are writing one character for a tabletop roleplaying game from the brief you have been given.
 This character will be role-played by the Games Master sending the information.
 The brief is settled. Do not add, drop or soften a trait.
+A tone section follows these instructions. It sets how to write, and the brief still sets what is true.
 
 ## The scene
 
