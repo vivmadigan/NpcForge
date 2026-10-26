@@ -100,10 +100,12 @@ a paid run, `NPCFORGE_OFFLINE=1` stops a free run reaching a model, a replay nev
 saved characters, and `dotnet test -c Release` tests the Release build. You can talk to it: a
 bare `dotnet run` interviews you about the scene, every trait traces to your words or the dice, and
 it has passed its paid run on OpenAI and Anthropic. The writer is sent your scene as well as the
-brief, so the character acts inside the situation you described. Better characters is under way:
-a writers' lab (`--lab`) writes one brief with two skills or temperatures side by side, or blind for
-you to guess and `--score`. Next: tone, race and name dice, then keeping and editing characters, and
-in time a website with logins and a database so friends can use it. See
+brief, so the character acts inside the situation you described. Better characters is built and
+waiting on its paid checks: a writers' lab (`--lab`) writes one brief with two skills, temperatures
+or tones side by side, or blind for you to guess and `--score`; the brief carries a tone, a race and
+name dice; and a namer names each character inside its dice before the writer starts, with the name
+kept in the save. Next: keeping and editing characters, and in time a website with logins and a
+database so friends can use it. See
 [ROADMAP.md](ROADMAP.md).
 
 ## Out of scope, for now
