@@ -98,6 +98,10 @@ public sealed record LabPlan(string Axis, IReadOnlyList<LabVariant> Variants)
     }
 }
 
+// How a lab ended, for the caller that sets the exit code. NoName is the one ending that is a failure
+// of the run, as it is for a normal run: no name followed the dice, so nothing was written.
+public sealed record LabOutcome(string? Folder, bool NoName = false);
+
 // The writers' lab (ADR-009 section 5): one brief, rolled once, written through every variant by the
 // same ChatAgent.WriteAsync a normal run uses, then laid out as a sheet. Paid, so it asks first.
 public static class Lab
@@ -155,8 +159,9 @@ public static class Lab
         })];
     }
 
-    // Returns the folder the sheet is in, or null when the lab stopped before any model call.
-    public static async Task<string?> RunAsync(
+    // Returns where the sheet is, with Folder null when the lab stopped before any sheet was written.
+    // Whatever the lab throws, a folder it made itself and left empty is removed again.
+    public static async Task<LabOutcome> RunAsync(
         IChatClient client, ChatOptions options, McpToolSource tools, RunOptions run, TextReader input, CancellationToken ct)
     {
         var plan = run.Lab ?? throw new ArgumentException("Lab.RunAsync needs a --lab run.");
@@ -184,6 +189,35 @@ public static class Lab
         // if the lab stops before writing anything.
         var madeFolder = !Directory.Exists(folder);
         Directory.CreateDirectory(folder);
+        LabOutcome outcome;
+        try
+        {
+            outcome = await RunInFolderAsync(client, options, tools, run, input, plan, blind, variants, folder, ct);
+        }
+        catch
+        {
+            // A replay mismatch, a 500 from the namer, a crash: none of them leaves the empty folder
+            // this call made. A folder with anything in it, or one that was there before, stays.
+            RemoveIfMadeAndEmpty(folder, madeFolder);
+            throw;
+        }
+
+        // A lab that stopped before writing a sheet leaves nothing behind either.
+        if (outcome.Folder is null)
+            RemoveIfMadeAndEmpty(folder, madeFolder);
+        return outcome;
+    }
+
+    private static void RemoveIfMadeAndEmpty(string folder, bool madeFolder)
+    {
+        if (madeFolder && Directory.Exists(folder) && !Directory.EnumerateFileSystemEntries(folder).Any())
+            Directory.Delete(folder);
+    }
+
+    private static async Task<LabOutcome> RunInFolderAsync(
+        IChatClient client, ChatOptions options, McpToolSource tools, RunOptions run, TextReader input,
+        LabPlan plan, bool blind, IReadOnlyList<LabVariant> variants, string folder, CancellationToken ct)
+    {
         var probe = Path.Combine(folder, $".npcforge-probe-{Guid.NewGuid():N}");
         await File.WriteAllTextAsync(probe, "", ct);
         File.Delete(probe);
@@ -193,13 +227,7 @@ public static class Lab
         if (new[] { "sheet.md", "blind.md", "blind.json", "key.json", "scored.md" }.Any(name => File.Exists(Path.Combine(folder, name))))
         {
             Console.Error.WriteLine($"[lab] not run: {folder} already holds a lab. Name a new --out folder.");
-            return null;                // an old lab's folder is not ours to remove
-        }
-
-        void RemoveIfMade()
-        {
-            if (madeFolder)
-                Directory.Delete(folder);
+            return new LabOutcome(null);    // an old lab's folder is not ours to remove, and it is not empty
         }
 
         // The roll is free, and the system message needs the brief's tone. The seed is the server's,
@@ -245,16 +273,14 @@ public static class Lab
         if (estimate > SpendingCap.TokensPerSession)
         {
             Console.Error.WriteLine("[lab] not run: that is over the session cap, so no model call is made. Use fewer variants or a smaller --repeat.");
-            RemoveIfMade();
-            return null;
+            return new LabOutcome(null);
         }
 
         Console.Error.WriteLine("Run this lab? Type yes to run it. Anything else stops before any model call.");
         if (input.ReadLine()?.Trim().Equals("yes", StringComparison.OrdinalIgnoreCase) != true)
         {
             Console.Error.WriteLine("[lab] not run: the GM did not say yes");
-            RemoveIfMade();
-            return null;
+            return new LabOutcome(null);
         }
 
         // Blind: the run order is shuffled as well as the letters, from one Random, so the order
@@ -276,12 +302,12 @@ public static class Lab
         if (blind)
             Console.SetError(TextWriter.Null);
         NoNameException? noName = null;
+        NamedCharacter? name = null;
         try
         {
             // One name for the whole lab (ADR-009): the namer runs once, on the base brief, and every
             // variant is written with that name, so a sheet shows one character. Inside the window,
             // because its trace is a trace like any other.
-            NamedCharacter? name = null;
             try
             {
                 name = await Namer.RunAsync(client, options, new WriterInput(briefJson, null, WriterInput.DefaultSkillDir), ct);
@@ -327,12 +353,16 @@ public static class Lab
                 Console.SetError(shown);
         }
 
+        // The window hid the namer's own line, and the name is kept nowhere else: every variant is
+        // written with it, so printing it says nothing about which writer made which letter.
+        if (blind && name is not null)
+            Console.Error.WriteLine(Namer.TraceLine(name, NameDice.From(briefJson)));
+
         // No name followed the dice, so no variant was written: there is no sheet to keep.
         if (noName is not null)
         {
             Console.Error.WriteLine($"[lab] not written: {noName.Message}");
-            RemoveIfMade();
-            return null;
+            return new LabOutcome(null, NoName: true);
         }
 
         if (blind)
@@ -361,6 +391,6 @@ public static class Lab
         if (capReached)
             Console.Error.WriteLine($"[lab] stopped at the spending cap after {entries.Count} of {planned.Count}");
         Console.Error.WriteLine($"[lab] written to {folder}");
-        return folder;
+        return new LabOutcome(folder);
     }
 }

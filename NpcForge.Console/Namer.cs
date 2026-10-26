@@ -46,9 +46,12 @@ public static class Namer
         // Nothing the model says is read: the name is the arguments of the call code accepted
         // (AGENTS.md, never parse the model's prose).
         var name = giveName.Accepted ?? throw new NoNameException(dice);
-        Console.Error.WriteLine($"[app] name {name.Full} {dice}");
+        Console.Error.WriteLine(TraceLine(name, dice));
         return name;
     }
+
+    // The accepted name beside the dice it follows, as a trace shows it.
+    public static string TraceLine(NamedCharacter name, NameDice dice) => $"[app] name {name.Full} {dice}";
 
     // The path is a parameter only so a test can hand in a file with other line endings.
     public static (string Text, string Trace) SystemMessage(string? skillPath = null)

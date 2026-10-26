@@ -77,7 +77,11 @@ await tools.ConnectAsync(CancellationToken.None);
 // ChatAgent.WriteAsync a normal run uses. It saves nothing, and asks before any model call.
 if (run.Lab is not null)
 {
-    await Lab.RunAsync(client, options, tools, run, Console.In, CancellationToken.None);
+    var ended = await Lab.RunAsync(client, options, tools, run, Console.In, CancellationToken.None);
+
+    // As a normal run does when no name follows the dice: the lab has said why, and it is a failure.
+    if (ended.NoName)
+        Environment.ExitCode = 1;
     return;
 }
 
