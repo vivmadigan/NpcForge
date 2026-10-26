@@ -30,9 +30,9 @@ public sealed record LabPlan(string Axis, IReadOnlyList<LabVariant> Variants)
             ? []
             : text[(at + 1)..].Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 
-        // No values is every tone, which is a comparison already. Any other axis, or a tone list, needs
-        // two things to differ.
-        if (values.Length < 2 && !(axis == "tone" && values.Length == 0))
+        // A bare "tone" is every tone, which is a comparison already. Any other axis, or a tone list, needs
+        // two things to differ: "tone=" with nothing after it is a list left empty, not every tone.
+        if (values.Length < 2 && !(axis == "tone" && at < 0))
             throw new ArgumentException(
                 $"--lab {axis} needs at least two values to compare, for example --lab {Example(axis)}.");
 

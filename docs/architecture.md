@@ -79,7 +79,8 @@ the sheets, which are pure.
 
 - **One axis per lab.** `skill=<dir>,<dir>` gives each variant its own skill folder (a `SKILL.md`);
   `temperature=<t>,<t>` sets `ChatOptions.Temperature` on a copy per variant; `tone` (every tone in the
-  schema) or `tone=Comic,Serious` writes the same character in each tone. A lab needs `--seed` and the answers as flags, and is refused with `--load`, `--record`,
+  schema) or `tone=Comic,Serious` writes the same character in each tone. A lab needs `--seed` and
+  the answers as flags, and is refused with `--load`, `--record`,
   `--provider replay`, a repeated folder, temperature or tone, a temperature on `anthropic`, and
   `--lab tone` with `--tone`. Every refusal comes before a model client is built, except a tone name
   the server lacks, which needs the schema and so stops after connect, before any model call.

@@ -152,6 +152,8 @@ public class LabFlagTests
     [InlineData("temperature=0.5", "temperature", "temperature=0.2,0.9")]
     [InlineData("temperature=0.5,", "temperature", "temperature=0.2,0.9")]
     [InlineData("tone=Comic", "tone", "tone=Comic,Serious")]
+    [InlineData("tone=", "tone", "tone=Comic,Serious")]
+    [InlineData("tone=,", "tone", "tone=Comic,Serious")]
     public void Fewer_than_two_values_on_the_axis_is_refused(string lab, string axis, string example)
     {
         Assert.Equal(

@@ -44,14 +44,17 @@ public static class ChatAgent
         // the model is told, which is the whole point of them being files and not strings.
         var skillPath = Path.Combine(skillDir, "SKILL.md");
         var tone = ToneOf(briefJson);
-        var text = File.ReadAllText(skillPath).TrimEnd() + "\n\n" + File.ReadAllText(ToneFiles.PathOf(skillDir, tone));
+        // "\n" throughout, because git checks the files out with CRLF on Windows and LF on Linux: the
+        // same commit then sends the same text and prints the same fingerprint on either machine.
+        var text = (File.ReadAllText(skillPath).TrimEnd() + "\n\n" + File.ReadAllText(ToneFiles.PathOf(skillDir, tone)))
+            .ReplaceLineEndings("\n");
 
         // Proves which files the model was actually given, and that they came from bin rather
         // than the repo. If editing SKILL.md changes nothing, this line is where you look.
         // The count is the readable half: 2097 to 2239 says it grew by 142. The hash is the
         // reliable half, because two same-length edits have the same count and different
         // hashes, and telling skill versions apart is the whole premise of docs/runs. Hash
-        // what the model is sent, not the files on disk, so a BOM or line-ending change on
+        // what the model is sent, not the files on disk, so a BOM or a line-ending change on
         // its own does not read as a different skill.
         var fingerprint = Convert.ToHexString(
             SHA256.HashData(Encoding.UTF8.GetBytes(text)))[..8].ToLowerInvariant();

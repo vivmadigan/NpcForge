@@ -60,9 +60,42 @@ public class WriterMessageTests
             await ChatAgent.WriteAsync(model, new ChatOptions(), new FakeToolSource(),
                 new WriterInput(Brief, Scene: null, dir), CancellationToken.None);
 
-            Assert.Equal(edited.TrimEnd() + "\n\nCOPIED COMIC TONE\n", model.Messages[0].Text);
+            Assert.Equal((edited.TrimEnd() + "\n\nCOPIED COMIC TONE\n").ReplaceLineEndings("\n"), model.Messages[0].Text);
         }
         finally { Directory.Delete(dir, recursive: true); }
+    }
+
+    // A Windows checkout has CRLF files and a Linux one LF. The writer is sent "\n" either way, so
+    // one commit sends the same text, and prints the same [skill] fingerprint, on both machines.
+    [Fact]
+    public async Task The_writer_is_sent_the_same_text_whatever_line_endings_the_files_have()
+    {
+        var crlf = Directory.CreateTempSubdirectory("npcforge-skill-").FullName;
+        var lf = Directory.CreateTempSubdirectory("npcforge-skill-").FullName;
+        try
+        {
+            foreach (var (dir, newline) in new[] { (crlf, "\r\n"), (lf, "\n") })
+            {
+                File.WriteAllText(Path.Combine(dir, "SKILL.md"), $"Skill line one.{newline}Skill line two.{newline}");
+                Directory.CreateDirectory(Path.Combine(dir, "tones"));
+                File.WriteAllText(ToneFiles.PathOf(dir, "Comic"), $"## Tone: Comic{newline}{newline}Be funny.{newline}");
+            }
+
+            var fromCrlf = ChatAgent.SystemMessage(crlf, Brief);
+            var fromLf = ChatAgent.SystemMessage(lf, Brief);
+
+            Assert.DoesNotContain('\r', fromCrlf.Text);
+            Assert.Equal(fromLf.Text, fromCrlf.Text);
+            Assert.Equal(Fingerprint(fromLf.Trace), Fingerprint(fromCrlf.Trace));
+        }
+        finally
+        {
+            Directory.Delete(crlf, recursive: true);
+            Directory.Delete(lf, recursive: true);
+        }
+
+        // The "(N chars, hash)" end of the [skill] line; the folder path before it differs by design.
+        static string Fingerprint(string trace) => trace[trace.LastIndexOf('(')..];
     }
 
     // Code reads the tone from the brief and sends that tone's file and no other (ADR-009): the
@@ -80,8 +113,8 @@ public class WriterMessageTests
             new WriterInput(brief, Scene: null, WriterInput.DefaultSkillDir), CancellationToken.None);
 
         var system = model.Messages[0].Text;
-        var skill = File.ReadAllText(Path.Combine(WriterInput.DefaultSkillDir, "SKILL.md"));
-        var toneFile = File.ReadAllText(ToneFiles.PathOf(WriterInput.DefaultSkillDir, tone));
+        var skill = File.ReadAllText(Path.Combine(WriterInput.DefaultSkillDir, "SKILL.md")).ReplaceLineEndings("\n");
+        var toneFile = File.ReadAllText(ToneFiles.PathOf(WriterInput.DefaultSkillDir, tone)).ReplaceLineEndings("\n");
         Assert.StartsWith(skill.TrimEnd() + "\n\n", system);
         Assert.EndsWith(toneFile, system);
         foreach (var other in new[] { "Serious", "Comic", "Heartfelt" }.Where(name => name != tone))
@@ -95,7 +128,8 @@ public class WriterMessageTests
     {
         var dir = Path.Combine(AppContext.BaseDirectory, "skills", "npc-writer");
         var path = Path.Combine(dir, "SKILL.md");
-        var sent = File.ReadAllText(path).TrimEnd() + "\n\n" + File.ReadAllText(Path.Combine(dir, "tones", "Comic.md"));
+        var sent = (File.ReadAllText(path).TrimEnd() + "\n\n" + File.ReadAllText(Path.Combine(dir, "tones", "Comic.md")))
+            .ReplaceLineEndings("\n");
         var hash = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(
             System.Text.Encoding.UTF8.GetBytes(sent)))[..8].ToLowerInvariant();
 

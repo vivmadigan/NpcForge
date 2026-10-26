@@ -217,8 +217,15 @@ public class LabRunTests : IDisposable
 
         var blind = File.ReadAllText(Path.Combine(result.Folder!, "blind.md"));
         Assert.DoesNotContain(@"""tone"":", blind);
-        Assert.DoesNotContain(@"""tone"":", File.ReadAllText(Path.Combine(result.Folder!, "blind.json")));
+        // blind.json holds the brief as a string, so its quotes are escaped there: read it back as JSON
+        // before looking for the tone, or the check could never fail (lesson 004).
+        var blindData = JsonNode.Parse(File.ReadAllText(Path.Combine(result.Folder!, "blind.json")))!;
+        var shownBrief = JsonNode.Parse(blindData["brief"]!.GetValue<string>())!.AsObject();
+        Assert.False(shownBrief.ContainsKey("tone"), $"blind.json shows the tone: {shownBrief}");
+        Assert.True(shownBrief.ContainsKey("race"), $"blind.json lost the rest of the brief: {shownBrief}");
         Assert.DoesNotContain("tones/", result.Stderr);
+        foreach (var tone in AllTones)
+            Assert.DoesNotContain(tone, result.Stderr);
         Assert.Equal(AllTones.Order(), LabSheet.ReadKey(File.ReadAllText(Path.Combine(result.Folder!, "key.json"))).Values.Order());
     }
 
