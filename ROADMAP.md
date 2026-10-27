@@ -86,6 +86,34 @@ side by side, not from memory.
 
 **Not in this epic.** Throwaway and recurring characters move to "Keep and edit".
 
+## 8. Fill the gaps in a scene
+
+**Goal.** When my scene leaves something out, the app asks me or rolls it, and never fills the gap
+with a test value. A goblin baker whose croissants keep vanishing should not be handed "the name
+of a fence" at Wall difficulty because I didn't say what the party wants.
+
+**Constraints.**
+- What the players want is mine to say. When the scene doesn't say it, the interview asks me one
+  short question, and my answer is recorded as my words. It is never inferred and never invented.
+- A difficulty the scene doesn't show is rolled, like the other traits.
+- The flag defaults stay for flag runs, so the replay fixture and `--setting` alone keep working.
+- This changes ADR-007's rule that a missing required field takes its flag's default, so an ADR
+  comes first.
+
+**Done when.**
+- Free tests: a scene with no want gets one follow-up question, and the answer shows as
+  `[my words]`; end of input at that question stops without rolling; a scene with no difficulty
+  rolls one and labels it `[rolled]`; a flag run still uses the defaults; the replay passes.
+- The bakery scene from 2026-10-27, typed as it was, gets a question about what the party wants,
+  and the character fits the answer (*needs my eyes*, paid).
+
+**Tasks.**
+- ADR: a missing want is asked for, a missing difficulty is rolled (supersedes part of ADR-007).
+- The follow-up question in the interview.
+- Look into the writer leaving a placeholder in the text, as in "keep [the secret he is keeping]
+  buried", when a rolled trait is vague. Decide whether it is the writer's skill or the trait's
+  wording.
+
 ## 4. Keep and edit (draft)
 
 **Goal.** I choose which characters are worth keeping, find them by a name I give them, and change
