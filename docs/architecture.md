@@ -26,8 +26,9 @@ you ──► Program.cs
           │     records the GM's words with record_answer, show them, wait for "yes"
           │ 2. roll: call roll_character directly ─────────► server: tables and dice
           │ ◄─────────────────────────────────────────────── the brief, as JSON
-          │ 3. run: SKILL.md as the system message; the first user message holds
-          │       the GM's scene (interview runs only) and the brief
+          │ 3. run: SKILL.md plus the brief's one tone file as the system message;
+          │       the first user message holds the GM's scene (interview runs
+          │       only) and the brief
           │       AgentLoop ◄──► model, which may call lookup_archetype ◄──► server
           │ 4. save: save_character(brief, text) ──────────► characters.json
           ▼
@@ -60,7 +61,7 @@ flag cannot be parsed and left off the recording. The same table names the `roll
 | `--load <n>` | none | Prints saved character n instead of making one |
 | `--record <file>` | none | Also writes every model call to a file. Needs `--seed` |
 | `--recording <file>` | none | The file `--provider replay` answers from |
-| `--lab skill=<dir>,<dir>` or `--lab temperature=<t>,<t>` | none | The writers' lab (see "The lab") |
+| `--lab skill=<dir>,<dir>`, `--lab temperature=<t>,<t>` or `--lab tone[=<tone>,<tone>]` | none | The writers' lab (see "The lab") |
 | `--repeat <n>`, `--mode side\|blind`, `--out <dir>` | 1, `side`, a new temp folder | How many takes of each variant, blind or not, and where the sheet goes. Only with `--lab` |
 | `--score <dir>` | none | Marks the guesses for a finished blind lab. No model, no server, no key |
 
@@ -77,10 +78,18 @@ writer is judged on a sheet instead of from memory (ADR-009). `Lab.cs` owns the 
 the sheets, which are pure.
 
 - **One axis per lab.** `skill=<dir>,<dir>` gives each variant its own skill folder (a `SKILL.md`);
-  `temperature=<t>,<t>` sets `ChatOptions.Temperature` on a copy per variant. The tone axis arrives
-  with tone. A lab needs `--seed` and the answers as flags, and is refused with `--load`, `--record`,
-  `--provider replay`, a repeated folder or temperature, and a temperature on `anthropic`. Every
-  refusal comes before a model client is built.
+  `temperature=<t>,<t>` sets `ChatOptions.Temperature` on a copy per variant; `tone` (every tone in the
+  schema) or `tone=Comic,Serious` writes the same character in each tone. A lab needs `--seed` and
+  the answers as flags, and is refused with `--load`, `--record`,
+  `--provider replay`, a repeated folder, temperature or tone, a temperature on `anthropic`, and
+  `--lab tone` with `--tone`. Every refusal comes before a model client is built, except a tone name
+  the server lacks, which needs the schema and so stops after connect, before any model call.
+- **The tone axis.** The base brief is rolled once. Each variant's brief comes from `roll_character`
+  with every field of the base brief handed back in and `tone` replaced (`BriefJson.WithField`), so
+  the server stays the only author of briefs and the briefs differ in tone alone. The sheet's brief
+  leaves the tone out, because the labels give it and a blind sheet must not.
+- **Tone files are checked first.** Before the question, the lab compares the schema's tones with the
+  `tones/` folder of the default skill and of every `skill=` folder, and stops with the missing paths.
 - **One write path.** The lab rolls once, then writes every variant and take through
   `ChatAgent.WriteAsync`, the call a normal run makes. It saves nothing, and `CharactersPath` sends it
   to a temp file as a second stop.
@@ -205,15 +214,21 @@ when the GM's words point to it, no follow-up questions. The interview appends t
 the server's schema to it.
 
 `NpcForge.Console/skills/npc-writer/SKILL.md` is copied to `bin` and read into a system message at
-index 0. It sets the output order, what each difficulty and obstacle oblige the writer to do, that
+index 0, followed by a blank line and one tone file from `skills/npc-writer/tones/` (`Serious.md`,
+`Comic.md` or `Heartfelt.md`). `ChatAgent.SystemMessage` picks the file from the `tone` in the brief's
+JSON, so the model is never shown the other two. A tone file says how to write; the brief still says
+what is true (ADR-009). `ToneFiles.Missing` compares the schema's tone choices with a skill folder's
+`tones/`, and `Program.cs` stops with the missing paths straight after connect, before the interview.
+`SKILL.md` sets the output order, what each difficulty and obstacle oblige the writer to do, that
 every lever names the brief entry or the words of the scene it comes from, and "show the trait,
 never state it". When a scene is sent, it is settled like the brief: the traits are played through
 it, the character knows what the scene hints at, and what the scene says would make them give way is
 the first lever. A trouble the scene hints at but does not name is left as a gap in square brackets
 for the GM, unless the scene asks for one to be made up, so a character plugs into any campaign
 (epic 7, `docs/runs/2026-10-25-02-…` and `docs/runs/2026-10-25-03-the-trouble-is-the-gms.md`). Nothing
-parses it, so editing it changes the writing with no code change. The `[skill]` trace line carries
-its length and a short SHA-256, so a run names the guidance it was given.
+parses either file, so editing them changes the writing with no code change. The `[skill]` trace line
+names the tone file and carries the length and a short SHA-256 of the combined text, so a run names the
+guidance it was given: `[skill] .../npc-writer/SKILL.md + tones/Comic.md (2871 chars, 3fa09c1e)`.
 
 ## Traces
 
@@ -223,7 +238,7 @@ trace.
 | Prefix | From | Says |
 | --- | --- | --- |
 | `[app]` | `Program.cs` | `recording to <path>`, the provider and model, the rolled brief, `saved as N`, `loaded N` |
-| `[skill]` | `ChatAgent.cs`, `SceneInterview.cs` | Which `SKILL.md`, its length and fingerprint (the interviewer's with its field list) |
+| `[skill]` | `ChatAgent.cs`, `SceneInterview.cs` | Which `SKILL.md` and tone file, their combined length and fingerprint (the interviewer's with its field list) |
 | `[loop]` | `AgentLoop.cs` | One line per model turn: tool calls, history size, tokens |
 | `[tool]` | `McpToolSource`, `RecordAnswerTool` | Each call the model made, and for `record_answer` what it got back. The app's own calls have none |
 | `[interview]` | `SceneInterview.cs` | The interviewer's closing line, as a trace; nothing reads it |
@@ -327,13 +342,18 @@ One real run is recorded once, and the whole app replays against it for free (AD
   flag waits for a scene and, at end of input, rolls and saves nothing. A yes hands the scene back
   as typed, trimmed.
 - `WriterMessageTests`: through the real `ChatAgent` and its skill, the writer is sent the scene word
-  for word with the brief last, and a run with no scene sends the message a flag run always sent.
+  for word with the brief last, a run with no scene sends the message a flag run always sent, and the
+  system message holds the skill and only the tone file the brief names.
+- `ToneFileTests`: every tone in the server's schema has a file in the default skill folder, a deleted
+  file is reported by its path, and the app, run as a process on a copy of its own build with one tone
+  file deleted, stops before the interview and names the file.
 - `StorageTests`: a copy of the real `characters.json` goes through `Storage.Load` and `Save` byte for
   byte, and a new save leaves every old entry's bytes alone.
 - `LabFlagTests`, `LabSheetTests`, `LabRunTests` and `LabScoreTests`: every lab refusal with its
   reason; the sheets, the key and the score, pure; the lab against the real server and a stand-in
   model (each variant reaches the writer, the confirmation stops without a yes, blind stderr holds no
-  variant, the cap stops it, a failure stays on the sheet); and `--score` as a process with no key.
+  variant, the cap stops it, a failure stays on the sheet, the tone axis gives briefs that differ only
+  in tone, and a skill folder missing a tone file stops the lab before its question); and `--score` as a process with no key.
 - `SpendingCapTests`: the cap refuses the call after the limit without asking the model, and stops
   an agent loop before its turn cap.
 - `ConsoleProcess`: not a test. The one place a test starts the app as a process: the build

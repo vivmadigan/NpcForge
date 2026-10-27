@@ -1,6 +1,7 @@
 using Microsoft.Extensions.AI;
 using System.Globalization;
 using System.Text.Json;
+using System.Text.Json.Nodes;           // JsonNode, JsonObject
 using System.Text.RegularExpressions;
 
 namespace NpcForge.Tests;
@@ -36,6 +37,10 @@ public class LabRunTests : IDisposable
         _cleanup.Add(parent);
         var dir = Directory.CreateDirectory(Path.Combine(parent, name)).FullName;
         File.WriteAllText(Path.Combine(dir, "SKILL.md"), $"SKILL-{name}\nWrite a character.\n");
+        // A skill folder carries its tones (ADR-009); one file per tone the server can roll.
+        Directory.CreateDirectory(Path.Combine(dir, "tones"));
+        foreach (var tone in new[] { "Serious", "Comic", "Heartfelt" })
+            File.WriteAllText(ToneFiles.PathOf(dir, tone), $"TONE-{tone}\n");
         return dir;
     }
 
@@ -138,6 +143,90 @@ public class LabRunTests : IDisposable
         var sheet = File.ReadAllText(Path.Combine(result.Folder!, "sheet.md"));
         Assert.Contains("## 0.2, take 1", sheet);
         Assert.Contains("## 0.9, take 1", sheet);
+    }
+
+    private static readonly string[] AllTones = ["Serious", "Comic", "Heartfelt"];
+
+    // What each call was sent: the brief is the JSON at the end of the first message, as ReplayTests
+    // reads it, and the tone file is told apart by its heading.
+    private static JsonObject BriefOf(LabStandIn.Call call) =>
+        JsonNode.Parse(call.UserText[call.UserText.IndexOf('{')..])!.AsObject();
+
+    // The lab's tone axis (ADR-009): one character in every mood. The server rolls each variant's
+    // brief from the base brief with the tone replaced, so the briefs differ in tone and nothing else.
+    [Fact]
+    public async Task A_tone_lab_with_no_values_writes_every_tone_from_briefs_that_differ_only_in_tone()
+    {
+        var model = new LabStandIn();
+
+        var result = await RunLab(model, ["--lab", "tone"], "yes\n");
+
+        Assert.Equal(AllTones, model.Calls.Select(call => (string)BriefOf(call)["tone"]!));
+        var rest = model.Calls.Select(call => { var brief = BriefOf(call); brief.Remove("tone"); return brief; }).ToList();
+        Assert.All(rest, brief => Assert.True(JsonNode.DeepEquals(rest[0], brief), brief.ToJsonString()));
+        Assert.Equal("a farm", (string)rest[0]["setting"]!);
+        // Each writer was told its own tone file and neither of the others.
+        foreach (var call in model.Calls)
+        {
+            var tone = (string)BriefOf(call)["tone"]!;
+            Assert.Contains($"## Tone: {tone}", call.SystemText);
+            foreach (var other in AllTones.Where(name => name != tone))
+                Assert.DoesNotContain($"## Tone: {other}", call.SystemText);
+        }
+
+        var sheet = File.ReadAllText(Path.Combine(result.Folder!, "sheet.md"));
+        foreach (var tone in AllTones)
+            Assert.Contains($"## {tone}, take 1", sheet);
+        Assert.Contains("tones/Comic.md", sheet);
+        // The brief on the sheet is shown once and without the tone, which the labels already give.
+        Assert.Single(Regex.Matches(sheet, @"""setting"":"));
+        Assert.DoesNotContain(@"""tone"":", sheet);
+    }
+
+    [Fact]
+    public async Task A_tone_lab_with_names_writes_only_those_in_the_order_given_spelled_as_the_schema_does()
+    {
+        var model = new LabStandIn();
+
+        var result = await RunLab(model, ["--lab", "tone=heartfelt,Comic"], "yes\n");
+
+        Assert.Equal(["Heartfelt", "Comic"], model.Calls.Select(call => (string)BriefOf(call)["tone"]!));
+        var sheet = File.ReadAllText(Path.Combine(result.Folder!, "sheet.md"));
+        Assert.Contains("## Heartfelt, take 1", sheet);
+        Assert.Contains("## Comic, take 1", sheet);
+    }
+
+    [Fact]
+    public async Task A_tone_lab_that_names_a_tone_the_server_lacks_stops_before_any_call_and_lists_the_tones()
+    {
+        var model = new LabStandIn();
+
+        var error = await Assert.ThrowsAsync<ArgumentException>(() => RunLab(model, ["--lab", "tone=Comic,Gloomy"], "yes\n"));
+
+        Assert.Equal("--lab tone names 'Gloomy', which is not a tone. The tones are: Serious, Comic, Heartfelt.", error.Message);
+        Assert.Empty(model.Calls);
+    }
+
+    // The tone is the thing a blind tone check hides: the sheet and the stderr must not show it.
+    [Fact]
+    public async Task A_blind_tone_lab_shows_no_tone_on_its_sheet()
+    {
+        var model = new LabStandIn { CallsATool = true };
+
+        var result = await RunLab(model, ["--lab", "tone", "--mode", "blind"], "yes\n");
+
+        var blind = File.ReadAllText(Path.Combine(result.Folder!, "blind.md"));
+        Assert.DoesNotContain(@"""tone"":", blind);
+        // blind.json holds the brief as a string, so its quotes are escaped there: read it back as JSON
+        // before looking for the tone, or the check could never fail (lesson 004).
+        var blindData = JsonNode.Parse(File.ReadAllText(Path.Combine(result.Folder!, "blind.json")))!;
+        var shownBrief = JsonNode.Parse(blindData["brief"]!.GetValue<string>())!.AsObject();
+        Assert.False(shownBrief.ContainsKey("tone"), $"blind.json shows the tone: {shownBrief}");
+        Assert.True(shownBrief.ContainsKey("race"), $"blind.json lost the rest of the brief: {shownBrief}");
+        Assert.DoesNotContain("tones/", result.Stderr);
+        foreach (var tone in AllTones)
+            Assert.DoesNotContain(tone, result.Stderr);
+        Assert.Equal(AllTones.Order(), LabSheet.ReadKey(File.ReadAllText(Path.Combine(result.Folder!, "key.json"))).Values.Order());
     }
 
     private static readonly string[] SixNames = ["a", "b", "c", "d", "e", "f"];
@@ -447,11 +536,29 @@ public class LabRunTests : IDisposable
         Assert.Empty(model.Calls);
     }
 
+    // A skill folder is compared together with its tones (ADR-009), so one that lacks a tone stops the
+    // lab before its question, though the input holds a "yes": no model is called.
+    [Fact]
+    public async Task A_skill_folder_missing_a_tone_file_stops_the_lab_before_its_confirmation()
+    {
+        var model = new LabStandIn();
+        var bare = Skill("bare");
+        File.Delete(ToneFiles.PathOf(bare, "Heartfelt"));
+
+        var error = await Assert.ThrowsAsync<InvalidOperationException>(
+            () => RunLab(model, ["--lab", $"skill={Skill("a")},{bare}"], "yes\n"));
+
+        Assert.Contains(ToneFiles.PathOf(bare, "Heartfelt"), error.Message);
+        Assert.DoesNotContain("Serious", error.Message);
+        Assert.Empty(model.Calls);
+    }
+
     // The stand-in model: answers at once with a text that names the system message it was sent,
     // and keeps what each call was given. `Behave` may throw, or return text to say instead.
     private sealed class LabStandIn : IChatClient
     {
-        public sealed record Call(string SystemFirstLine, float? Temperature, int SystemLength, int UserLength);
+        public sealed record Call(
+            string SystemFirstLine, float? Temperature, int SystemLength, int UserLength, string SystemText, string UserText);
 
         public List<Call> Calls { get; } = [];
         public Func<Call, string?>? Behave { get; init; }
@@ -474,7 +581,7 @@ public class LabRunTests : IDisposable
 
             var system = messages.First(m => m.Role == ChatRole.System).Text;
             var user = messages.First(m => m.Role == ChatRole.User).Text;
-            var call = new Call(system.Split('\n')[0], options?.Temperature, system.Length, user.Length);
+            var call = new Call(system.Split('\n')[0], options?.Temperature, system.Length, user.Length, system, user);
             Calls.Add(call);
 
             var text = Behave?.Invoke(call) ?? $"TEXT({call.SystemFirstLine}{(call.Temperature is { } t ? $", temperature {t}" : "")})";

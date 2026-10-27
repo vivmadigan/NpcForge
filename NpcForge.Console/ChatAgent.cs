@@ -1,6 +1,7 @@
 using Microsoft.Extensions.AI;
 using System.Security.Cryptography;     // SHA256
 using System.Text;                      // Encoding
+using System.Text.Json;                 // JsonDocument
 
 namespace NpcForge;
 
@@ -18,7 +19,7 @@ public static class ChatAgent
     {
         var loop = new AgentLoop(client, tools, options);
 
-        var system = SystemMessage(input.SkillDir);
+        var system = SystemMessage(input.SkillDir, input.BriefJson);
         Console.Error.WriteLine(system.Trace);
 
         // The caller owns the history. Guidance at index 0, facts at index 1, and neither is
@@ -32,26 +33,41 @@ public static class ChatAgent
         return await loop.RunAsync(history, ct);
     }
 
-    // What the model is told, and the line that proves which file that was.
-    public static (string Text, string Trace) SystemMessage(string skillDir)
+    // What the model is told, and the line that proves which files that was: the skill, a blank
+    // line, then the one tone file the brief names (ADR-009). The tone is read from the brief's JSON,
+    // which is structured data. The other two tones are never read into the message, so the model
+    // cannot blend them.
+    public static (string Text, string Trace) SystemMessage(string skillDir, string briefJson)
     {
         // Read from next to the exe, not from the repo, for the default folder (see
-        // WriterInput.DefaultSkillDir). Nothing here parses the file. Whatever it says is what
-        // the model is told, which is the whole point of it being a file and not a string.
+        // WriterInput.DefaultSkillDir). Nothing here parses the files. Whatever they say is what
+        // the model is told, which is the whole point of them being files and not strings.
         var skillPath = Path.Combine(skillDir, "SKILL.md");
-        var skill = File.ReadAllText(skillPath);
+        var tone = ToneOf(briefJson);
+        // "\n" throughout, because git checks the files out with CRLF on Windows and LF on Linux: the
+        // same commit then sends the same text and prints the same fingerprint on either machine.
+        var text = (File.ReadAllText(skillPath).TrimEnd() + "\n\n" + File.ReadAllText(ToneFiles.PathOf(skillDir, tone)))
+            .ReplaceLineEndings("\n");
 
-        // Proves which file the model was actually given, and that it came from bin rather
+        // Proves which files the model was actually given, and that they came from bin rather
         // than the repo. If editing SKILL.md changes nothing, this line is where you look.
         // The count is the readable half: 2097 to 2239 says it grew by 142. The hash is the
         // reliable half, because two same-length edits have the same count and different
         // hashes, and telling skill versions apart is the whole premise of docs/runs. Hash
-        // what the model is sent, not the file on disk, so a BOM or line-ending change on
+        // what the model is sent, not the files on disk, so a BOM or a line-ending change on
         // its own does not read as a different skill.
         var fingerprint = Convert.ToHexString(
-            SHA256.HashData(Encoding.UTF8.GetBytes(skill)))[..8].ToLowerInvariant();
+            SHA256.HashData(Encoding.UTF8.GetBytes(text)))[..8].ToLowerInvariant();
 
-        return (skill, $"[skill] {skillPath} ({skill.Length} chars, {fingerprint})");
+        return (text, $"[skill] {skillPath} + tones/{tone}.md ({text.Length} chars, {fingerprint})");
+    }
+
+    private static string ToneOf(string briefJson)
+    {
+        using var brief = JsonDocument.Parse(briefJson);
+        return brief.RootElement.TryGetProperty("tone", out var tone) && tone.GetString() is { Length: > 0 } name
+            ? name
+            : throw new InvalidOperationException("The brief names no tone, so no tone file can be chosen for the writer.");
     }
 
     // The writer's facts (ADR-008). With no scene, today's message to the byte, so the replay

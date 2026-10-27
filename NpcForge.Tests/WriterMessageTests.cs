@@ -11,7 +11,7 @@ public class WriterMessageTests
     private const string ControlScene =
         "The players are in a small village. They have noticed something is off about the town and so they have gone into the town's only inn, which is empty apart from the innkeeper. They want to get information about the town from the innkeeper, but he refuses to give them anything, unless threatened with death.";
 
-    private const string Brief = """{"setting":"town's only inn","playersWant":"information about the town","difficulty":"Wall","occupation":"innkeeper"}""";
+    private const string Brief = """{"setting":"town's only inn","playersWant":"information about the town","difficulty":"Wall","occupation":"innkeeper","tone":"Comic"}""";
 
     [Fact]
     public async Task The_writer_is_sent_the_scene_word_for_word_with_the_brief()
@@ -44,7 +44,7 @@ public class WriterMessageTests
     }
 
     // The skill folder is a choice of the input, not a constant: a copy with an edit is what the
-    // writer is told (ADR-009, one way to write).
+    // writer is told (ADR-009, one way to write). Its tones folder travels with it.
     [Fact]
     public async Task A_skill_folder_in_the_input_is_the_system_message()
     {
@@ -53,14 +53,72 @@ public class WriterMessageTests
         {
             var edited = File.ReadAllText(Path.Combine(WriterInput.DefaultSkillDir, "SKILL.md")) + "\nEDITED COPY MARKER\n";
             File.WriteAllText(Path.Combine(dir, "SKILL.md"), edited);
+            Directory.CreateDirectory(Path.Combine(dir, "tones"));
+            File.WriteAllText(ToneFiles.PathOf(dir, "Comic"), "COPIED COMIC TONE\n");
             var model = new KeepsWhatItIsSent();
 
             await ChatAgent.WriteAsync(model, new ChatOptions(), new FakeToolSource(),
                 new WriterInput(Brief, Scene: null, dir), CancellationToken.None);
 
-            Assert.Equal(edited, model.Messages[0].Text);
+            Assert.Equal((edited.TrimEnd() + "\n\nCOPIED COMIC TONE\n").ReplaceLineEndings("\n"), model.Messages[0].Text);
         }
         finally { Directory.Delete(dir, recursive: true); }
+    }
+
+    // A Windows checkout has CRLF files and a Linux one LF. The writer is sent "\n" either way, so
+    // one commit sends the same text, and prints the same [skill] fingerprint, on both machines.
+    [Fact]
+    public async Task The_writer_is_sent_the_same_text_whatever_line_endings_the_files_have()
+    {
+        var crlf = Directory.CreateTempSubdirectory("npcforge-skill-").FullName;
+        var lf = Directory.CreateTempSubdirectory("npcforge-skill-").FullName;
+        try
+        {
+            foreach (var (dir, newline) in new[] { (crlf, "\r\n"), (lf, "\n") })
+            {
+                File.WriteAllText(Path.Combine(dir, "SKILL.md"), $"Skill line one.{newline}Skill line two.{newline}");
+                Directory.CreateDirectory(Path.Combine(dir, "tones"));
+                File.WriteAllText(ToneFiles.PathOf(dir, "Comic"), $"## Tone: Comic{newline}{newline}Be funny.{newline}");
+            }
+
+            var fromCrlf = ChatAgent.SystemMessage(crlf, Brief);
+            var fromLf = ChatAgent.SystemMessage(lf, Brief);
+
+            Assert.DoesNotContain('\r', fromCrlf.Text);
+            Assert.Equal(fromLf.Text, fromCrlf.Text);
+            Assert.Equal(Fingerprint(fromLf.Trace), Fingerprint(fromCrlf.Trace));
+        }
+        finally
+        {
+            Directory.Delete(crlf, recursive: true);
+            Directory.Delete(lf, recursive: true);
+        }
+
+        // The "(N chars, hash)" end of the [skill] line; the folder path before it differs by design.
+        static string Fingerprint(string trace) => trace[trace.LastIndexOf('(')..];
+    }
+
+    // Code reads the tone from the brief and sends that tone's file and no other (ADR-009): the
+    // model cannot blend tones it was never shown. Each file is told apart by its heading.
+    [Theory]
+    [InlineData("Serious")]
+    [InlineData("Comic")]
+    [InlineData("Heartfelt")]
+    public async Task The_writer_is_sent_the_skill_and_only_the_tone_file_the_brief_names(string tone)
+    {
+        var model = new KeepsWhatItIsSent();
+        var brief = Brief.Replace("\"tone\":\"Comic\"", $"\"tone\":\"{tone}\"");
+
+        await ChatAgent.WriteAsync(model, new ChatOptions(), new FakeToolSource(),
+            new WriterInput(brief, Scene: null, WriterInput.DefaultSkillDir), CancellationToken.None);
+
+        var system = model.Messages[0].Text;
+        var skill = File.ReadAllText(Path.Combine(WriterInput.DefaultSkillDir, "SKILL.md")).ReplaceLineEndings("\n");
+        var toneFile = File.ReadAllText(ToneFiles.PathOf(WriterInput.DefaultSkillDir, tone)).ReplaceLineEndings("\n");
+        Assert.StartsWith(skill.TrimEnd() + "\n\n", system);
+        Assert.EndsWith(toneFile, system);
+        foreach (var other in new[] { "Serious", "Comic", "Heartfelt" }.Where(name => name != tone))
+            Assert.DoesNotContain($"## Tone: {other}", system);
     }
 
     // The line docs/runs records are compared by. Built here by hand, so a change to the format
@@ -68,15 +126,17 @@ public class WriterMessageTests
     [Fact]
     public void The_skill_trace_for_the_default_folder_keeps_its_format()
     {
-        var path = Path.Combine(AppContext.BaseDirectory, "skills", "npc-writer", "SKILL.md");
-        var skill = File.ReadAllText(path);
+        var dir = Path.Combine(AppContext.BaseDirectory, "skills", "npc-writer");
+        var path = Path.Combine(dir, "SKILL.md");
+        var sent = (File.ReadAllText(path).TrimEnd() + "\n\n" + File.ReadAllText(Path.Combine(dir, "tones", "Comic.md")))
+            .ReplaceLineEndings("\n");
         var hash = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(
-            System.Text.Encoding.UTF8.GetBytes(skill)))[..8].ToLowerInvariant();
+            System.Text.Encoding.UTF8.GetBytes(sent)))[..8].ToLowerInvariant();
 
-        var system = ChatAgent.SystemMessage(WriterInput.DefaultSkillDir);
+        var system = ChatAgent.SystemMessage(WriterInput.DefaultSkillDir, Brief);
 
-        Assert.Equal($"[skill] {path} ({skill.Length} chars, {hash})", system.Trace);
-        Assert.Equal(skill, system.Text);
+        Assert.Equal($"[skill] {path} + tones/Comic.md ({sent.Length} chars, {hash})", system.Trace);
+        Assert.Equal(sent, system.Text);
     }
 
     // A stand-in writer: answers at once, and keeps the messages of its one call.

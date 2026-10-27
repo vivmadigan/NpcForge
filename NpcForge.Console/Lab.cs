@@ -4,27 +4,22 @@ using System.Globalization;             // CultureInfo, NumberStyles
 namespace NpcForge;
 
 // One thing a lab changes. A skill variant changes the writer's skill folder; a temperature variant
-// changes ChatOptions.Temperature. Exactly one of the two is set, and nothing else differs between
-// variants (ADR-009).
-public sealed record LabVariant(string Label, string? SkillDir, float? Temperature);
+// changes ChatOptions.Temperature; a tone variant changes the brief's tone. Exactly one of the three
+// is set, and nothing else differs between variants (ADR-009).
+public sealed record LabVariant(string Label, string? SkillDir, float? Temperature, string? Tone = null);
 
 // What --lab says: one axis and the values to compare on it. Parsed in one place so the flag parser
 // can refuse a bad one before any model client is built, and the lab reads the same plan after.
+// A tone plan with no variants means "every tone the server has": the schema says which, and the
+// parser has not seen it, so the lab fills them in.
 public sealed record LabPlan(string Axis, IReadOnlyList<LabVariant> Variants)
 {
-    // The axes that exist. Tone arrives with tone (ADR-009 build order, PR 7).
-    private static readonly string[] Axes = ["skill", "temperature"];
+    private static readonly string[] Axes = ["skill", "temperature", "tone"];
 
     public static LabPlan Parse(string text)
     {
         var at = text.IndexOf('=');
         var axis = (at < 0 ? text : text[..at]).Trim().ToLowerInvariant();
-
-        // Said apart from "unknown", because it is a real axis the GM read about in the ADR.
-        if (axis == "tone")
-            throw new ArgumentException(
-                "--lab tone is not built yet: the tone axis arrives with tone itself. " +
-                $"The axes that exist now are: {string.Join(", ", Axes)}.");
 
         if (!Axes.Contains(axis))
             throw new ArgumentException($"Unknown lab axis '{axis}'. The axes are: {string.Join(", ", Axes)}.");
@@ -35,16 +30,36 @@ public sealed record LabPlan(string Axis, IReadOnlyList<LabVariant> Variants)
             ? []
             : text[(at + 1)..].Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 
-        // One difference needs two things to differ.
-        if (values.Length < 2)
+        // A bare "tone" is every tone, which is a comparison already. Any other axis, or a tone list, needs
+        // two things to differ: "tone=" with nothing after it is a list left empty, not every tone.
+        if (values.Length < 2 && !(axis == "tone" && at < 0))
             throw new ArgumentException(
                 $"--lab {axis} needs at least two values to compare, for example --lab {Example(axis)}.");
 
-        return axis == "skill" ? SkillVariants(values) : TemperatureVariants(values);
+        return axis switch
+        {
+            "skill" => SkillVariants(values),
+            "tone" => ToneVariants(values),
+            _ => TemperatureVariants(values),
+        };
     }
 
-    private static string Example(string axis) =>
-        axis == "skill" ? "skill=skills/a,skills/b" : "temperature=0.2,0.9";
+    private static string Example(string axis) => axis switch
+    {
+        "skill" => "skill=skills/a,skills/b",
+        "tone" => "tone=Comic,Serious",
+        _ => "temperature=0.2,0.9",
+    };
+
+    // Typed names, checked against the schema's tones by the lab once the server is connected.
+    private static LabPlan ToneVariants(string[] names)
+    {
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var name in names)
+            if (!seen.Add(name))
+                throw new ArgumentException($"--lab tone names {name} twice: each variant needs its own tone.");
+        return new LabPlan("tone", [.. names.Select(name => new LabVariant(name, null, null, name))]);
+    }
 
     private static LabPlan SkillVariants(string[] folders)
     {
@@ -88,7 +103,7 @@ public sealed record LabPlan(string Axis, IReadOnlyList<LabVariant> Variants)
 public static class Lab
 {
     // One character to write: a variant and which take of it.
-    private sealed record Planned(LabVariant Variant, int Take, string SystemText, string SkillLine);
+    private sealed record Planned(LabVariant Variant, int Take, string BriefJson, string SystemText, string SkillLine);
 
     // --score: reads a finished blind lab, asks for a guess per letter, and writes scored.md. It
     // needs no model, no key and no server, so Program.cs runs it before any of them exist. The
@@ -123,12 +138,43 @@ public static class Lab
         dialogue.WriteLine($"[score] written to {Path.Combine(folder, "scored.md")}");
     }
 
+    // The tone axis, filled in from the schema: no names given means every tone the server has, and a
+    // name is matched to the schema's own spelling, so --lab tone=comic labels its variant Comic.
+    private static List<LabVariant> ToneVariants(LabPlan plan, IReadOnlyList<RollField> fields)
+    {
+        var tones = fields.Single(field => field.Name == "tone").Choices!;
+        if (plan.Variants.Count == 0)
+            return [.. tones.Select(tone => new LabVariant(tone, null, null, tone))];
+
+        return [.. plan.Variants.Select(variant =>
+        {
+            var tone = tones.FirstOrDefault(t => t.Equals(variant.Label, StringComparison.OrdinalIgnoreCase))
+                ?? throw new ArgumentException(
+                    $"--lab tone names '{variant.Label}', which is not a tone. The tones are: {string.Join(", ", tones)}.");
+            return new LabVariant(tone, null, null, tone);
+        })];
+    }
+
     // Returns the folder the sheet is in, or null when the lab stopped before any model call.
     public static async Task<string?> RunAsync(
         IChatClient client, ChatOptions options, McpToolSource tools, RunOptions run, TextReader input, CancellationToken ct)
     {
         var plan = run.Lab ?? throw new ArgumentException("Lab.RunAsync needs a --lab run.");
         var blind = run.Mode == "blind";
+
+        // Every skill folder the lab will use, the default one included, must hold SKILL.md and a
+        // file for every tone, so a gap stops the lab here, before its question and before a paid
+        // call (ADR-009). A missing folder is reported as the missing SKILL.md it is.
+        var skillDirs = plan.Variants.Select(variant => variant.SkillDir).Append(null)
+            .Select(dir => dir ?? WriterInput.DefaultSkillDir).Distinct().ToList();
+        foreach (var skillPath in skillDirs.Select(dir => Path.Combine(dir, "SKILL.md")))
+            if (!File.Exists(skillPath))
+                throw new FileNotFoundException($"The skill {skillPath} is missing.", skillPath);
+        var fields = RollField.ListFrom(tools.SchemaOf("roll_character"));
+        ToneFiles.Require(fields, skillDirs);
+
+        var variants = plan.Axis == "tone" ? ToneVariants(plan, fields) : plan.Variants;
+
         var folder = run.Out ?? Path.Combine(
             Path.GetTempPath(), $"npcforge-lab-{DateTime.Now:yyyyMMdd-HHmmss}-{plan.Axis}");
 
@@ -156,29 +202,37 @@ public static class Lab
                 Directory.Delete(folder);
         }
 
-        // Every skill is read now, so a missing folder stops the lab here and not after the first
+        // The roll is free, and the system message needs the brief's tone. The seed is the server's,
+        // so every variant is written from this one brief.
+        var briefJson = await tools.CallDirectAsync("roll_character", run.RollArguments(), ct);
+
+        // A tone variant's brief is the same brief with its tone replaced, rolled by the server with
+        // every field handed back in: the console never writes a brief, and no die lands differently.
+        var briefs = new Dictionary<string, string>();
+        foreach (var variant in variants)
+            briefs[variant.Label] = variant.Tone is { } tone
+                ? await tools.CallDirectAsync("roll_character", BriefJson.WithField(briefJson, "tone", tone), ct)
+                : briefJson;
+
+        // Every skill is read now, so an unreadable one stops the lab here and not after the first
         // paid call. Temperature variants all use the bundled skill.
-        var planned = plan.Variants
+        var planned = variants
             .SelectMany(variant => Enumerable.Range(1, run.Repeat).Select(take =>
             {
-                var system = ChatAgent.SystemMessage(variant.SkillDir ?? WriterInput.DefaultSkillDir);
-                return new Planned(variant, take, system.Text, system.Trace);
+                var system = ChatAgent.SystemMessage(variant.SkillDir ?? WriterInput.DefaultSkillDir, briefs[variant.Label]);
+                return new Planned(variant, take, briefs[variant.Label], system.Text, system.Trace);
             }))
             .ToList();
-
-        // The roll is free, and the estimate needs the first message it makes. The seed is the
-        // server's, so every variant is written from this one brief.
-        var briefJson = await tools.CallDirectAsync("roll_character", run.RollArguments(), ct);
-        var firstMessage = ChatAgent.FirstMessage(briefJson, scene: null);
 
         // It asks first (costly-steps playbook). Two calls per character is the usual case (one to
         // call lookup_archetype, one to write), each costing its whole input plus the most the model
         // may answer. The writer loop allows more turns than that, and characters stand in for
         // tokens, so this is an estimate and not a bound. It says "about", and the spending cap is
         // what stops a lab that runs over. Tokens only, no prices.
-        var estimate = planned.Sum(p => 2L * (p.SystemText.Length + firstMessage.Length + (options.MaxOutputTokens ?? 0)));
+        var estimate = planned.Sum(p =>
+            2L * (p.SystemText.Length + ChatAgent.FirstMessage(p.BriefJson, scene: null).Length + (options.MaxOutputTokens ?? 0)));
         Console.Error.WriteLine(
-            $"[lab] {planned.Count} characters ({plan.Variants.Count} variants x {run.Repeat} {(run.Repeat == 1 ? "take" : "takes")}), written by {run.Model}.");
+            $"[lab] {planned.Count} characters ({variants.Count} variants x {run.Repeat} {(run.Repeat == 1 ? "take" : "takes")}), written by {run.Model}.");
         // Invariant, because the app speaks English: a Swedish machine would print "200 000".
         Console.Error.WriteLine(string.Create(CultureInfo.InvariantCulture,
             $"[lab] About {estimate:N0} tokens, against the session cap of {SpendingCap.TokensPerSession:N0}. ") +
@@ -207,6 +261,10 @@ public static class Lab
         var entries = new List<LabEntry>();
         var capReached = false;
 
+        // The brief on the sheet. On the tone axis the tone is what differs, so it is left off: a
+        // blind sheet that showed it would name every character's tone, and the labels already do.
+        var shownBrief = plan.Axis == "tone" ? BriefJson.Without(briefJson, "tone") : briefJson;
+
         // While the variants run, the trace goes nowhere in blind mode: a [skill] line names a
         // path, a [loop] line counts tokens, and either one is the key. Restored in a finally so a
         // crash does not leave the console silent.
@@ -222,7 +280,7 @@ public static class Lab
                 if (item.Variant.Temperature is { } temperature)
                     variantOptions.Temperature = temperature;
 
-                var writer = new WriterInput(briefJson, null, item.Variant.SkillDir ?? WriterInput.DefaultSkillDir);
+                var writer = new WriterInput(item.BriefJson, null, item.Variant.SkillDir ?? WriterInput.DefaultSkillDir);
                 try
                 {
                     var text = await ChatAgent.WriteAsync(client, variantOptions, tools, writer, ct);
@@ -249,7 +307,7 @@ public static class Lab
 
         if (blind)
         {
-            var (sheet, key, data) = LabSheet.Blind(briefJson, entries, planned.Count, random);
+            var (sheet, key, data) = LabSheet.Blind(shownBrief, entries, planned.Count, random);
             await File.WriteAllTextAsync(Path.Combine(folder, "blind.md"), sheet, ct);
             await File.WriteAllTextAsync(Path.Combine(folder, "blind.json"), data, ct);
             await File.WriteAllTextAsync(Path.Combine(folder, "key.json"), key, ct);
@@ -267,7 +325,7 @@ public static class Lab
                 .OrderBy(e => planned.FindIndex(p => p.Variant.Label == e.Label && p.Take == e.Take))
                 .ToList();
             await File.WriteAllTextAsync(
-                Path.Combine(folder, "sheet.md"), LabSheet.SideBySide(plan.Axis, briefJson, inPlanOrder, planned.Count), ct);
+                Path.Combine(folder, "sheet.md"), LabSheet.SideBySide(plan.Axis, shownBrief, inPlanOrder, planned.Count), ct);
         }
 
         if (capReached)

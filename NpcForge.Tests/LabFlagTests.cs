@@ -151,6 +151,9 @@ public class LabFlagTests
     [InlineData("skill", "skill", "skill=skills/a,skills/b")]
     [InlineData("temperature=0.5", "temperature", "temperature=0.2,0.9")]
     [InlineData("temperature=0.5,", "temperature", "temperature=0.2,0.9")]
+    [InlineData("tone=Comic", "tone", "tone=Comic,Serious")]
+    [InlineData("tone=", "tone", "tone=Comic,Serious")]
+    [InlineData("tone=,", "tone", "tone=Comic,Serious")]
     public void Fewer_than_two_values_on_the_axis_is_refused(string lab, string axis, string example)
     {
         Assert.Equal(
@@ -166,20 +169,54 @@ public class LabFlagTests
             Refusal("--lab", "temperature=0.2,hot", "--seed", "1", "--setting", "a farm"));
     }
 
+    // With no values the lab takes every tone the schema has, which the parser has not seen, so the
+    // plan holds none yet; with values, it holds those, typed as they were.
     [Fact]
-    public void The_tone_axis_is_refused_until_tone_exists()
+    public void The_tone_axis_parses_with_no_values_or_with_names()
     {
-        Assert.Equal(
-            "--lab tone is not built yet: the tone axis arrives with tone itself. " +
-            "The axes that exist now are: skill, temperature.",
-            Refusal("--lab", "tone", "--seed", "1", "--setting", "a farm"));
+        var all = RunOptions.Parse(["--lab", "tone", "--seed", "1", "--setting", "a farm"]);
+        var some = RunOptions.Parse(["--lab", "tone=Comic,Serious", "--seed", "1", "--setting", "a farm"]);
+
+        Assert.Equal("tone", all.Lab!.Axis);
+        Assert.Empty(all.Lab.Variants);
+        Assert.Equal(["Comic", "Serious"], some.Lab!.Variants.Select(v => v.Tone));
+        Assert.Equal(["Comic", "Serious"], some.Lab.Variants.Select(v => v.Label));
     }
 
     [Fact]
-    public void An_unknown_axis_lists_the_two_that_exist()
+    public void A_lab_tone_beside_a_tone_flag_is_refused_with_its_own_reason()
     {
         Assert.Equal(
-            "Unknown lab axis 'model'. The axes are: skill, temperature.",
+            "--lab tone cannot go with --tone: the lab sets each variant's tone, so a tone given as well would be ignored.",
+            Refusal("--lab", "tone", "--tone", "Comic", "--seed", "1", "--setting", "a farm"));
+        Assert.Equal(
+            "--lab tone cannot go with --tone: the lab sets each variant's tone, so a tone given as well would be ignored.",
+            Refusal("--lab", "tone=Comic,Serious", "--tone", "Comic", "--seed", "1", "--setting", "a farm"));
+    }
+
+    // Only the tone axis conflicts with --tone: on the others the tone is just one more answer, held
+    // the same for every variant.
+    [Fact]
+    public void A_tone_flag_beside_another_axis_is_fine()
+    {
+        var run = RunOptions.Parse([.. Good, "--tone", "Comic"]);
+
+        Assert.Equal("Comic", run.RollArguments()["tone"]);
+    }
+
+    [Fact]
+    public void The_same_tone_twice_is_refused_ignoring_case()
+    {
+        Assert.Equal(
+            "--lab tone names comic twice: each variant needs its own tone.",
+            Refusal("--lab", "tone=Comic,comic", "--seed", "1", "--setting", "a farm"));
+    }
+
+    [Fact]
+    public void An_unknown_axis_lists_the_three_that_exist()
+    {
+        Assert.Equal(
+            "Unknown lab axis 'model'. The axes are: skill, temperature, tone.",
             Refusal("--lab", "model=a,b", "--seed", "1", "--setting", "a farm"));
     }
 
@@ -258,7 +295,7 @@ public class LabRefusalProcessTests
     [Theory]
     [InlineData(new[] { "--lab", "skill=a,b", "--setting", "a farm" }, "--lab needs --seed")]
     [InlineData(new[] { "--lab", "skill=a,b", "--seed", "1" }, "--lab needs the answers as flags")]
-    [InlineData(new[] { "--lab", "tone", "--seed", "1", "--setting", "a farm" }, "the tone axis arrives with tone itself")]
+    [InlineData(new[] { "--lab", "tone", "--tone", "Comic", "--seed", "1", "--setting", "a farm" }, "--lab tone cannot go with --tone")]
     public async Task The_app_stops_a_bad_lab_at_the_parser_before_any_client_is_built(string[] flags, string message)
     {
         var run = await ConsoleProcess.RunAsync(["--provider", "openai", .. flags], offline: true);
