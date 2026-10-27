@@ -114,6 +114,30 @@ of a fence" at Wall difficulty because I didn't say what the party wants.
   buried", when a rolled trait is vague. Decide whether it is the writer's skill or the trait's
   wording.
 
+## 9. Faster tests
+
+**Goal.** The full `dotnet test` takes about eight to ten minutes, which makes every change slow to
+prove. I want it fast enough to run on every change without thinking twice.
+
+**Constraints.**
+- A restructure of the tests only. Nothing the app does changes, and the replay test passes
+  unchanged and is never re-recorded.
+- No test is deleted, skipped or weakened to save time. Every test that fails today on a broken
+  guard still fails on it.
+- Tests stay independent: a shared server or process never lets one test's save file, seed or
+  stderr reach another, and the full suite passes in any order.
+- Measure first. The epic starts by timing where the minutes go, so the fix targets the real cost,
+  not a guess. The current guess is that the tests starting the console and the MCP server, about
+  28 call sites in 13 files, take most of the time.
+
+**Done when.**
+- The full suite's time is measured before and after on the same machine, and the after time is
+  at most half the before time.
+- Every test passes, the test count is unchanged, and a break-it check on three guards picked at
+  random still fails its test.
+- `AGENTS.md` and the verify skill say how long the suite takes, and how to run the fast part on
+  its own.
+
 ## 4. Keep and edit (draft)
 
 **Goal.** I choose which characters are worth keeping, find them by a name I give them, and change
