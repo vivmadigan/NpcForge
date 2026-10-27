@@ -474,3 +474,4 @@ agents and named, not numbered.
 | Harden the safety net | A typo'd flag, a free run reaching a model, a replay writing over the owner's saves, and a Release test replaying the Debug build all stop or fail loudly | |
 | The writer reads the scene (epic 7) | The GM's scene reaches the writer, and the control scene gives a character who acts inside it on three seeds of three | |
 | Talk to it (epic 2) | A bare run interviews the GM, every field traces to their words or the dice, nothing rolls before a yes, and a spending cap stops a session | |
+| Better characters (epic 3) | Tone, race and name dice join the brief; one tone file reaches the writer; a namer names inside the dice and the save keeps it; a blind lab tells the tones apart 5 of 6 times | |

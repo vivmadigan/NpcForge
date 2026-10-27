@@ -32,7 +32,7 @@ writing. The dice give the variety.
    does not come out cheerfully helpful.
 3. The model gets the brief as settled fact, plus writing guidance, and writes the character in a
    fixed order:
-   - **Who they are.** A name and one line of history.
+   - **Who they are.** The name the namer gave them, and one line of history.
    - **Where they stand** on what the players want.
    - **How they seem, and what is underneath.**
    - **Levers.** Two or three things that would move them, each with a line of dialogue.
@@ -100,11 +100,12 @@ a paid run, `NPCFORGE_OFFLINE=1` stops a free run reaching a model, a replay nev
 saved characters, and `dotnet test -c Release` tests the Release build. You can talk to it: a
 bare `dotnet run` interviews you about the scene, every trait traces to your words or the dice, and
 it has passed its paid run on OpenAI and Anthropic. The writer is sent your scene as well as the
-brief, so the character acts inside the situation you described. Better characters is built and
-waiting on its paid checks: a writers' lab (`--lab`) writes one brief with two skills, temperatures
-or tones side by side, or blind for you to guess and `--score`; the brief carries a tone, a race and
-name dice; and a namer names each character inside its dice before the writer starts, with the name
-kept in the save. Next: keeping and editing characters, and in time a website with logins and a
+brief, so the character acts inside the situation you described. Better characters is done: the
+brief carries a tone, a race and name dice; the writer is told how to write in its tone; a namer
+names each character inside its dice before the writer starts, with the name kept in the save; and a
+writers' lab (`--lab`) writes one brief with two skills, temperatures or tones side by side, or
+blind for you to guess and `--score`. A blind tone check scored 5 of 6. Next: filling the gaps a
+scene leaves, faster tests, keeping and editing characters, and in time a website with logins and a
 database so friends can use it. See
 [ROADMAP.md](ROADMAP.md).
 

@@ -35,56 +35,13 @@ Two rules for every epic, now that the Safety net exists:
 
 | # | Epic | In one line |
 | --- | --- | --- |
-| 3 | Better characters | Tone, race, names that don't repeat, and a writers' lab |
+| 8 | Fill the gaps in a scene | Ask for a missing want, roll a missing difficulty |
+| 9 | Faster tests | The full suite in half the time, with no test weakened |
 | 4 | Keep and edit | Choose what to keep, and change it later |
 | 5 | Ready to grow | A structure that can sit behind a website and a database |
 | 6 | Friends can use it | A website with logins and a database, deployed |
 
 Epics 4 to 6 are drafts: sharpen each one before it starts.
-
-## 3. Better characters
-
-**Goal.** Characters that differ more from run to run and fit the mood I ask for, through three
-levers: tone, race and name dice. Plus a writers' lab, so I judge creative changes by comparing them
-side by side, not from memory.
-
-**Constraints.**
-- Tone, race and the name dice are given by me (a flag, or my words in the interview), inferred
-  where ADR-007 allows a choice, or rolled. The model never picks them.
-- Tone (serious, comic, heartfelt) changes how the character is written, not which traits roll.
-  Leaving out traits that clash with a tone waits until the lab shows a real clash.
-- Race is my words when I give it ("an orc blacksmith"), and rolled from a table otherwise. The
-  table and how often each race comes up are mine to approve.
-- Name dice are a starting letter and a syllable count, rolled for every character. The writer is
-  also told the race, so the name fits the people.
-- The lab runs one brief, with the dice fixed by `--seed`, through two or more variants (skills,
-  tones, temperature) and shows them side by side. A blind mode hides the labels and scores my
-  guesses. Lab runs are paid, so each one asks first, with its cost.
-- An ADR comes first: tone, race and name dice join the brief. This changes `roll_character` and
-  the save format.
-- Old saves still load, with the new fields showing as "unknown". Every table keeps at least six
-  entries.
-
-**Done when.**
-- Free tests: a given tone or race is kept and a missing one is rolled; the interview infers a tone
-  from my scene and labels it; every brief carries name dice; an old save loads with "unknown"; the
-  replay passes against the re-recorded fixture; the lab, run with a stand-in model, produces a
-  side-by-side sheet and a blind sheet whose answer key matches.
-- Blind tone check: six characters from one brief, two of each tone. I name the tone and get at
-  least five right (*needs my eyes*, paid).
-- Names: six runs give six different first names, each following its dice (*needs my eyes*, paid,
-  unless the design finds a structured check).
-- Race: an elf and a dwarf from the same brief read as different peoples (*needs my eyes*, paid).
-
-**Tasks.** In this order, because the lab is what makes the other three judgeable:
-- ADR: tone, race and name dice join the brief
-- The writers' lab, with its blind mode
-- Tone
-- Race
-- Name dice. Open question: can code check that the name follows its dice without reading the
-  prose, for example by the writer handing the name back as a tool argument?
-
-**Not in this epic.** Throwaway and recurring characters move to "Keep and edit".
 
 ## 8. Fill the gaps in a scene
 
@@ -201,3 +158,9 @@ find it there.
   yes. A spending cap stops a session at 200,000 tokens. The tavern scene passed on OpenAI and
   Claude, judged by the owner on runs of their own. See ADR-007 and `docs/architecture.md` "The
   scene interview".
+- **Better characters** (epic 3, 2026-10-27). Every brief carries a tone, a race and name dice;
+  one tone file reaches the writer; a namer names each character inside its dice before the writer
+  starts, and the save keeps the name; a writers' lab compares skills, temperatures or tones side by
+  side or blind. A blind tone check scored 5 of 6 on the second tone files, six runs gave six names
+  that follow their dice, and an elf and a dwarf read as different peoples. See ADR-009, lessons 010
+  and 011 and `docs/runs/2026-10-27-01-epic3-checks.md`.
