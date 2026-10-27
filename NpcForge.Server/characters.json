@@ -115,5 +115,26 @@
       "familyLetter": "V"
     },
     "text": "### Who they are\n**Kellan Voss** has kept a hunter’s cabin in the forest for years.\n\n### Where they stand\nHe knows the witch is himself, disguised as a human hunter. He wants the players to leave him alone and is willing to give them false information. What is actually happening in the forest is **[what is really happening in the forest]**.\n\n### How they seem, and what is underneath\nKellan is nosy, asking what brought the players so deep into the forest and what they’ve seen along the way. He sighs before answering, then speaks with heartfelt concern. Under the disguise, he is the witch—and he believes he is an excellent liar.\n\n### Levers\n- **Small kindness (weakness):** A little help with something in the cabin makes Kellan feel obliged to repay them. He’ll offer more false information, though not the truth. “You didn’t have to do that. Let me give you something in return: **[false information about the witch]**.”\n- **Let him satisfy his curiosity (attitude: nosy):** Answer his questions, and he’ll be more forthcoming with a convincing false lead. “You’ve been honest with me, so I’ll tell you what I’ve heard: **[false information about the witch]**.”\n- **Make clear you’ll leave (characterWants: to be left alone):** He’s eager to send them on their way and may offer a false account to steer them off. “If you’re heading out, take the north path. The witch is said to haunt **[false location]**.”\n\nNo lever gets them the real information; Kellan can offer only a false account.\n\n### Anti-levers\n- **Demand the truth about the witch (scene: willing to share false information):** He sticks to his cover story. “I’ve told you what I know. **[false information about the witch]**.”\n- **Insist on staying or make him keep talking (characterWants: to be left alone):** His answers grow short; he wants them gone. “I’m sorry, but I’ve said all I can. You should go.”\n- **Ask how he lost a tooth (willNotDiscuss):** He shuts the subject down. “That’s not something I discuss.”\n\n### Afterwards\n**Didn’t.** The players leave with false information, not the truth. Kellan is relieved to have them gone, and hasn’t made an enemy—unless they refused to leave."
+  },
+  "8": {
+    "brief": {
+      "setting": "tiny bakery",
+      "playersWant": "the name of a fence",
+      "difficulty": "Wall",
+      "occupation": "goblin baker",
+      "characterWants": "to keep a secret buried",
+      "obstacle": "Cant",
+      "attitude": "cheerfully oblivious",
+      "mannerism": "answers questions with questions",
+      "weakness": "is easily flattered",
+      "willNotDiscuss": "their age",
+      "wrongAbout": "believes they are an excellent liar",
+      "tone": "Comic",
+      "race": "goblin",
+      "nameLetter": "O",
+      "nameSyllables": "2",
+      "familyLetter": "W"
+    },
+    "text": "### 1. Who they are\n**Ollo Weller** has baked in this tiny bakery long enough to regard every missing croissant as a review he did not authorize.\n\n### 2. Where they stand\nThe party wants the name of a fence. Ollo won’t provide it: he doesn’t know the name, and no amount of pressure can make him know it. He is determined to keep [the secret he is keeping] buried. He can offer help with the croissant theft instead.\n\n### 3. How they seem, and what is underneath\nOllo is cheerfully oblivious to how strange this conversation is. He answers questions with questions, and is quite sure he’s an excellent liar. Underneath the geniality, the secret stays buried—and his croissants keep disappearing.\n\n> “Someone keeps stealing my croissants! Isn’t it nice to know they’re popular? Now, why do you want a fence?”\n\n### 4. Levers\n- **Flatter him (brief: easily flattered):** He beams and offers a croissant, then tells them the limit of what he knows: someone has been stealing them. No name, no lead to the fence.  \n  > “You think my pastry has a reputation? Take one. What more could a person want from a bakery?”\n\n- **Offer to help with the croissant theft (scene):** He lets them look around the tiny bakery. He has no further information about the fence to give.  \n  > “You’ll help? Splendid. Have you seen a croissant thief? No? Well, I hadn’t either, until the croissants started vanishing.”\n\n### 5. Anti-levers\n- **Demand the fence’s name (brief: Wall; characterWants: keep a secret buried):** He holds firm; insistence won’t supply a name he doesn’t know.  \n  > “You want me to name a fence? What would I call him if I knew him?”\n\n- **Accuse him of lying (brief: believes he is an excellent liar):** He gets stubbornly proud of his honesty.  \n  > “A liar? Would an excellent liar admit he was lying? And would I?”\n\n- **Ask his age (brief: willNotDiscuss their age):** He shuts that topic down.  \n  > “How old am I? How old do you think a question has to be before it becomes rude?”\n\n### 6. Afterwards\n**Didn’t get it.** The party leaves without the fence’s name; Ollo cheerfully returns to watching his croissants."
   }
 }
