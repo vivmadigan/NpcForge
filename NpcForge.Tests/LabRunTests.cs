@@ -53,7 +53,7 @@ public class LabRunTests : IDisposable
 
     private const string RestoredMarker = "<console-error-restored>";
 
-    private sealed record Result(string? Folder, string Stderr, int Calls);
+    private sealed record Result(string? Folder, string Stderr, int Calls, bool NoName = false);
 
     // Runs the lab the way Program.cs does, with the stand-in as the whole model. Stderr is captured
     // from after the server is up, so only the lab's own lines and the variants' traces are in it.
@@ -72,10 +72,10 @@ public class LabRunTests : IDisposable
         var capture = new StringWriter();
         var before = Console.Error;
         Console.SetError(capture);
-        string? folder;
+        LabOutcome ended;
         try
         {
-            folder = await Lab.RunAsync(client ?? model, options, tools, run, new StringReader(input), CancellationToken.None);
+            ended = await Lab.RunAsync(client ?? model, options, tools, run, new StringReader(input), CancellationToken.None);
         }
         finally
         {
@@ -92,7 +92,7 @@ public class LabRunTests : IDisposable
         // A lab saves nothing: the temp save file was never created.
         Assert.False(File.Exists(save), "a lab run must not save a character");
         Assert.Null(options.Temperature);
-        return new Result(folder, capture.ToString(), model.Calls.Count);
+        return new Result(ended.Folder, capture.ToString(), model.Calls.Count, ended.NoName);
     }
 
     [Fact]
@@ -147,6 +147,10 @@ public class LabRunTests : IDisposable
 
     private static readonly string[] AllTones = ["Serious", "Comic", "Heartfelt"];
 
+    // The line the writer is told its name in, as it appears in the first message.
+    private static string NameLine(LabStandIn.Call call) =>
+        Regex.Match(call.UserText, @"Their name is [^\n]+\.\n\n").Value;
+
     // What each call was sent: the brief is the JSON at the end of the first message, as ReplayTests
     // reads it, and the tone file is told apart by its heading.
     private static JsonObject BriefOf(LabStandIn.Call call) =>
@@ -181,6 +185,117 @@ public class LabRunTests : IDisposable
         // The brief on the sheet is shown once and without the tone, which the labels already give.
         Assert.Single(Regex.Matches(sheet, @"""setting"":"));
         Assert.DoesNotContain(@"""tone"":", sheet);
+    }
+
+    // One name for the whole lab (ADR-009): the namer runs once, on the base brief, and every variant
+    // is told that name, so the sheet shows one character in three moods.
+    [Fact]
+    public async Task A_lab_names_its_character_once_and_writes_every_variant_with_that_name()
+    {
+        var model = new LabStandIn();
+
+        var result = await RunLab(model, ["--lab", "tone"], "yes\n");
+
+        // One give_name turn and the closing turn, for three characters.
+        Assert.Equal(2, model.Namer.NamerCalls.Count);
+        Assert.Equal(3, model.Calls.Count);
+        var names = model.Calls.Select(NameLine).ToList();
+        Assert.All(names, line => Assert.Equal(names[0], line));
+        Assert.Matches(@"^Their name is \w+ \w+\.", names[0]);
+        Assert.Single(Regex.Matches(result.Stderr, @"\[app\] name "));
+    }
+
+    [Fact]
+    public async Task A_lab_whose_namer_gives_no_name_writes_nothing_and_says_why()
+    {
+        var model = new LabStandIn { Namer = NamerStandIn.Always(new NamerStandIn.Turn((["Qq", "q"], "Q"))) };
+        var folder = TempFolder();
+
+        var result = await RunLab(model, ["--lab", "tone"], "yes\n", folder);
+
+        Assert.Null(result.Folder);
+        Assert.Empty(model.Calls);
+        Assert.Equal(4, model.Namer.NamerCalls.Count);
+        Assert.Matches(@"\[lab\] not written: no name followed the dice \(\w, \d, \w\)", result.Stderr);
+        Assert.False(Directory.Exists(folder));
+        // Program.cs exits 1 on this, as a normal run does when no name follows the dice.
+        Assert.True(result.NoName);
+    }
+
+    // Only a lab with no name is a failed run: a lab that is declined, or over the cap, ends
+    // quietly as a normal run does, and a lab that wrote its sheet is not one either.
+    [Fact]
+    public async Task Only_a_lab_with_no_name_is_flagged_as_failed()
+    {
+        Assert.False((await RunLab(new LabStandIn(), ["--lab", "tone"], "yes\n")).NoName);
+        Assert.False((await RunLab(new LabStandIn(), ["--lab", "tone"], "no\n")).NoName);
+    }
+
+    // A namer that fails outright (a 500, or a replay that does not match) is an exception the lab
+    // does not catch. It must not leave behind the empty folder the lab made for its --out.
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task A_namer_that_throws_leaves_no_empty_out_folder_behind(bool blind)
+    {
+        var folder = TempFolder();
+        var model = new LabStandIn();
+        string[] flags = blind ? ["--lab", "tone", "--mode", "blind"] : ["--lab", "tone"];
+
+        await Assert.ThrowsAsync<HttpRequestException>(
+            () => RunLab(model, flags, "yes\n", folder, client: new NamerFails(model)));
+
+        Assert.False(Directory.Exists(folder));
+        Assert.Empty(model.Calls);
+    }
+
+    // A folder the GM named and made first is theirs, and stays, empty or not.
+    [Fact]
+    public async Task A_namer_that_throws_leaves_an_out_folder_that_was_already_there()
+    {
+        var folder = TempFolder();
+        Directory.CreateDirectory(folder);
+        var model = new LabStandIn();
+
+        await Assert.ThrowsAsync<HttpRequestException>(
+            () => RunLab(model, ["--lab", "tone"], "yes\n", folder, client: new NamerFails(model)));
+
+        Assert.True(Directory.Exists(folder));
+    }
+
+    // A blind window hides the namer's own line, and the name is in no other file, so the GM would
+    // never see it. It is printed once the window is over, and it is the name every letter has.
+    [Fact]
+    public async Task A_blind_lab_prints_the_accepted_name_once_after_the_window()
+    {
+        var model = new LabStandIn();
+
+        var result = await RunLab(model, ["--lab", "tone", "--mode", "blind"], "yes\n");
+
+        var line = Regex.Match(result.Stderr, @"^\[app\] name (\w+ \w+) \(\w, \d, \w\)\r?$", RegexOptions.Multiline);
+        Assert.True(line.Success, result.Stderr);
+        Assert.Single(Regex.Matches(result.Stderr, @"\[app\] name "));
+        Assert.All(model.Calls, call => Assert.Contains($"Their name is {line.Groups[1].Value}.", call.UserText));
+        // After the confirmation (so after the window opened) and before the folder is announced.
+        Assert.True(result.Stderr.IndexOf("Run this lab?", StringComparison.Ordinal) < line.Index);
+        Assert.True(line.Index < result.Stderr.IndexOf("[lab] written to ", StringComparison.Ordinal));
+    }
+
+    // Passes the writer's calls to the stand-in and fails the namer's, as a server error would.
+    private sealed class NamerFails(IChatClient inner) : IChatClient
+    {
+        public Task<ChatResponse> GetResponseAsync(
+            IEnumerable<ChatMessage> messages, ChatOptions? options = null, CancellationToken cancellationToken = default)
+            => NamerStandIn.IsNamer(messages)
+                ? throw new HttpRequestException("500 from the namer")
+                : inner.GetResponseAsync(messages, options, cancellationToken);
+
+        public IAsyncEnumerable<ChatResponseUpdate> GetStreamingResponseAsync(
+            IEnumerable<ChatMessage> messages, ChatOptions? options = null, CancellationToken cancellationToken = default)
+            => throw new NotSupportedException();
+
+        public object? GetService(Type serviceType, object? serviceKey = null) => null;
+        public void Dispose() { }
     }
 
     [Fact]
@@ -449,7 +564,13 @@ public class LabRunTests : IDisposable
 
         // The stand-in saw what each call was really sent, so the printed estimate is checked against
         // those lengths and MaxOutputTokens (5000) and not against a copy of the formula's inputs.
-        var expected = model.Calls.Sum(call => 2L * (call.SystemLength + call.UserLength + 5000));
+        // The estimate is made before the namer runs, so it counts the writer's message without the
+        // name line the writer is then sent.
+        var expected = model.Calls.Sum(call =>
+            2L * (call.SystemLength + call.UserLength - NameLine(call).Length + 5000));
+        // And the namer, once for the lab, at two calls of what its first call was sent.
+        var naming = model.Namer.NamerCalls[0];
+        expected += 2L * (naming.System.Length + naming.FirstUser.Length + 5000);
         var printed = long.Parse(Regex.Match(result.Stderr, @"About ([\d,]+) tokens").Groups[1].Value.Replace(",", ""));
         Assert.Equal(expected, printed);
     }
@@ -561,6 +682,7 @@ public class LabRunTests : IDisposable
             string SystemFirstLine, float? Temperature, int SystemLength, int UserLength, string SystemText, string UserText);
 
         public List<Call> Calls { get; } = [];
+        public NamerStandIn Namer { get; init; } = NamerStandIn.FollowsTheDice();
         public Func<Call, string?>? Behave { get; init; }
         public int TokensPerCall { get; init; }
 
@@ -572,6 +694,11 @@ public class LabRunTests : IDisposable
         public Task<ChatResponse> GetResponseAsync(
             IEnumerable<ChatMessage> messages, ChatOptions? options = null, CancellationToken cancellationToken = default)
         {
+            // The namer's calls name the character after its dice, free, and are kept apart from the
+            // writer's: Calls is the writing.
+            if (NamerStandIn.IsNamer(messages))
+                return Namer.GetResponseAsync(messages, options, cancellationToken);
+
             if (CallsATool && messages.Last().Role != ChatRole.Tool)
             {
                 var ask = new FunctionCallContent("call-1", "lookup_archetype",

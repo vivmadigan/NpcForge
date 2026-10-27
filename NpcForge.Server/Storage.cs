@@ -1,13 +1,23 @@
 ﻿using ModelContextProtocol;            // McpException
 using System.Text.Encodings.Web;       // JavaScriptEncoder
 using System.Text.Json;
+using System.Text.Json.Serialization;  // JsonIgnore
 
 namespace NpcForge.Server
 {
-    // One saved run. The brief has no name and the model writes differently each time, so the
-    // text is saved too. The brief stays the JSON it was saved as: an old entry is never passed
+    // One saved run. The model writes differently each time, so the name the namer gave and the
+    // text are saved beside the brief. The brief stays the JSON it was saved as: an old entry is never passed
     // through CharacterBrief, so a field added to the brief later cannot appear in it (ADR-009).
-    public sealed record SavedCharacter(JsonElement Brief, string Text);
+    // An old save has no name. Null is left out of the file, so an old entry keeps its bytes when
+    // the file is written back.
+    public sealed record SavedCharacter(
+        JsonElement Brief,
+        [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] CharacterName? Name,
+        string Text);
+
+    // The name the namer gave and the console accepted, split as the namer split it, so the count it
+    // was checked on stays readable in the save.
+    public sealed record CharacterName(IReadOnlyList<string> Syllables, string Family);
 
     // All saved characters in one JSON file, numbered from 1. Only the server touches the file.
     public static class Storage

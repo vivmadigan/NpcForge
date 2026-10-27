@@ -13,13 +13,16 @@ public class WriterMessageTests
 
     private const string Brief = """{"setting":"town's only inn","playersWant":"information about the town","difficulty":"Wall","occupation":"innkeeper","tone":"Comic"}""";
 
+    // A name already given, so these tests reach the writer without a namer.
+    private static readonly NamedCharacter Kessa = new(["Kes", "sa"], "Vale");
+
     [Fact]
     public async Task The_writer_is_sent_the_scene_word_for_word_with_the_brief()
     {
         var model = new KeepsWhatItIsSent();
 
         await ChatAgent.WriteAsync(model, new ChatOptions(), new FakeToolSource(),
-            new WriterInput(Brief, ControlScene, WriterInput.DefaultSkillDir), CancellationToken.None);
+            new WriterInput(Brief, ControlScene, WriterInput.DefaultSkillDir, Kessa), CancellationToken.None);
 
         // One message of facts after the skill, as before: the scene joins it, not a message of its own.
         var sent = model.Messages;
@@ -27,20 +30,84 @@ public class WriterMessageTests
         var facts = sent[1].Text;
         Assert.Contains($"<scene>\n{ControlScene}\n</scene>", facts);
         Assert.Contains("the brief wins", facts);
-        // The brief stays last, where ReplayTests looks for it.
-        Assert.EndsWith(Brief, facts);
+        // The name comes after the scene and before the brief, and the brief stays last, where
+        // ReplayTests looks for it (ADR-008, ADR-009).
+        Assert.EndsWith($"</scene>\n\nTheir name is Kessa Vale.\n\n{Brief}", facts);
     }
 
-    // A flag run has no scene. Its message is the one the replay fixture recorded, to the byte.
+    // A flag run has no scene: the name line, then the brief.
     [Fact]
-    public async Task A_run_with_no_scene_sends_the_writer_todays_message()
+    public async Task A_run_with_no_scene_tells_the_writer_the_name_before_the_brief()
     {
         var model = new KeepsWhatItIsSent();
 
         await ChatAgent.WriteAsync(model, new ChatOptions(), new FakeToolSource(),
-            new WriterInput(Brief, Scene: null, WriterInput.DefaultSkillDir), CancellationToken.None);
+            new WriterInput(Brief, Scene: null, WriterInput.DefaultSkillDir, Kessa), CancellationToken.None);
 
-        Assert.Equal($"Write this character. The brief is settled; do not change it.\n\n{Brief}", model.Messages[1].Text);
+        Assert.Equal(
+            $"Write this character. The brief is settled; do not change it.\n\nTheir name is Kessa Vale.\n\n{Brief}",
+            model.Messages[1].Text);
+    }
+
+    // With no scene and no name, the message from before the namer, to the byte: the lab's estimate
+    // still measures it.
+    [Fact]
+    public void With_no_scene_and_no_name_the_first_message_is_the_one_from_before_the_namer()
+    {
+        Assert.Equal(
+            $"Write this character. The brief is settled; do not change it.\n\n{Brief}",
+            ChatAgent.FirstMessage(Brief, scene: null, name: null));
+    }
+
+    private const string BriefWithDice =
+        """{"setting":"a mill","occupation":"miller","tone":"Comic","race":"dwarf","nameLetter":"K","nameSyllables":"2","familyLetter":"V"}""";
+
+    // With no name on the input, WriteAsync runs the namer first and tells the writer the name it
+    // accepted, before the brief.
+    [Fact]
+    public async Task With_no_name_the_namer_runs_first_and_its_name_reaches_the_writer_before_the_brief()
+    {
+        var model = new NamerStandIn(new NamerStandIn.Turn((["To", "bin"], "Vale")), new NamerStandIn.Turn((["Kes", "sa"], "Vale")));
+
+        var written = await ChatAgent.WriteAsync(model, new ChatOptions(), new FakeToolSource(),
+            new WriterInput(BriefWithDice, Scene: null, WriterInput.DefaultSkillDir), CancellationToken.None);
+
+        Assert.Equal("Kessa Vale", written.Name.Full);
+        Assert.Equal("A character.", written.Text);
+        Assert.Equal(3, model.NamerCalls.Count);
+        var writer = Assert.Single(model.WriterCalls);
+        Assert.Equal(
+            $"Write this character. The brief is settled; do not change it.\n\nTheir name is Kessa Vale.\n\n{BriefWithDice}",
+            writer.FirstUser);
+        // The writer keeps its own tools: give_name never reaches it.
+        Assert.Equal(["LookupArchetype"], writer.Tools);
+    }
+
+    [Fact]
+    public async Task A_name_on_the_input_skips_the_namer()
+    {
+        var model = new NamerStandIn();
+
+        var written = await ChatAgent.WriteAsync(model, new ChatOptions(), new FakeToolSource(),
+            new WriterInput(BriefWithDice, Scene: null, WriterInput.DefaultSkillDir, Kessa), CancellationToken.None);
+
+        Assert.Empty(model.NamerCalls);
+        Assert.Same(Kessa, written.Name);
+    }
+
+    // No name, no writer: a namer that never follows the dice stops the run at four turns, and the
+    // writer is never called (ADR-009).
+    [Fact]
+    public async Task A_namer_that_never_follows_the_dice_stops_the_run_and_the_writer_is_never_called()
+    {
+        var model = NamerStandIn.Always(new NamerStandIn.Turn((["To", "bin"], "Vale")));
+
+        var error = await Assert.ThrowsAsync<NoNameException>(() => ChatAgent.WriteAsync(model, new ChatOptions(), new FakeToolSource(),
+            new WriterInput(BriefWithDice, Scene: null, WriterInput.DefaultSkillDir), CancellationToken.None));
+
+        Assert.Equal("no name followed the dice (K, 2, V)", error.Message);
+        Assert.Equal(4, model.NamerCalls.Count);
+        Assert.Empty(model.WriterCalls);
     }
 
     // The skill folder is a choice of the input, not a constant: a copy with an edit is what the
@@ -58,7 +125,7 @@ public class WriterMessageTests
             var model = new KeepsWhatItIsSent();
 
             await ChatAgent.WriteAsync(model, new ChatOptions(), new FakeToolSource(),
-                new WriterInput(Brief, Scene: null, dir), CancellationToken.None);
+                new WriterInput(Brief, Scene: null, dir, Kessa), CancellationToken.None);
 
             Assert.Equal((edited.TrimEnd() + "\n\nCOPIED COMIC TONE\n").ReplaceLineEndings("\n"), model.Messages[0].Text);
         }
@@ -110,7 +177,7 @@ public class WriterMessageTests
         var brief = Brief.Replace("\"tone\":\"Comic\"", $"\"tone\":\"{tone}\"");
 
         await ChatAgent.WriteAsync(model, new ChatOptions(), new FakeToolSource(),
-            new WriterInput(brief, Scene: null, WriterInput.DefaultSkillDir), CancellationToken.None);
+            new WriterInput(brief, Scene: null, WriterInput.DefaultSkillDir, Kessa), CancellationToken.None);
 
         var system = model.Messages[0].Text;
         var skill = File.ReadAllText(Path.Combine(WriterInput.DefaultSkillDir, "SKILL.md")).ReplaceLineEndings("\n");

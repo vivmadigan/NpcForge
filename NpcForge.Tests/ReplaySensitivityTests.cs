@@ -8,28 +8,42 @@ namespace NpcForge.Tests;
 // replay stops, and names the difference. Without them a restructure could quietly weaken
 // Recording.Describe and nothing would fail. In process and free: the requests are built from
 // the fixture, and the fixture is never edited or re-recorded.
-public class ReplaySensitivityTests
+//
+// The writer's calls are found by their system message, not by their place (ADR-009): the namer's
+// calls come first in a named run. Each test runs on the fixture as recorded and on a copy with a
+// namer call in front, so a lookup by place would fail the second.
+public class ReplaySensitivityTests : IDisposable
 {
-    private static readonly string Fixture = Path.GetFullPath(Path.Combine(
-        AppContext.BaseDirectory, "..", "..", "..", "..", "NpcForge.Tests", "Fixtures", "replay.jsonl"));
+    private static readonly string Recorded = RecordedRun.Fixture;
+
+    // A temp copy of the fixture with one namer call before the writer's.
+    private readonly string _withNamer = RecordedRun.CopyWithNamerFirst();
+
+    public void Dispose() => File.Delete(_withNamer);
+
+    public static TheoryData<string> Fixtures => ["recorded", "with a namer call first"];
+
+    private string PathOf(string fixture) => fixture == "recorded" ? Recorded : _withNamer;
 
     // The control. Every test below asserts a failure, so if the request built here were wrong
     // they would all pass for the wrong reason. This one shows the unmodified request replays.
-    [Fact]
-    public async Task Control_the_unmodified_requests_replay_cleanly()
+    [Theory]
+    [MemberData(nameof(Fixtures))]
+    public async Task Control_the_unmodified_requests_replay_cleanly(string fixture)
     {
-        var replay = new ReplayChatClient(Fixture);
+        var replay = new ReplayChatClient(PathOf(fixture));
 
-        foreach (var request in RecordedRequests())
+        foreach (var request in RecordedRequests(PathOf(fixture)))
             await Send(replay, request);
     }
 
     // The model is told the SKILL.md text, so one changed word is a changed product.
-    [Fact]
-    public async Task Fails_when_the_system_prompt_differs()
+    [Theory]
+    [MemberData(nameof(Fixtures))]
+    public async Task Fails_when_the_system_prompt_differs(string fixture)
     {
-        var replay = new ReplayChatClient(Fixture);
-        var request = RecordedRequests()[0];
+        var (replay, requests, at) = await ReplayUpToTheWriter(PathOf(fixture));
+        var request = requests[at];
 
         var system = request.Messages.First(m => m.Role == ChatRole.System);
         var text = system.Contents.OfType<TextContent>().First();
@@ -38,34 +52,36 @@ public class ReplaySensitivityTests
 
         var failure = await Assert.ThrowsAsync<InvalidOperationException>(() => Send(replay, request));
 
-        Assert.Contains("Model call 1 differs", failure.Message);
+        Assert.Contains($"Model call {at + 1} differs", failure.Message);
         Assert.Contains("settles", failure.Message);    // names the line that changed
     }
 
     // "A tool the model can see is a tool it can skip" (AGENTS.md): a lost tool list must not
     // replay as if nothing changed, which is why the tools are written out by hand.
-    [Fact]
-    public async Task Fails_when_the_tool_list_is_empty()
+    [Theory]
+    [MemberData(nameof(Fixtures))]
+    public async Task Fails_when_the_tool_list_is_empty(string fixture)
     {
-        var replay = new ReplayChatClient(Fixture);
-        var request = RecordedRequests()[0];
-        request.Options.Tools = [];
+        var (replay, requests, at) = await ReplayUpToTheWriter(PathOf(fixture));
+        requests[at].Options.Tools = [];
 
-        var failure = await Assert.ThrowsAsync<InvalidOperationException>(() => Send(replay, request));
+        var failure = await Assert.ThrowsAsync<InvalidOperationException>(() => Send(replay, requests[at]));
 
-        Assert.Contains("Model call 1 differs", failure.Message);
+        Assert.Contains($"Model call {at + 1} differs", failure.Message);
         Assert.Contains("tool: lookup_archetype", failure.Message);   // the recorded line that went missing
     }
 
     // Options is the library's JSON of every setting, so any one of them counts. Two are tried,
     // each on its own: a restructure that rebuilt ChatOptions might lose either.
     [Theory]
-    [InlineData("MaxOutputTokens")]
-    [InlineData("ModelId")]
-    public async Task Fails_when_a_model_option_differs(string option)
+    [InlineData("MaxOutputTokens", "recorded")]
+    [InlineData("ModelId", "recorded")]
+    [InlineData("MaxOutputTokens", "with a namer call first")]
+    [InlineData("ModelId", "with a namer call first")]
+    public async Task Fails_when_a_model_option_differs(string option, string fixture)
     {
-        var replay = new ReplayChatClient(Fixture);
-        var request = RecordedRequests()[0];
+        var (replay, requests, at) = await ReplayUpToTheWriter(PathOf(fixture));
+        var request = requests[at];
 
         if (option == "MaxOutputTokens")
             request.Options.MaxOutputTokens += 1;
@@ -74,36 +90,58 @@ public class ReplaySensitivityTests
 
         var failure = await Assert.ThrowsAsync<InvalidOperationException>(() => Send(replay, request));
 
-        Assert.Contains("Model call 1 differs", failure.Message);
+        Assert.Contains($"Model call {at + 1} differs", failure.Message);
         Assert.Contains("options:", failure.Message);
     }
 
-    // "Skip one and the next request is malformed" (docs/architecture.md "The loop"). The drop
-    // is on call 2, the first request that carries the model's own turn back.
-    [Fact]
-    public async Task Fails_when_a_model_turn_is_dropped_from_the_history()
+    // "Skip one and the next request is malformed" (docs/architecture.md "The loop"). The drop is
+    // on the writer's first request that carries the writer's own turn back, wherever it sits.
+    [Theory]
+    [MemberData(nameof(Fixtures))]
+    public async Task Fails_when_a_writer_turn_is_dropped_from_the_history(string fixture)
     {
-        var replay = new ReplayChatClient(Fixture);
-        var requests = RecordedRequests();
-        await Send(replay, requests[0]);                 // call 1 is unchanged, so the replay reaches call 2
+        var path = PathOf(fixture);
+        var replay = new ReplayChatClient(path);
+        var requests = RecordedRequests(path);
+        var at = requests.FindIndex(r => IsWriter(r) && r.Messages.Any(m =>
+            m.Role == ChatRole.Assistant && m.Contents.OfType<FunctionCallContent>().Any()));
+        Assert.True(at > 0, "the fixture holds no writer request that carries the writer's turn back");
+        foreach (var earlier in requests.Take(at))
+            await Send(replay, earlier);                 // unchanged, so the replay reaches the drop
 
-        var withCall = requests[1].Messages.First(m =>
+        var withCall = requests[at].Messages.First(m =>
             m.Role == ChatRole.Assistant && m.Contents.OfType<FunctionCallContent>().Any());
-        requests[1].Messages.Remove(withCall);
+        requests[at].Messages.Remove(withCall);
 
-        var failure = await Assert.ThrowsAsync<InvalidOperationException>(() => Send(replay, requests[1]));
+        var failure = await Assert.ThrowsAsync<InvalidOperationException>(() => Send(replay, requests[at]));
 
-        Assert.Contains("Model call 2 differs", failure.Message);
+        Assert.Contains($"Model call {at + 1} differs", failure.Message);
         Assert.Contains("recorded: --- assistant", failure.Message);   // the dropped turn is the line that went missing
+    }
+
+    // The writer's calls are the ones whose system message is the npc-writer skill.
+    private static bool IsWriter(Request request) =>
+        request.Messages.First(m => m.Role == ChatRole.System).Text.Contains("name: npc-writer");
+
+    // Replays every request before the writer's first, unchanged, and hands back where it is.
+    private static async Task<(ReplayChatClient Replay, List<Request> Requests, int At)> ReplayUpToTheWriter(string path)
+    {
+        var replay = new ReplayChatClient(path);
+        var requests = RecordedRequests(path);
+        var at = requests.FindIndex(IsWriter);
+        Assert.True(at >= 0, "the fixture holds no writer call");
+        foreach (var earlier in requests.Take(at))
+            await Send(replay, earlier);
+        return (replay, requests, at);
     }
 
     // What the app would hand the model, rebuilt from the fixture: the messages, and a ChatOptions
     // with the recorded settings and tools. Each call gets fresh objects, so a test can change them.
-    private static List<Request> RecordedRequests()
+    private static List<Request> RecordedRequests(string path)
     {
         var requests = new List<Request>();
 
-        foreach (var line in File.ReadLines(Fixture).Skip(1))
+        foreach (var line in File.ReadLines(path).Skip(1))
         {
             var call = JsonSerializer.Deserialize<RecordedCall>(line, Recording.Json)!;
             var options = new ChatOptions

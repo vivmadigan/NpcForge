@@ -13,7 +13,7 @@ if (!Console.IsInputRedirected)
     Console.InputEncoding = Encoding.UTF8;
 
 // No host, no DI container. Everything is wired by hand, in the order it happens:
-// config, then the client, then the options, then connect, interview, roll, run, save. With
+// config, then the client, then the options, then connect, interview, roll, name, write, save. With
 // --lab, the lab takes over after connect and writes a sheet instead of a save. With --load,
 // the load comes straight after connect and the model is never called. With no answer flag,
 // the interview reads the GM's scene, and the roll waits for the GM's yes. The roll comes
@@ -77,7 +77,11 @@ await tools.ConnectAsync(CancellationToken.None);
 // ChatAgent.WriteAsync a normal run uses. It saves nothing, and asks before any model call.
 if (run.Lab is not null)
 {
-    await Lab.RunAsync(client, options, tools, run, Console.In, CancellationToken.None);
+    var ended = await Lab.RunAsync(client, options, tools, run, Console.In, CancellationToken.None);
+
+    // As a normal run does when no name follows the dice: the lab has said why, and it is a failure.
+    if (ended.NoName)
+        Environment.ExitCode = 1;
     return;
 }
 
@@ -93,6 +97,8 @@ if (load is not null)
     using var saved = JsonDocument.Parse(savedJson);
     Console.Error.WriteLine($"[app] loaded {load}");
     Console.Error.WriteLine($"[app] brief {saved.RootElement.GetProperty("brief").GetRawText()}");
+    if (SavedView.NameOf(saved.RootElement) is { } savedName)
+        Console.Error.WriteLine($"[app] name {savedName.Full}");
 
     // The brief line above is the save exactly as it was written. This one says what a save made
     // before a field existed does not have, so a missing tone is not read as a plain one.
@@ -156,9 +162,21 @@ Console.Error.WriteLine($"[app] brief {briefJson}");
 if (scene is not null)
     Console.Error.WriteLine($"[app] scene sent ({scene.Length} chars)");
 
-// Run.
-var answer = await ChatAgent.WriteAsync(
-    client, options, tools, new WriterInput(briefJson, scene, WriterInput.DefaultSkillDir), CancellationToken.None);
+// Run: the namer names the character inside its dice, then the writer writes it.
+Written written;
+try
+{
+    written = await ChatAgent.WriteAsync(
+        client, options, tools, new WriterInput(briefJson, scene, WriterInput.DefaultSkillDir), CancellationToken.None);
+}
+catch (NoNameException ex)
+{
+    // No name followed the dice, so the writer was never called: nothing is written or saved.
+    Console.Error.WriteLine($"[app] not written: {ex.Message}");
+    Environment.ExitCode = 1;
+    return;
+}
+var answer = written.Text;
 Console.WriteLine(answer);
 
 // Save: every run is kept, the brief with the character written from it. The brief goes as a
@@ -167,6 +185,8 @@ using var brief = JsonDocument.Parse(briefJson);
 var savedAs = await tools.CallDirectAsync("save_character", new()
 {
     ["brief"] = brief.RootElement,
+    // As the namer split it, so the save shows the count the name was checked on.
+    ["name"] = JsonSerializer.SerializeToElement(new { syllables = written.Name.Syllables, family = written.Name.Family }),
     ["text"] = answer,
 }, CancellationToken.None);
 

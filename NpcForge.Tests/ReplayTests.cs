@@ -22,7 +22,7 @@ public class ReplayTests
         // Every line after it is one model call.
         var lines = File.ReadAllLines(fixture);
         var flags = JsonSerializer.Deserialize<string[]>(lines[0])!;
-        var calls = lines.Skip(1).Select(line => JsonNode.Parse(line)!).ToList();
+        var calls = WriterCalls(lines);
 
         // Before the app runs, and from the fixture alone: a recording that guards nothing must
         // fail here, not pass.
@@ -38,17 +38,21 @@ public class ReplayTests
             // On failure, the app's own trace is the message: the replay names the line that differs.
             Assert.True(run.ExitCode == 0, run.Stderr);
 
-            // What the recorded run saved: the text of the model's last reply, and the brief from
-            // the first message. Read with the library's own types, not the console's, so a
+            // What the recorded run saved: the text of the writer's last reply, and the brief from
+            // the writer's first message. Read with the library's own types, not the console's, so a
             // restructure can move every console class without touching this test.
             var lastReply = Reply(calls[^1]);
 
             var userText = Messages(calls[0]).First(m => m.Role == ChatRole.User).Text;
-            var recordedBrief = JsonNode.Parse(userText[userText.IndexOf('{')..]);   // the brief is the JSON at its end
+            var recordedBrief = JsonNode.Parse(RecordedRun.BriefJson(calls[0]));
 
             var saved = JsonNode.Parse(File.ReadAllText(saveFile))!["1"]!;
 
             Assert.Equal(lastReply.Text, saved["text"]!.GetValue<string>());
+            // The name the save keeps is the name the writer was told (ADR-009).
+            var name = saved["name"]!;
+            var full = $"{string.Concat(name["syllables"]!.AsArray().Select(s => s!.GetValue<string>()))} {name["family"]}";
+            Assert.Contains($"Their name is {full}.", userText);
             Assert.True(JsonNode.DeepEquals(recordedBrief, saved["brief"]), $"Saved brief: {saved["brief"]}");
         }
         finally
@@ -69,7 +73,7 @@ public class ReplayTests
         var tracked = Path.Combine(repo, "NpcForge.Server", "characters.json");
         var lines = File.ReadAllLines(fixture);
         var flags = JsonSerializer.Deserialize<string[]>(lines[0])!;
-        var calls = lines.Skip(1).Select(line => JsonNode.Parse(line)!).ToList();
+        var calls = WriterCalls(lines);
 
         var trackedBefore = File.ReadAllBytes(tracked);
         string? tempSave = null;
@@ -111,15 +115,17 @@ public class ReplayTests
         }
     }
 
+    private static List<JsonNode> WriterCalls(string[] lines) => RecordedRun.WriterCalls(lines);
+
     // The replay only catches what the recording makes visible. Three things it needs, each of
-    // which a thin recording lacks without anyone noticing.
+    // which a thin recording lacks without anyone noticing. All three are about the writer's calls.
     private static void RequireRecordingThatGuardsSomething(List<JsonNode> calls)
     {
         const string reRecord = " Re-record it with the command in docs/runs/README.md.";
 
         // One call never sends anything of the model's own back, so there is no history to damage.
         Assert.True(calls.Count >= 2,
-            $"The recording holds {calls.Count} model call(s); it needs at least 2.{reRecord}");
+            $"The recording holds {calls.Count} writer call(s); it needs at least 2.{reRecord}");
 
         // Without a function call from the model in a later request, dropping the model's turn
         // from the history changes nothing the replay can see.
@@ -133,9 +139,7 @@ public class ReplayTests
             $"The last response has no text, so the saved text is not checked.{reRecord}");
     }
 
-    // Read with the library's own types, as the console wrote them.
-    private static List<ChatMessage> Messages(JsonNode call) =>
-        call["request"]!["messages"].Deserialize<List<ChatMessage>>(AIJsonUtilities.DefaultOptions)!;
+    private static List<ChatMessage> Messages(JsonNode call) => RecordedRun.Messages(call);
 
     private static ChatResponse Reply(JsonNode call) =>
         call["response"].Deserialize<ChatResponse>(AIJsonUtilities.DefaultOptions)!;

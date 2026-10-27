@@ -26,11 +26,14 @@ you ──► Program.cs
           │     records the GM's words with record_answer, show them, wait for "yes"
           │ 2. roll: call roll_character directly ─────────► server: tables and dice
           │ ◄─────────────────────────────────────────────── the brief, as JSON
-          │ 3. run: SKILL.md plus the brief's one tone file as the system message;
+          │ 3. name: the namer skill; the race, the name dice and the scene
+          │       AgentLoop ◄──► model, which must call give_name (console),
+          │       checked against the dice; no accepted name stops the run here
+          │ 4. write: SKILL.md plus the brief's one tone file as the system message;
           │       the first user message holds the GM's scene (interview runs
-          │       only) and the brief
+          │       only), the name and the brief
           │       AgentLoop ◄──► model, which may call lookup_archetype ◄──► server
-          │ 4. save: save_character(brief, text) ──────────► characters.json
+          │ 5. save: save_character(brief, name, text) ────► characters.json
           ▼
      the character on stdout, the trace on stderr
 ```
@@ -38,9 +41,10 @@ you ──► Program.cs
 Step 1a runs only when no answer flag and no `--load` is given ("The scene interview"). Its
 answers go to the same `roll_character` call the flags fill. A yes also hands back the scene as the
 GM typed it, and the writer is sent it word for word, between `<scene>` tags, before the brief
-(ADR-008). `ChatAgent.FirstMessage` builds that message; with no scene it is the message a flag run
-always sent, so the replay fixture still matches it. Code never reads the scene, and it is not saved.
-`[app] scene sent (<n> chars)` on stderr shows it went. `--load <number>` replaces steps 2 to 4
+(ADR-008). `ChatAgent.FirstMessage` builds that message: the scene, then `Their name is Kessa
+Vale.`, then the brief, which stays last. Code never reads the scene, and it is not saved.
+`[app] scene sent (<n> chars)` on stderr shows it went. Steps 3 and 4 are both
+`ChatAgent.WriteAsync` ("The namer"). `--load <number>` replaces steps 2 to 5
 with `load_character`: no roll, no model, no cost. It still
 builds the model client, so it still needs an API key. `--seed`, `--record` and `--provider replay`
 are under "Replay".
@@ -90,20 +94,29 @@ the sheets, which are pure.
   leaves the tone out, because the labels give it and a blind sheet must not.
 - **Tone files are checked first.** Before the question, the lab compares the schema's tones with the
   `tones/` folder of the default skill and of every `skill=` folder, and stops with the missing paths.
-- **One write path.** The lab rolls once, then writes every variant and take through
-  `ChatAgent.WriteAsync`, the call a normal run makes. It saves nothing, and `CharactersPath` sends it
-  to a temp file as a second stop.
+- **One write path, one name.** The lab rolls once and names once: the namer runs on the base
+  brief after the `yes`, and every variant and take is written with that name through
+  `ChatAgent.WriteAsync`, the call a normal run makes. Every sheet then shows one character. A namer
+  that gives no name stops the lab with `[lab] not written: no name followed the dice (K, 2, V)`
+  and no sheet, and the exit code is 1, as it is for a normal run. It saves nothing, and
+  `CharactersPath` sends it to a temp file as a second stop.
+- **No empty folder is left behind.** A `--out` folder the lab made itself is removed again when the
+  lab stops without a sheet, and when anything escapes it (a replay mismatch, a 500 from the namer).
+  A folder that was already there stays, and so does one with anything in it.
 - **It asks first.** Before any model call it prints the number of characters and an estimate in
   tokens against the session cap, and waits for `yes`. An estimate over the cap is refused. The
-  estimate counts two calls per character, the usual case; the spending cap stops a lab that runs
-  over, and the sheet says where it stopped. The `--out` folder is made and test-written before the
+  estimate counts two calls per character, the usual case, and two for the namer, with the writer's
+  message counted before the name line exists; the spending cap stops a lab that runs over, and the
+  sheet says where it stopped. The `--out` folder is made and test-written before the
   question, so a bad one fails for free.
 - **Side mode** writes `sheet.md`: the brief once, then each character under its label and take with
   its `[skill]` line. A variant that fails stays on the sheet with its reason.
 - **Blind mode** writes `blind.md` (characters as A, B, C), `blind.json` (the same, as data) and
   `key.json` (letter to label, and any failures), and no `sheet.md`. The run order and the letters are
-  shuffled from `--seed`. While the variants run, `Console.Error` goes to a null writer, so no trace
-  line gives the key away; afterwards only a count of failures is printed.
+  shuffled from `--seed`. While the namer and the variants run, `Console.Error` goes to a null
+  writer, so no trace line gives the key away. Afterwards the accepted name is printed as
+  `[app] name Kessa Vale (K, 2, V)`, because every variant shares it and it is kept nowhere else, and
+  then only a count of failures.
 - **`--score <dir>`** reads `blind.json` and `key.json`, asks for a guess per letter, prints
   `n of m right` and writes `scored.md`. It reads no model prose as markup and runs before any client
   or server.
@@ -114,8 +127,8 @@ the sheets, which are pure.
 | --- | --- | --- |
 | `lookup_archetype` | the model | Says how a kind of person usually behaves |
 | `roll_character` | the app only | Rolls the brief. Any rolled trait can be passed in instead. Each parameter has a `[Description]`, which the interview reads |
-| `save_character` | the app only | Saves a brief and its text, returns the new number |
-| `load_character` | the app only | Returns a saved brief and text by number |
+| `save_character` | the app only | Saves a brief, its name and its text, returns the new number. Binds the brief through `CharacterBrief`, so a brief missing a field is refused |
+| `load_character` | the app only | Returns a saved brief, name (when it has one) and text by number |
 
 `McpToolSource` has two doors:
 - **The model's door**, `ListAsync` and `InvokeAsync`, sees only the tools not in `AppOnly`. Every
@@ -161,11 +174,35 @@ handed-in trait: `Easy` with an obstacle of `Wont` the GM described is kept (ADR
 still cast, in one fixed order, and a handed-in value replaces its die's result, so the same seed
 rolls the same other traits whatever is handed in (ADR-009).
 
+## The namer
+
+ADR-009 decision 4. `Namer.RunAsync` runs before the writer, inside `ChatAgent.WriteAsync`, unless
+the `WriterInput` already carries a name (the lab's variants do). It runs `AgentLoop` with the
+`namer` skill, a first message that holds the race, the name dice in words and the scene, and one
+console tool, `give_name(syllables, family)`, for example `["Kes", "sa"], "Vale"`. The writer's
+tool list does not change, because the namer runs on a copy of the options.
+
+- **The check** is `NameCheck.Check`, pure, on the call's arguments, each rule with its own
+  `NameRejection` and reason: no syllables, an empty syllable, a syllable with no letter in it
+  ("-", "1", a zero-width space), a syllable with a space inside, the wrong first letter, the wrong
+  syllable count as the namer split it, no family name, a family name with no letter or with a space
+  inside, the wrong family letter. Letters ignore case as ordinal text, so a dotless `ı` is not `I`
+  and a long `ſ` is not `S`. The namer's skill is sent with `\n` line endings, as the writer's is, so
+  a recording made on Windows has the same fingerprint. `NameDice` reads the dice from the brief's JSON (`nameSyllables` is "1" to "3").
+- **The first accepted name wins.** A later call is refused (`AlreadyNamed`). The loop ends on the
+  first turn with no tool call, so a named character costs at least two calls.
+- **No name, no writer.** Four turns at most (`Namer.MaxTurns`). A name accepted before the cap
+  stands; with none, `NoNameException` stops the run before the writer is paid for:
+  `[app] not written: no name followed the dice (K, 2, V)`, exit code 1, nothing saved.
+- **What is not checked:** that the name sounds like its race, and that the writer's text uses the
+  name it was told. Code cannot hear a name or read the text; only paid runs and the owner's eyes
+  check those.
+
 ## The scene interview
 
 ADR-007 is the design. `SceneInterview.RunAsync` greets the GM, reads one line (asked again while it
 is empty), and runs `AgentLoop` with the `scene-interviewer` skill and one tool, `record_answer(field,
-value, quote)`. The tool lives in the console (`RecordAnswerTool`), and any other name, `roll_character`
+value, quote)`. The tool lives in the console (`ConsoleTool`, as `give_name` does), and any other name, `roll_character`
 included, fails as `Tool failed: No tool named '...'`. The interview holds no `McpToolSource`, so it
 cannot roll, save or load. It returns `roll_character`'s arguments after a `yes`, or null after
 anything else, end of input included, and `Program.cs` rolls only on the arguments. The loop gets
@@ -213,6 +250,10 @@ most one sentence and 12 words, never offer a value, free text only as the GM's 
 when the GM's words point to it, no follow-up questions. The interview appends the field list from
 the server's schema to it.
 
+`NpcForge.Console/skills/namer/SKILL.md` is the namer's: follow the dice, fit the name to the race
+and the scene, hand it back split into syllables through `give_name`, and stop once a name is
+accepted. It is sent as it is, with no appended text.
+
 `NpcForge.Console/skills/npc-writer/SKILL.md` is copied to `bin` and read into a system message at
 index 0, followed by a blank line and one tone file from `skills/npc-writer/tones/` (`Serious.md`,
 `Comic.md` or `Heartfelt.md`). `ChatAgent.SystemMessage` picks the file from the `tone` in the brief's
@@ -220,7 +261,8 @@ JSON, so the model is never shown the other two. A tone file says how to write; 
 what is true (ADR-009). `ToneFiles.Missing` compares the schema's tone choices with a skill folder's
 `tones/`, and `Program.cs` stops with the missing paths straight after connect, before the interview.
 `SKILL.md` sets the output order, what each difficulty and obstacle oblige the writer to do, that
-every lever names the brief entry or the words of the scene it comes from, and "show the trait,
+every lever names the brief entry or the words of the scene it comes from, that the writer uses the
+name it was told ("Their name is ...") exactly and invents no other, and "show the trait,
 never state it". When a scene is sent, it is settled like the brief: the traits are played through
 it, the character knows what the scene hints at, and what the scene says would make them give way is
 the first lever. A trouble the scene hints at but does not name is left as a gap in square brackets
@@ -237,10 +279,10 @@ trace.
 
 | Prefix | From | Says |
 | --- | --- | --- |
-| `[app]` | `Program.cs` | `recording to <path>`, the provider and model, the rolled brief, `saved as N`, `loaded N` |
-| `[skill]` | `ChatAgent.cs`, `SceneInterview.cs` | Which `SKILL.md` and tone file, their combined length and fingerprint (the interviewer's with its field list) |
+| `[app]` | `Program.cs`, `Namer.cs` | `recording to <path>`, the provider and model, the rolled brief, `name Kessa Vale (K, 2, V)` (the accepted name and its dice), `not written: no name followed the dice (K, 2, V)`, `saved as N`, `loaded N`, and on a load `name Kessa Vale` |
+| `[skill]` | `ChatAgent.cs`, `Namer.cs`, `SceneInterview.cs` | Which `SKILL.md` and tone file, their combined length and fingerprint (the interviewer's with its field list) |
 | `[loop]` | `AgentLoop.cs` | One line per model turn: tool calls, history size, tokens |
-| `[tool]` | `McpToolSource`, `RecordAnswerTool` | Each call the model made, and for `record_answer` what it got back. The app's own calls have none |
+| `[tool]` | `McpToolSource`, `ConsoleTool` | Each call the model made, and for `record_answer` and `give_name` what it got back. The app's own calls have none |
 | `[interview]` | `SceneInterview.cs` | The interviewer's closing line, as a trace; nothing reads it |
 | `[server]` | the server | MCP requests and log lines, and `dice: seed N` or `dice: random` at the first roll |
 
@@ -259,8 +301,11 @@ runs the Debug build, so a Release console would drive a Debug server that may b
 
 ## Storage
 
-One JSON file, `NpcForge.Server/characters.json`: every run, numbered from 1, the brief and the text
-together (ADR-003). The server keeps each saved brief as the JSON it was saved as (`SavedCharacter.Brief`
+One JSON file, `NpcForge.Server/characters.json`: every run, numbered from 1, the brief, the name
+and the text together (ADR-003, ADR-009). An entry is `{ "brief": {...}, "name": { "syllables":
+["Kes", "sa"], "family": "Vale" }, "text": "..." }`; a save from before the namer has no `name`,
+which `SavedCharacter` leaves out when null so the entry keeps its bytes, and `--load` lists it as
+unknown. The server keeps each saved brief as the JSON it was saved as (`SavedCharacter.Brief`
 is a `JsonElement`), so an old entry is read and written back without passing through `CharacterBrief`
 and never gains a field added later (ADR-009). `save_character` still binds a new brief through
 `CharacterBrief`. `NPCFORGE_CHARACTERS` overrides the path. The path is always absolute, because
@@ -294,7 +339,10 @@ One real run is recorded once, and the whole app replays against it for free (AD
   first line that differs. Text is compared as lines; the model's reasoning and tool calls as the
   library's JSON.
 - **The test.** `ReplayTests` runs the console as a process with line 1's flags and checks the save
-  file against the recording. It refuses a recording with fewer than two calls or no tool call,
+  file against the recording: the text of the writer's last reply, the brief from the writer's first
+  message, and the saved name in that message. The writer's calls are found by their system message
+  (the npc-writer skill), not by index, because the namer's come first. It refuses a recording with
+  fewer than two writer calls or no writer tool call,
   because a dropped model turn only shows on a later call. The child's HTTP proxy is a dead port, so
   a replay that ever lost `--provider replay` fails instead of paying. A second test runs it with
   `NPCFORGE_CHARACTERS` removed and checks the tracked `characters.json` is byte-identical afterwards
@@ -322,11 +370,20 @@ One real run is recorded once, and the whole app replays against it for free (AD
 - `AgentLoopTests`: the loop exits when the model sends no tool calls, throws at the cap, and runs a
   tool call through the real server. Fake models throughout.
 - `McpToolSourceTests`, against the real server: the model can neither see nor name an app-only
-  tool, a save loads back byte for byte, an unknown number stops the run, and the same seed rolls the
-  same brief from two servers.
+  tool, a save loads back byte for byte with its name, a brief without `nameLetter` is refused and
+  saves nothing, an unknown number stops the run, and the same seed rolls the same brief from two
+  servers.
 - `ReplayTests`: the whole app against the recorded run, as above, and the temp-file save.
 - `ReplaySensitivityTests`: the replay fails on a changed system prompt, an emptied tool list, a
-  changed model option and a dropped model turn.
+  changed model option and a dropped writer turn, each on the fixture and on a copy with a namer
+  call in front, so the writer's calls are found by their system message.
+- `NameCheckTests` and `NamerTests`: each rule with its own reason, pure; a scripted namer refused
+  for "Tobin" on K and then accepted for "Kessa", a wrong or missing family name refused, a second
+  accepted name refused, four turns with no name throwing `NoNameException`, and what the namer is
+  told and offered.
+- `NamedRunTests`: the whole app as a process against a recording made in process from a stand-in
+  namer and writer: the `[app] name` line before the writer, the name in the save and on `--load`,
+  and a namer that never follows the dice stopping the run before the writer with nothing saved.
 - `OfflineTests`: `NPCFORGE_OFFLINE=1` refuses both paid providers, and replay still works.
 - `RunOptionsTests` and `FlagRefusalTests`: the flag table, its refusals, when the interview runs,
   and which save file a run uses; and a typo'd flag next to the paid default stops at the parser,
@@ -342,18 +399,22 @@ One real run is recorded once, and the whole app replays against it for free (AD
   flag waits for a scene and, at end of input, rolls and saves nothing. A yes hands the scene back
   as typed, trimmed.
 - `WriterMessageTests`: through the real `ChatAgent` and its skill, the writer is sent the scene word
-  for word with the brief last, a run with no scene sends the message a flag run always sent, and the
-  system message holds the skill and only the tone file the brief names.
+  for word, then the name, with the brief last; with no name on the input the namer runs first and
+  its name reaches the writer, and with one it is skipped; a namer that never follows the dice stops
+  `WriteAsync` before the writer; and the system message holds the skill and only the tone file the
+  brief names.
 - `ToneFileTests`: every tone in the server's schema has a file in the default skill folder, a deleted
   file is reported by its path, and the app, run as a process on a copy of its own build with one tone
   file deleted, stops before the interview and names the file.
 - `StorageTests`: a copy of the real `characters.json` goes through `Storage.Load` and `Save` byte for
-  byte, and a new save leaves every old entry's bytes alone.
+  byte, and a new save, with its name, leaves every old entry's bytes alone, with no `name` added.
 - `LabFlagTests`, `LabSheetTests`, `LabRunTests` and `LabScoreTests`: every lab refusal with its
   reason; the sheets, the key and the score, pure; the lab against the real server and a stand-in
   model (each variant reaches the writer, the confirmation stops without a yes, blind stderr holds no
   variant, the cap stops it, a failure stays on the sheet, the tone axis gives briefs that differ only
-  in tone, and a skill folder missing a tone file stops the lab before its question); and `--score` as a process with no key.
+  in tone, the lab names once and writes every variant with that name, a lab with no name writes
+  nothing, and a skill folder missing a tone file stops the lab before its question); and `--score`
+  as a process with no key.
 - `SpendingCapTests`: the cap refuses the call after the limit without asking the model, and stops
   an agent loop before its turn cap.
 - `ConsoleProcess`: not a test. The one place a test starts the app as a process: the build
@@ -381,8 +442,9 @@ Found in the debugger and in paid runs. Each one cost time once.
   That is why `roll_character` is never visible.
 - **Output formatting differs by model:** numbered headings, bold labels, renamed sections. Never
   parse it.
-- **Names converge, differently per vendor.** OpenAI models keep reaching for `Mar-` and `Mer-`
-  names; Anthropic converges on backstory instead. Names are not rolled yet.
+- **Names converge, differently per vendor.** OpenAI models kept reaching for `Mar-` and `Mer-`
+  names; Anthropic converges on backstory instead. The name dice and the namer (ADR-009) are the
+  answer; the paid runs that show it are still to come.
 - **Prompt caching does not engage.** The prompt is about 700 tokens, under the threshold.
 - **A console paste is not byte-exact** (lesson 006), and a PowerShell redirect reorders stdout
   against stderr (lesson 005). The save file is the exact record.
