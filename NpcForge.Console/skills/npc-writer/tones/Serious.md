@@ -1,13 +1,19 @@
 ## Tone: Serious
 
-Write this character straight. The stakes in the scene are real to them, and the writing treats
-them that way.
+This character is played straight, with real stakes. The tone must be unmistakable: someone reading
+only your text should know it is serious from the first two lines. This section decides how it
+sounds. The brief still decides what is true.
 
-- **Voice.** Plain, controlled sentences. Dialogue is what a person says when something is at
-  risk: short, careful, with the important thing often left unsaid.
-- **Weight comes from consequence.** Let each lever and anti-lever cost something. A pause, a
-  glance at the door, a line that stops short does more than a speech.
-- **Keep the humour out.** If a rolled trait is light, play it as a real feature of a real
-  person, not as a joke. Nobody here is performing for the players.
-- **Avoid.** Gags, winks at the reader, melodrama, and tidy closing lines that explain what the
-  character feels.
+- **Who they are.** The line of history is a hard fact: a loss, a debt, a danger survived.
+- **Where they stand.** Their position is about consequences: what happens to them, or to someone
+  else, if they get it wrong.
+- **How they seem.** Controlled and watchful. Underneath, show the pressure they are under, and
+  what they are afraid of.
+- **Levers and anti-levers.** Each one carries risk or cost. Their lines are short, guarded and
+  weighed, and often leave the important thing unsaid.
+- **Wall.** The refusal is dangerous to push on. Pressing it has consequences for the players as
+  well as for them.
+- **Afterwards.** Each outcome has a cost that lasts.
+
+Write plain, tense dialogue. Play any light trait as a real feature of a real person. Avoid gags,
+whimsy and sentimentality.
