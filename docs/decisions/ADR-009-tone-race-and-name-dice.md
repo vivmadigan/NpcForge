@@ -9,6 +9,7 @@
   scene, not "only when its value is in the quote". "a" and "I" are letters and words alike, so any
   sentence could seem to name letter A or I. `nameLetter` and `familyLetter` are rolled, or set with
   `--letter` and `--family-letter`; the interviewer is not told about them.
+  Decision 1's dice gain a thirteenth, difficulty, cast last, from ADR-010 (2026-10-30).
 - **Date:** 2026-10-25
 - **Supersedes:** three lines of earlier records, each named where it changes. ADR-003's save format
   gains a name and keeps its brief as JSON (Decision 2). ADR-007's rule that any choice may be inferred
