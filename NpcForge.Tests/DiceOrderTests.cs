@@ -44,6 +44,23 @@ public class DiceOrderTests
                 Assert.True(JsonNode.DeepEquals(value, now[key]![field]), $"{field} moved in {key}: was {value?.ToJsonString()}, now {now[key]![field]?.ToJsonString()}");
     }
 
+    // The reorder rests on this: on a seeded Random, a cast read late against a table of n rows picks
+    // the row Next(n) would have picked. A run of casts per seed, so a drift between them shows too.
+    [Fact]
+    public void A_cast_read_late_picks_the_row_Next_would_have_picked()
+    {
+        for (var seed = 0; seed < 200; seed++)
+            for (var rows = 1; rows <= 40; rows++)
+            {
+                var table = Enumerable.Range(0, rows).ToArray();
+                var picking = new Random(seed);
+                var casting = new Random(seed);
+                for (var cast = 0; cast < 5; cast++)
+                    Assert.True(picking.Next(rows) == NpcForge.Server.CharacterTools.ReadCast(casting.NextDouble(), table),
+                        $"seed {seed}, {rows} rows, cast {cast}");
+            }
+    }
+
     private static async Task<string> RollWithSeed(int seed, string difficulty)
     {
         await using var tools = new McpToolSource(seed: seed);

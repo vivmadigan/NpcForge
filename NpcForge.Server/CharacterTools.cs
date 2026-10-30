@@ -67,18 +67,13 @@ namespace NpcForge.Server
             RequireDefined(nameof(nameSyllables), nameSyllables);
             RequireDefined(nameof(familyLetter), familyLetter);
 
-            // The difficulty filter, in code. Left to the model, it would pick something agreeable.
-            var wants = Tables.Wants.Where(w => w.Fits.Contains(difficulty)).ToArray();
-
-            // Every obstacle except Wont when the difficulty is Easy: "they will not" does not fit
-            // an ask that almost any attempt clears.
-            ObstacleKind[] obstacles = Enum.GetValues<ObstacleKind>().Where(o => !(difficulty == Difficulty.Easy && o == ObstacleKind.Wont)).ToArray();
-
             // Every die is cast, every time, in this order, and a handed-in value replaces its die's
             // result instead of skipping the die. One seed then rolls the same dice whatever is
             // handed in (ADR-009). `x ?? Pick(...)` would skip the die and move every die after it.
-            var rolledWants = Pick(wants).Text;
-            var rolledObstacle = Pick(obstacles);
+            // The wants and obstacle dice are cast first but read last, once the difficulty their
+            // tables depend on is settled (ADR-010).
+            var wantsCast = Dice.NextDouble();
+            var obstacleCast = Dice.NextDouble();
             var rolledAttitude = Pick(Tables.Attitudes);
             var rolledMannerism = Pick(Tables.Mannerisms);
             var rolledWeakness = Pick(Tables.Weaknesses);
@@ -89,6 +84,16 @@ namespace NpcForge.Server
             var rolledNameLetter = Tables.PickWeighted(Tables.NameLetters, Dice);
             var rolledNameSyllables = Tables.PickWeighted(Tables.SyllableCounts, Dice);
             var rolledFamilyLetter = Tables.PickWeighted(Tables.NameLetters, Dice);
+
+            // The difficulty filter, in code. Left to the model, it would pick something agreeable.
+            var wants = Tables.Wants.Where(w => w.Fits.Contains(difficulty)).ToArray();
+
+            // Every obstacle except Wont when the difficulty is Easy: "they will not" does not fit
+            // an ask that almost any attempt clears.
+            ObstacleKind[] obstacles = Enum.GetValues<ObstacleKind>().Where(o => !(difficulty == Difficulty.Easy && o == ObstacleKind.Wont)).ToArray();
+
+            var rolledWants = ReadCast(wantsCast, wants).Text;
+            var rolledObstacle = ReadCast(obstacleCast, obstacles);
 
             return new CharacterBrief
             {
@@ -123,6 +128,11 @@ namespace NpcForge.Server
         // The dice: the whole of the variety, and the model cannot reach them. An empty table
         // throws here, and the app's CallDirectAsync turns that into a stopped run.
         private static T Pick<T>(IReadOnlyList<T> table) => table[Dice.Next(table.Count)];
+
+        // A die cast now, as Dice.NextDouble(), and read later against its table. Seeded Random
+        // computes Next(n) as (int)(NextDouble() * n), so this picks the row Pick would have picked
+        // had the table been known at the cast, and every seed keeps its brief (ADR-010). A test holds it.
+        public static T ReadCast<T>(double cast, IReadOnlyList<T> table) => table[(int)(cast * table.Count)];
 
         // With NPCFORGE_SEED set, the same seed rolls the same brief every time, because
         // RollCharacter always picks in the same order. Without it, Random.Shared, as before.
