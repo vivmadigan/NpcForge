@@ -1,6 +1,6 @@
 # ADR-007: The scene interview records the GM's own words, and only a choice may be inferred
 
-- **Status:** accepted; the line "The writer gets the brief as today" superseded by ADR-008 (2026-10-25)
+- **Status:** accepted; the line "The writer gets the brief as today" superseded by ADR-008 (2026-10-25); the *Default* label superseded for interviews by ADR-010 (2026-10-30)
 - **Date:** 2026-10-25
 - **Supersedes:** none
 
