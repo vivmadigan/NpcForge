@@ -35,7 +35,7 @@ Two rules for every epic, now that the Safety net exists:
 
 | # | Epic | In one line |
 | --- | --- | --- |
-| 8 | Fill the gaps in a scene | Ask me for what only I can say, roll a missing difficulty |
+| 8 | Fill the gaps in a scene | Ask for where and who, and never invent a want |
 | 9 | Faster tests | The full suite in half the time, with no test weakened |
 | 4 | Keep and edit | Choose what to keep, and change it later |
 | 5 | Ready to grow | A structure that can sit behind a website and a database |
@@ -45,60 +45,84 @@ Epics 4 to 6 are drafts: sharpen each one before it starts.
 
 ## 8. Fill the gaps in a scene
 
-**Goal.** When my scene leaves something out, the app asks me or rolls it, and never fills the gap
-with a test value. On 2026-10-27 I typed this scene:
+**Goal.** When my scene leaves out where the character is or who they are, the app asks me. When it
+doesn't say what the players want, the app doesn't invent a want. It writes the character for the
+situation, and when the scene suggests one, it turns what the character wants into an adventure
+hook for the players.
+
+On 2026-10-27 I typed this scene:
 
 > The party bursts into a tiny bakery where a goblin baker is furious that someone keeps stealing his croissants. It’s a silly session, play it for laughs.
 
 I got back save 8. The party wants the name of a fence at Wall, and a cheerfully oblivious baker
-doesn't know it. He keeps "[the secret he is keeping]" buried. The fence and the Wall are the
-replay fixture's test values. In my scene the players aren't after information and nothing stands
-in their way. If I ran it, the baker would hire the party to find the thief. The app should get
-there by asking me.
+doesn't know it. The fence and the Wall are the replay fixture's test values, and "cheerfully
+oblivious" overruled my "furious". In my scene the players aren't after anything. The baker wants
+something from them: someone to find his croissant thief. That is the hook.
 
 **Constraints.**
-- In an interview, what only I can say is asked for, never defaulted. That is where the players
-  meet the character, what the players want, and who the character is (`setting`, `playersWant`
-  and `occupation`). The server has no dice for these, and can't pick an occupation that fits a
-  free-text setting (ADR-002). When the scene leaves one out, the interview asks me one short
-  question for it, and my answer shows as `[my words]`. It is never inferred and never invented. A
-  scene that names a place and a role, like the bakery, gets one question at most.
-- The question about what the players want accepts a hook the character offers. "A paid job
-  finding the croissant thief" is a good answer.
+- In an interview, where the players meet the character and who the character is (`setting` and
+  `occupation`) are asked for when the scene leaves them out, never defaulted. The server has no
+  dice for them, and can't pick an occupation that fits a free-text setting (ADR-002). Each gets
+  one short question, and my answer shows as `[my words]`. An empty answer asks again.
+- What the players want (`playersWant`) is never asked for and never invented. When the scene
+  doesn't say it, the brief marks it as not given, and the confirmation shows it as `[not given]`.
+  Code tells the writer which case it is in, from the brief.
+- With no want given, the levers are about winning the character's goodwill. On their good side
+  the players get a better deal, the job or a tip. On their bad side they pay full price, get
+  turned away or make an enemy. Difficulty is how hard the character is to win over.
+- A hook comes from the scene. When the scene suggests one, like the croissant thief, the
+  character offers it to the players. What the scene leaves open stays a gap for me, under the
+  writer's rule against inventing (ADR-008). The dice give the twist, through the traits they
+  already roll, such as the baker's secret. There is no table of hooks. A rolled hook in the brief
+  would beat the scene's own, because the brief wins a clash.
 - A difficulty the scene doesn't show is rolled. When the scene points to one, the interview can
-  still infer it, as today.
+  still infer it, as today. How often each difficulty comes up is mine to approve.
 - Flag runs keep their defaults, so the replay fixture and `--setting` alone keep working.
 - An ADR comes first. It replaces ADR-007's rule that a missing required field takes its flag's
-  default, and it changes `roll_character`, because `difficulty` stops being required. It also
-  places the difficulty die in the dice order (ADR-009). That choice decides whether the epic needs
-  a paid re-record.
+  default, and it changes `roll_character`, because `playersWant` and `difficulty` stop being
+  required. Three of its choices are mine:
+  - Where the difficulty die goes in the dice order (ADR-009). This decides whether the epic needs
+    a paid re-record.
+  - Whether the obstacle (Wont, Cant, ForAPrice) still applies when no want is given.
+  - Whether my answers join the scene the writer reads word for word (ADR-008), or reach the
+    writer only through the brief.
 
 **Done when.**
 - Free tests:
-  - A scene with no want gets one question, and the answer shows as `[my words]`.
-  - A scene with no place or no role gets a question for each one it lacks, and no field shows
-    `[default]`.
-  - End of input at any question stops without rolling.
+  - A scene with no place or no role gets a question for each one it lacks. The answer shows as
+    `[my words]`, and no field shows `[default]`.
+  - A scene that names a place and a role gets no question, whether or not it gives a want.
+  - A scene with no want shows `playersWant` as `[not given]`, and its brief and save say so.
+  - The writer is told when no want was given, and is not told when one was.
+  - An empty answer asks again. End of input at any question stops without rolling.
   - A scene with no difficulty rolls one and labels it `[rolled]`.
   - A flag run still uses the defaults, and the replay passes.
-- The wording of the questions (*needs my eyes*).
-- The bakery scene above, typed as it is, gets one question, about what the players want. Answered
-  "a paid job finding the croissant thief", the character fits my answer and the scene, a furious
-  baker played for laughs (*needs my eyes*, paid).
+- The wording of the questions and of `[not given]` (*needs my eyes*).
+- The bakery scene above, typed as it is, at `--seed 1` to `--seed 3`. No run asks a question. Each
+  character is a furious baker played for laughs, written around winning his goodwill, with the
+  croissant thief as the hook (*needs my eyes*, paid).
+- Epic 7's control scene (`git show 4d1ee13:ROADMAP.md`) gives a want, and on one seed it still
+  makes the death threat the first lever and leaves the town's trouble as a gap (*needs my eyes*,
+  paid).
 
 **Tasks.**
-- ADR: in an interview, a missing place, want or role is asked for, and a missing difficulty is
-  rolled (supersedes part of ADR-007).
-- The questions in the interview.
-- `difficulty` becomes optional on the server, with its own die.
+- ADR: in an interview, a missing place or role is asked for, a missing want is marked not given,
+  and a missing difficulty is rolled (supersedes part of ADR-007).
+- The questions for a missing place or role.
+- `playersWant` and `difficulty` become optional on the server, with a difficulty die and a table
+  I approve.
+- The writer's skill: with no want given, write the character around their goodwill, and offer the
+  scene's hook when it suggests one.
 - In save 8 the interviewer didn't record "furious" as the attitude, so the dice rolled "cheerfully
-  oblivious" and the writer followed the brief. The paid bakery check shows whether it happens
-  again. If it does, find out why.
+  oblivious" and the writer followed the brief. If the bakery runs miss it again, find out why and
+  fix it.
 
-**Not in this epic.** Placeholders such as "[the secret he is keeping]". The recordings point to
-the writer's rule against inventing what the scene doesn't say (ADR-008, commit `1a5f9df`), not to
-the wording of the traits. That rule stays. The fix is dice that make a vague trait concrete, such
-as a table of secrets, and it needs an epic of its own.
+**Not in this epic.**
+- Placeholders for a vague rolled trait, such as "[the secret he is keeping]". The recordings point
+  to the writer's rule against inventing (commit `1a5f9df`), and that rule stays. Dice that make a
+  vague trait concrete, such as a table of secrets, need an epic of their own.
+- A table of complications that bend the scene's hook. It waits until the writers' lab shows hooks
+  reading the same.
 
 ## 9. Faster tests
 
