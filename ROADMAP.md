@@ -35,7 +35,7 @@ Two rules for every epic, now that the Safety net exists:
 
 | # | Epic | In one line |
 | --- | --- | --- |
-| 8 | Fill the gaps in a scene | Ask for a missing want, roll a missing difficulty |
+| 8 | Fill the gaps in a scene | Ask me for what only I can say, roll a missing difficulty |
 | 9 | Faster tests | The full suite in half the time, with no test weakened |
 | 4 | Keep and edit | Choose what to keep, and change it later |
 | 5 | Ready to grow | A structure that can sit behind a website and a database |
@@ -46,30 +46,59 @@ Epics 4 to 6 are drafts: sharpen each one before it starts.
 ## 8. Fill the gaps in a scene
 
 **Goal.** When my scene leaves something out, the app asks me or rolls it, and never fills the gap
-with a test value. A goblin baker whose croissants keep vanishing should not be handed "the name
-of a fence" at Wall difficulty because I didn't say what the party wants.
+with a test value. On 2026-10-27 I typed this scene:
+
+> The party bursts into a tiny bakery where a goblin baker is furious that someone keeps stealing his croissants. It’s a silly session, play it for laughs.
+
+I got back save 8. The party wants the name of a fence at Wall, and a cheerfully oblivious baker
+doesn't know it. He keeps "[the secret he is keeping]" buried. The fence and the Wall are the
+replay fixture's test values. In my scene the players aren't after information and nothing stands
+in their way. If I ran it, the baker would hire the party to find the thief. The app should get
+there by asking me.
 
 **Constraints.**
-- What the players want is mine to say. When the scene doesn't say it, the interview asks me one
-  short question, and my answer is recorded as my words. It is never inferred and never invented.
-- A difficulty the scene doesn't show is rolled, like the other traits.
-- The flag defaults stay for flag runs, so the replay fixture and `--setting` alone keep working.
-- This changes ADR-007's rule that a missing required field takes its flag's default, so an ADR
-  comes first.
+- In an interview, what only I can say is asked for, never defaulted. That is where the players
+  meet the character, what the players want, and who the character is (`setting`, `playersWant`
+  and `occupation`). The server has no dice for these, and can't pick an occupation that fits a
+  free-text setting (ADR-002). When the scene leaves one out, the interview asks me one short
+  question for it, and my answer shows as `[my words]`. It is never inferred and never invented. A
+  scene that names a place and a role, like the bakery, gets one question at most.
+- The question about what the players want accepts a hook the character offers. "A paid job
+  finding the croissant thief" is a good answer.
+- A difficulty the scene doesn't show is rolled. When the scene points to one, the interview can
+  still infer it, as today.
+- Flag runs keep their defaults, so the replay fixture and `--setting` alone keep working.
+- An ADR comes first. It replaces ADR-007's rule that a missing required field takes its flag's
+  default, and it changes `roll_character`, because `difficulty` stops being required. It also
+  places the difficulty die in the dice order (ADR-009). That choice decides whether the epic needs
+  a paid re-record.
 
 **Done when.**
-- Free tests: a scene with no want gets one follow-up question, and the answer shows as
-  `[my words]`; end of input at that question stops without rolling; a scene with no difficulty
-  rolls one and labels it `[rolled]`; a flag run still uses the defaults; the replay passes.
-- The bakery scene from 2026-10-27, typed as it was, gets a question about what the party wants,
-  and the character fits the answer (*needs my eyes*, paid).
+- Free tests:
+  - A scene with no want gets one question, and the answer shows as `[my words]`.
+  - A scene with no place or no role gets a question for each one it lacks, and no field shows
+    `[default]`.
+  - End of input at any question stops without rolling.
+  - A scene with no difficulty rolls one and labels it `[rolled]`.
+  - A flag run still uses the defaults, and the replay passes.
+- The wording of the questions (*needs my eyes*).
+- The bakery scene above, typed as it is, gets one question, about what the players want. Answered
+  "a paid job finding the croissant thief", the character fits my answer and the scene, a furious
+  baker played for laughs (*needs my eyes*, paid).
 
 **Tasks.**
-- ADR: a missing want is asked for, a missing difficulty is rolled (supersedes part of ADR-007).
-- The follow-up question in the interview.
-- Look into the writer leaving a placeholder in the text, as in "keep [the secret he is keeping]
-  buried", when a rolled trait is vague. Decide whether it is the writer's skill or the trait's
-  wording.
+- ADR: in an interview, a missing place, want or role is asked for, and a missing difficulty is
+  rolled (supersedes part of ADR-007).
+- The questions in the interview.
+- `difficulty` becomes optional on the server, with its own die.
+- In save 8 the interviewer didn't record "furious" as the attitude, so the dice rolled "cheerfully
+  oblivious" and the writer followed the brief. The paid bakery check shows whether it happens
+  again. If it does, find out why.
+
+**Not in this epic.** Placeholders such as "[the secret he is keeping]". The recordings point to
+the writer's rule against inventing what the scene doesn't say (ADR-008, commit `1a5f9df`), not to
+the wording of the traits. That rule stays. The fix is dice that make a vague trait concrete, such
+as a table of secrets, and it needs an epic of its own.
 
 ## 9. Faster tests
 
