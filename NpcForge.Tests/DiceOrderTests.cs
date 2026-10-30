@@ -17,9 +17,15 @@ public class DiceOrderTests
     {
         var cases = Enumerable.Range(1, 12).SelectMany(seed => Difficulties.Select(difficulty => (seed, difficulty)));
 
-        // A server of its own for each roll, so no roll is another's dice carrying on. Run together:
-        // 36 servers one after another would take minutes.
-        var rolled = await Task.WhenAll(cases.Select(async c => (key: $"{c.seed}/{c.difficulty}", brief: await RollWithSeed(c.seed, c.difficulty))));
+        // A server of its own for each roll, so no roll is another's dice carrying on. A few at a time:
+        // one after another takes minutes, and all 36 at once can outlast the client's start-up wait.
+        using var gate = new SemaphoreSlim(6);
+        var rolled = await Task.WhenAll(cases.Select(async c =>
+        {
+            await gate.WaitAsync();
+            try { return (key: $"{c.seed}/{c.difficulty}", brief: await RollWithSeed(c.seed, c.difficulty)); }
+            finally { gate.Release(); }
+        }));
         var now = new JsonObject();
         foreach (var (key, brief) in rolled)
             now[key] = JsonNode.Parse(brief);
