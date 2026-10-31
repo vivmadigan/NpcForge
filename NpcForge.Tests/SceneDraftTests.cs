@@ -141,8 +141,7 @@ public class SceneDraftTests
         var line = draft.Lines(Defaults).Single(l => l.Field.Name == "difficulty");
         Assert.Equal("Wall", line.Value);                // the server's spelling, not the model's
         Assert.Equal(Label.Inferred, line.Label);
-        Assert.Equal("doesn't want to get involved", line.Quote);
-        Assert.Equal(SecondSentence, line.Sentence);
+        Assert.Equal(new Quoted("doesn't want to get involved", SecondSentence), line.Evidence);
     }
 
     // A real model may spell a choice as the description reads: "Can't", "Some Work".
@@ -172,7 +171,7 @@ public class SceneDraftTests
         var result = draft.Record("wrongAbout", value, quote);
 
         Assert.Equal(Rejection.None, result.Reason);
-        Assert.Equal(scene, draft.Answers["wrongAbout"].Sentence);
+        Assert.Equal(scene, ((Quoted)draft.Answers["wrongAbout"].Evidence).Sentence);
     }
 
     // ADR-009: tone and syllables are short choices, so they are inferred as ADR-007 allows.
@@ -280,7 +279,7 @@ public class SceneDraftTests
         var result = draft.Record("occupation", "old miller", "meet the old miller");
 
         Assert.Equal(Rejection.None, result.Reason);
-        Assert.Equal(new Answer("Old Miller", "meet the Old Miller", "The players meet the Old Miller at the Mill.", Label.MyWords),
+        Assert.Equal(new Answer("Old Miller", Label.MyWords, new Quoted("meet the Old Miller", "The players meet the Old Miller at the Mill.")),
             draft.Answers["occupation"]);
     }
 

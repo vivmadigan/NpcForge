@@ -20,10 +20,17 @@ public enum Rejection
     LongChoiceNotFromAScene,
 }
 
-// One recorded field. Value and Quote are the GM's text as typed, cut from the scene (a choice's
-// value is the server's spelling). Sentence is the whole sentence the quote sits in, shown at the
-// confirmation so a fragment that drops a "doesn't" is visible beside it.
-public sealed record Answer(string Value, string Quote, string Sentence, Label Label);
+// What backs an answer (ADR-010). Quoted is the GM's words as typed, cut from the scene, and the whole
+// sentence they sit in, shown at the confirmation so a fragment that drops a "doesn't" is visible
+// beside it. Asked is for an answer the GM gave when the interview asked; nothing produces it until
+// unit 6.
+public abstract record Evidence;
+public sealed record Quoted(string Quote, string Sentence) : Evidence;
+public sealed record Asked : Evidence;
+
+// One recorded field. Value is the GM's text as typed, cut from the scene (a choice's value is the
+// server's spelling).
+public sealed record Answer(string Value, Label Label, Evidence Evidence);
 
 // The outcome of one record_answer call. Message goes back to the model as the tool's result.
 public sealed record RecordResult(Rejection Reason, string Message)
@@ -32,7 +39,7 @@ public sealed record RecordResult(Rejection Reason, string Message)
 }
 
 // One row of the confirmation: every field, in the server's order, recorded or not.
-public sealed record ConfirmationLine(RollField Field, string? Value, Label Label, string? Quote, string? Sentence);
+public sealed record ConfirmationLine(RollField Field, string? Value, Label Label, Evidence? Evidence);
 
 // What the interview has gathered from the GM's scene. Pure: no model, no server, no console, so
 // every check has a free test. The interview only ever adds to it through Record.
@@ -113,7 +120,7 @@ public sealed class SceneDraft(string scene, IReadOnlyList<RollField> fields)
 
         if (choice is not null)
         {
-            return Accept(field, new Answer(choice, typedQuote, sentence.Text, Label.Inferred));
+            return Accept(field, new Answer(choice, Label.Inferred, new Quoted(typedQuote, sentence.Text)));
         }
 
         // Free text: the value must be the GM's own words, a run of whole words inside the quote. A
@@ -125,7 +132,7 @@ public sealed class SceneDraft(string scene, IReadOnlyList<RollField> fields)
                 $"\"{value}\" is not the GM's words in \"{quote}\". For {field}, the value must be words copied from the quote. Leave it to the dice if the GM did not say it.");
 
         // Stored as the GM typed it, from the scene, not as the model spelled it.
-        return Accept(field, new Answer(Typed(sentence, at + offset, valueSplit.Count), typedQuote, sentence.Text, Label.MyWords));
+        return Accept(field, new Answer(Typed(sentence, at + offset, valueSplit.Count), Label.MyWords, new Quoted(typedQuote, sentence.Text)));
     }
 
     // A run of the scene's words, cut from the scene itself: the GM's case and punctuation.
@@ -138,10 +145,10 @@ public sealed class SceneDraft(string scene, IReadOnlyList<RollField> fields)
     public IReadOnlyList<ConfirmationLine> Lines(IReadOnlyDictionary<string, object?> defaults) =>
     [
         .. fields.Select(field => _answers.TryGetValue(field.Name, out var answer)
-            ? new ConfirmationLine(field, answer.Value, answer.Label, answer.Quote, answer.Sentence)
+            ? new ConfirmationLine(field, answer.Value, answer.Label, answer.Evidence)
             : field.WhenMissing != WhenMissing.Roll
-                ? new ConfirmationLine(field, DefaultFor(field, defaults), Label.Default, null, null)
-                : new ConfirmationLine(field, null, Label.Rolled, null, null)),
+                ? new ConfirmationLine(field, DefaultFor(field, defaults), Label.Default, null)
+                : new ConfirmationLine(field, null, Label.Rolled, null)),
     ];
 
     // roll_character's arguments. A rolled field is left out, so the server's dice pick it.
