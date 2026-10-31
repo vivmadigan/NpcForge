@@ -203,6 +203,15 @@ namespace NpcForge.Server
                 .Select(letter => new Weighted<NameLetter>(letter, 1)),
         ];
 
+        // The owner's rows (ADR-010): a missing difficulty is most often some work. Three rows, the
+        // whole of the choice, so exempt from the six-row rule by name, as SyllableCounts is.
+        public static readonly Weighted<Difficulty>[] Difficulties =
+        [
+            new(Difficulty.Easy, 1),
+            new(Difficulty.SomeWork, 2),
+            new(Difficulty.Wall, 1),
+        ];
+
         public static readonly Weighted<Syllables>[] SyllableCounts =
         [
             new(Syllables.One, 1),
