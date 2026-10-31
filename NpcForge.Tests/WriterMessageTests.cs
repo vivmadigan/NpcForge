@@ -206,6 +206,42 @@ public class WriterMessageTests
         Assert.Equal(sent, system.Text);
     }
 
+    // A field the scene left out is null in the brief (ADR-010, decision 5). Its not-given file joins
+    // the system message after SKILL.md and before the tone file, so the tone still governs, and the
+    // trace line names it.
+    [Fact]
+    public void A_null_in_the_brief_adds_its_not_given_file_between_the_skill_and_the_tone_file()
+    {
+        var brief = Brief.Replace("\"playersWant\":\"information about the town\"", "\"playersWant\":null");
+        var dir = WriterInput.DefaultSkillDir;
+        var skill = File.ReadAllText(Path.Combine(dir, "SKILL.md")).TrimEnd();
+        var notGiven = File.ReadAllText(NotGivenFiles.PathOf(dir, "playersWant")).TrimEnd();
+        var tone = File.ReadAllText(ToneFiles.PathOf(dir, "Comic"));
+        var expected = $"{skill}\n\n{notGiven}\n\n{tone}".ReplaceLineEndings("\n");
+
+        var system = ChatAgent.SystemMessage(dir, brief);
+
+        Assert.Equal(expected, system.Text);
+        Assert.StartsWith($"[skill] {Path.Combine(dir, "SKILL.md")} + not-given/playersWant.md + tones/Comic.md (", system.Trace);
+    }
+
+    // No null, no addition: the text and the trace are the ones the brief with a want has always had.
+    // A missing key is not a null, so a brief without the key adds nothing either.
+    [Theory]
+    [InlineData("""{"setting":"town's only inn","playersWant":"information about the town","tone":"Comic"}""")]
+    [InlineData("""{"setting":"town's only inn","tone":"Comic"}""")]
+    public void A_brief_with_no_null_gets_exactly_the_skill_and_the_tone_file(string brief)
+    {
+        var dir = WriterInput.DefaultSkillDir;
+        var expected = (File.ReadAllText(Path.Combine(dir, "SKILL.md")).TrimEnd() + "\n\n"
+            + File.ReadAllText(ToneFiles.PathOf(dir, "Comic"))).ReplaceLineEndings("\n");
+
+        var system = ChatAgent.SystemMessage(dir, brief);
+
+        Assert.Equal(expected, system.Text);
+        Assert.DoesNotContain("not-given", system.Trace);
+    }
+
     // A stand-in writer: answers at once, and keeps the messages of its one call.
     private sealed class KeepsWhatItIsSent : IChatClient
     {
