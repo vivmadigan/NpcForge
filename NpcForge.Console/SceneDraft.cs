@@ -22,8 +22,8 @@ public enum Rejection
 
 // What backs an answer (ADR-010). Quoted is the GM's words as typed, cut from the scene, and the whole
 // sentence they sit in, shown at the confirmation so a fragment that drops a "doesn't" is visible
-// beside it. Asked is for an answer the GM gave when the interview asked; nothing produces it until
-// unit 6.
+// beside it. Asked is for an answer the GM typed when the interview asked for a missing field
+// (ADR-010, decision 4); it has no quote, because the GM typed it for that field.
 public abstract record Evidence;
 public sealed record Quoted(string Quote, string Sentence) : Evidence;
 public sealed record Asked : Evidence;
@@ -140,8 +140,8 @@ public sealed class SceneDraft(string scene, IReadOnlyList<RollField> fields)
         scene[sentence.Words[at].Start..sentence.Words[at + count - 1].End];
 
     // Every field in the server's order. An answer keeps its own label; an Ask or NotGiven field nobody
-    // recorded takes its flag default (NotGiven gets its own label in unit 6); a Roll field is
-    // left to the dice.
+    // recorded takes its flag default, so every screen stays as it was until ADR-010's questions and
+    // [not given] land; a Roll field is left to the dice.
     public IReadOnlyList<ConfirmationLine> Lines(IReadOnlyDictionary<string, object?> defaults) =>
     [
         .. fields.Select(field => _answers.TryGetValue(field.Name, out var answer)
