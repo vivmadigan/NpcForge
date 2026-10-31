@@ -37,8 +37,6 @@ public class SceneDraftTests
         new("familyLetter", "Family name letter", Alphabet, WhenMissing.Roll),
     ];
 
-    public static readonly IReadOnlyDictionary<string, object?> Defaults = RunOptions.Parse([]).RollArguments();
-
     private static SceneDraft Draft(string scene = Tavern) => new(scene, Fields);
 
     // Done when: a quote I never typed is rejected.
@@ -138,7 +136,7 @@ public class SceneDraftTests
         var result = draft.Record("difficulty", "wall", "doesn't want to get involved");
 
         Assert.Equal(Rejection.None, result.Reason);
-        var line = draft.Lines(Defaults).Single(l => l.Field.Name == "difficulty");
+        var line = Asked(draft).Lines().Single(l => l.Field.Name == "difficulty");
         Assert.Equal("Wall", line.Value);                // the server's spelling, not the model's
         Assert.Equal(Label.Inferred, line.Label);
         Assert.Equal(new Quoted("doesn't want to get involved", SecondSentence), line.Evidence);
@@ -183,7 +181,7 @@ public class SceneDraftTests
         var result = draft.Record("tone", "comic", "Everything about him is a joke");
 
         Assert.Equal(Rejection.None, result.Reason);
-        var line = draft.Lines(Defaults).Single(l => l.Field.Name == "tone");
+        var line = Asked(draft).Lines().Single(l => l.Field.Name == "tone");
         Assert.Equal("Comic", line.Value);
         Assert.Equal(Label.Inferred, line.Label);
     }
@@ -214,7 +212,7 @@ public class SceneDraftTests
 
         Assert.Equal(Rejection.LongChoiceNotFromAScene, result.Reason);
         Assert.Empty(draft.Answers);
-        Assert.Equal(Label.Rolled, draft.Lines(Defaults).Single(l => l.Field.Name == field).Label);
+        Assert.Equal(Label.Rolled, Asked(draft).Lines().Single(l => l.Field.Name == field).Label);
     }
 
     // The rule reads the count from the field's own choices, so it holds for a field the console has
@@ -259,7 +257,7 @@ public class SceneDraftTests
         var result = draft.Record("mannerism", "taps the bar nervously", "doesn't want to get involved");
 
         Assert.Equal(Rejection.ValueNotInQuote, result.Reason);
-        Assert.Equal(Label.Rolled, draft.Lines(Defaults).Single(l => l.Field.Name == "mannerism").Label);
+        Assert.Equal(Label.Rolled, Asked(draft).Lines().Single(l => l.Field.Name == "mannerism").Label);
     }
 
     [Fact]
@@ -308,42 +306,108 @@ public class SceneDraftTests
         var draft = Draft();
         draft.Record("obstacle", "Cant", "knows nothing about the guild");
 
-        Assert.Equal(Label.Rolled, draft.Lines(Defaults).Single(l => l.Field.Name == "mannerism").Label);
-        Assert.False(draft.RollArguments(Defaults).ContainsKey("mannerism"));
+        Assert.Equal(Label.Rolled, Asked(draft).Lines().Single(l => l.Field.Name == "mannerism").Label);
+        Assert.False(Asked(draft).RollArguments().ContainsKey("mannerism"));
     }
 
+    // The Ask fields the scene never answered are what the interview must still ask (ADR-010, decision 1).
     [Fact]
-    public void A_required_field_the_GM_said_nothing_about_takes_its_flag_default()
+    public void An_ask_field_the_scene_never_answered_is_still_to_ask_in_schema_order()
+    {
+        var draft = Draft();
+        Assert.Equal(["setting", "occupation"], draft.StillToAsk.Select(f => f.Name));
+
+        draft.Record("occupation", "tavern owner", "meet a tavern owner");
+
+        Assert.Equal(["setting"], draft.StillToAsk.Select(f => f.Name));
+    }
+
+    // A hole cannot be confirmed or rolled: Lines throws and names the field.
+    [Fact]
+    public void An_unanswered_ask_field_cannot_be_confirmed_or_rolled()
     {
         var draft = Draft();
 
-        var line = draft.Lines(Defaults).Single(l => l.Field.Name == "occupation");
+        var lines = Assert.Throws<InvalidOperationException>(() => draft.Lines());
+        var roll = Assert.Throws<InvalidOperationException>(() => draft.RollArguments());
 
-        Assert.Equal(Label.Default, line.Label);
-        Assert.Equal("innkeeper", line.Value);
-        Assert.Equal("innkeeper", draft.RollArguments(Defaults)["occupation"]);
+        Assert.Contains("'setting'", lines.Message);
+        Assert.Contains("'setting'", roll.Message);
     }
 
     [Fact]
-    public void The_roll_takes_every_recorded_answer_and_the_defaults_and_nothing_else()
+    public void A_not_given_field_with_no_answer_is_labelled_not_given_and_goes_to_the_roll_as_null()
+    {
+        var draft = Asked(Draft());
+
+        var line = draft.Lines().Single(l => l.Field.Name == "playersWant");
+        var arguments = draft.RollArguments();
+
+        Assert.Equal(Label.NotGiven, line.Label);
+        Assert.Null(line.Value);
+        Assert.True(arguments.ContainsKey("playersWant"));
+        Assert.Null(arguments["playersWant"]);
+    }
+
+    [Fact]
+    public void The_roll_takes_every_recorded_answer_and_nothing_else()
     {
         var draft = Draft();
         draft.Record("setting", "his tavern", "at his tavern");
         draft.Record("occupation", "tavern owner", "meet a tavern owner");
         draft.Record("obstacle", "Cant", "knows nothing about the guild");
         draft.Record("attitude", "doesn't want to get involved", "doesn't want to get involved");
+        draft.Record("playersWant", "ask about a thieves guild", "to ask about a thieves guild");
 
         // No difficulty: the scene never gave one, so the server's dice roll it (ADR-010).
         Assert.Equal(
             new Dictionary<string, object?>
             {
                 ["setting"] = "his tavern",
-                ["playersWant"] = "the name of a fence",
+                ["playersWant"] = "ask about a thieves guild",
                 ["occupation"] = "tavern owner",
                 ["obstacle"] = "Cant",
                 ["attitude"] = "doesn't want to get involved",
             },
-            draft.RollArguments(Defaults));
+            draft.RollArguments());
+    }
+
+    // ADR-010, decision 4: what the GM typed when asked is theirs, labelled and evidenced as such. The
+    // model's door still wants a quote the GM typed, so the two doors are not the same check.
+    [Fact]
+    public void RecordAsked_accepts_an_answer_the_model_door_would_refuse()
+    {
+        var draft = Draft();
+
+        var refused = draft.Record("setting", "a harbour", "a harbour");
+        var accepted = draft.RecordAsked("setting", "  a harbour  ");
+
+        Assert.Equal(Rejection.QuoteNotTyped, refused.Reason);
+        Assert.Equal(Rejection.None, accepted.Reason);
+        Assert.Equal(new Answer("a harbour", Label.MyWords, new Asked()), draft.Answers["setting"]);
+    }
+
+    [Theory]
+    [InlineData("mannerism", "taps the bar", Rejection.NotAnAskField)]      // Roll
+    [InlineData("playersWant", "a name", Rejection.NotAnAskField)]          // NotGiven
+    [InlineData("nope", "x", Rejection.UnknownField)]
+    [InlineData("setting", "   ", Rejection.BlankAnswer)]
+    public void RecordAsked_refuses_a_field_that_is_not_asked_for_and_a_blank_value(string field, string typed, Rejection reason)
+    {
+        var draft = Draft();
+
+        var result = draft.RecordAsked(field, typed);
+
+        Assert.Equal(reason, result.Reason);
+        Assert.Empty(draft.Answers);
+    }
+
+    // Answers every Ask field still open, as the interview would, so a test can ask for Lines().
+    private static SceneDraft Asked(SceneDraft draft)
+    {
+        foreach (var field in draft.StillToAsk)
+            draft.RecordAsked(field.Name, "typed " + field.Name);
+        return draft;
     }
 
     [Fact]
@@ -355,14 +419,6 @@ public class SceneDraftTests
         draft.Record("setting", "a castle", "a castle");
 
         Assert.Equal("his tavern", draft.Answers["setting"].Value);
-    }
-
-    [Fact]
-    public void A_required_field_with_no_default_stops_the_roll()
-    {
-        var error = Assert.Throws<InvalidOperationException>(() => Draft().RollArguments(new Dictionary<string, object?>()));
-
-        Assert.Contains("requires 'setting'", error.Message);
     }
 
     [Fact]

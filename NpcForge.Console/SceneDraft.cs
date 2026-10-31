@@ -1,9 +1,10 @@
 namespace NpcForge;
 
 // Where a field's value came from (ADR-007). Code decides it from the field's kind, never the model:
-// record_answer has no label argument. MyWords and Inferred belong to a recorded answer; Rolled and
-// Default are what a field with no answer gets, decided by its WhenMissing kind.
-public enum Label { MyWords, Inferred, Rolled, Default }
+// record_answer has no label argument. MyWords and Inferred belong to a recorded answer (MyWords also
+// to one the GM typed when asked); Rolled and NotGiven are what a field with no answer gets, decided
+// by its WhenMissing kind (ADR-010, decision 1).
+public enum Label { MyWords, Inferred, Rolled, NotGiven }
 
 // Why record_answer refused a call, one reason per check, so a test can assert which check refused
 // (lesson 004) and the model is told what to fix.
@@ -18,6 +19,8 @@ public enum Rejection
     QuoteNotTyped,
     ValueNotInQuote,
     LongChoiceNotFromAScene,
+    NotAnAskField,
+    BlankAnswer,
 }
 
 // What backs an answer (ADR-010). Quoted is the GM's words as typed, cut from the scene, and the whole
@@ -139,29 +142,49 @@ public sealed class SceneDraft(string scene, IReadOnlyList<RollField> fields)
     private string Typed(Words.Sentence sentence, int at, int count) =>
         scene[sentence.Words[at].Start..sentence.Words[at + count - 1].End];
 
-    // Every field in the server's order. An answer keeps its own label; an Ask or NotGiven field nobody
-    // recorded takes its flag default, so every screen stays as it was until ADR-010's questions and
-    // [not given] land; a Roll field is left to the dice.
-    public IReadOnlyList<ConfirmationLine> Lines(IReadOnlyDictionary<string, object?> defaults) =>
+    // The Ask fields nobody has answered yet, in the server's order: what the interview must ask the GM
+    // before anything can be confirmed (ADR-010, decision 1).
+    public IReadOnlyList<RollField> StillToAsk =>
+        [.. fields.Where(f => f.WhenMissing == WhenMissing.Ask && !_answers.ContainsKey(f.Name))];
+
+    // The GM's typed answer to a question the interview asked (ADR-010, decision 4). The GM typed it for
+    // this very field, so it needs no quote; but only an Ask field is ever asked, and a blank is not an
+    // answer. Each refusal has its own reason (lesson 004). The model's door, Record, is unchanged.
+    public RecordResult RecordAsked(string field, string typed)
+    {
+        var target = fields.FirstOrDefault(f => f.Name == field);
+        if (target is null)
+            return Reject(Rejection.UnknownField, $"there is no field named '{field}'.");
+        if (target.WhenMissing != WhenMissing.Ask)
+            return Reject(Rejection.NotAnAskField, $"{field} is not asked for: the dice or the scene decide it.");
+        if (string.IsNullOrWhiteSpace(typed))
+            return Reject(Rejection.BlankAnswer, $"the answer for {field} is blank.");
+
+        return Accept(field, new Answer(typed.Trim(), Label.MyWords, new Asked()));
+    }
+
+    // Every field in the server's order. An answer keeps its label and evidence; a NotGiven field with
+    // no answer is [not given] with no value; a Roll field is left to the dice (ADR-010, decision 1).
+    // An Ask field with no answer is a hole the interview must have filled, so it throws: a confirmation
+    // or a roll with a hole cannot be built.
+    public IReadOnlyList<ConfirmationLine> Lines() =>
     [
         .. fields.Select(field => _answers.TryGetValue(field.Name, out var answer)
             ? new ConfirmationLine(field, answer.Value, answer.Label, answer.Evidence)
-            : field.WhenMissing != WhenMissing.Roll
-                ? new ConfirmationLine(field, DefaultFor(field, defaults), Label.Default, null)
-                : new ConfirmationLine(field, null, Label.Rolled, null)),
+            : field.WhenMissing switch
+            {
+                WhenMissing.NotGiven => new ConfirmationLine(field, null, Label.NotGiven, null),
+                WhenMissing.Roll => new ConfirmationLine(field, null, Label.Rolled, null),
+                _ => throw new InvalidOperationException($"'{field.Name}' must be asked for and has no answer."),
+            }),
     ];
 
-    // roll_character's arguments. A rolled field is left out, so the server's dice pick it.
-    public Dictionary<string, object?> RollArguments(IReadOnlyDictionary<string, object?> defaults) =>
-        Lines(defaults)
+    // roll_character's arguments. A rolled field is left out, so the server's dice pick it; a NotGiven
+    // field with no answer goes as null, the key present, so the server takes it as "not given".
+    public Dictionary<string, object?> RollArguments() =>
+        Lines()
             .Where(line => line.Label != Label.Rolled)
             .ToDictionary(line => line.Field.Name, line => (object?)line.Value);
-
-    // A required field the flag table does not know: the server grew a parameter RunOptions lacks.
-    private static string DefaultFor(RollField field, IReadOnlyDictionary<string, object?> defaults) =>
-        defaults.TryGetValue(field.Name, out var value) && value is not null
-            ? value.ToString()!
-            : throw new InvalidOperationException($"roll_character requires '{field.Name}' and there is no default for it.");
 
     // The first sentence of the scene that holds the quote as whole words, and where in it.
     private (Words.Sentence Sentence, int At)? Find(IReadOnlyList<Words.Word> quote)

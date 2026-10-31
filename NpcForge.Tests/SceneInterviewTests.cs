@@ -9,7 +9,6 @@ namespace NpcForge.Tests;
 public class SceneInterviewTests(ITestOutputHelper output)
 {
     private static readonly IReadOnlyList<RollField> Fields = SceneDraftTests.Fields;
-    private static readonly IReadOnlyDictionary<string, object?> Defaults = SceneDraftTests.Defaults;
 
     // Honest answers from the tavern scene, one invented free-text trait, one inferred difficulty.
     private static readonly FunctionCallContent[] TavernAnswers =
@@ -36,7 +35,7 @@ public class SceneInterviewTests(ITestOutputHelper output)
             Answer("setting", "his tavern", "at his tavern"),
         ]);
 
-        await Interview(model, SceneDraftTests.Tavern + "\nno\n");
+        await Interview(model, SceneDraftTests.Tavern + "\ninnkeeper\nno\n");
 
         Assert.Equal(["record_answer"], model.Offered);
         Assert.Equal("Tool failed: No tool named 'roll_character'.", model.Results["call-roll"]);
@@ -80,7 +79,7 @@ public class SceneInterviewTests(ITestOutputHelper output)
         var screen = new StringWriter();
         var gm = new WatchedReader([SceneDraftTests.Tavern, reply], screen);
 
-        var told = await SceneInterview.RunAsync(model, new ChatOptions(), Fields, Defaults, gm, screen, CancellationToken.None);
+        var told = await SceneInterview.RunAsync(model, new ChatOptions(), Fields, gm, screen, CancellationToken.None);
 
         Assert.NotNull(told);
         Assert.Equal("Cant", told.RollArguments["obstacle"]);
@@ -107,8 +106,8 @@ public class SceneInterviewTests(ITestOutputHelper output)
         var model = new OneCallPerTurn(Answer("obstacle", "Cant", "He knows nothing about the guild"));
         var screen = new StringWriter { NewLine = "\n" };
 
-        var told = await SceneInterview.RunAsync(model, new ChatOptions(), Fields, Defaults,
-            new StringReader(SceneDraftTests.Tavern + "\nyes\n"), screen, CancellationToken.None);
+        var told = await SceneInterview.RunAsync(model, new ChatOptions(), Fields,
+            new StringReader(SceneDraftTests.Tavern + "\nhis tavern\ntavern owner\nyes\n"), screen, CancellationToken.None);
 
         Assert.Equal(Fields.Count + 3, model.Calls);
         Assert.Contains("  obstacle: Cant   [inferred]", screen.ToString());
@@ -155,7 +154,7 @@ public class SceneInterviewTests(ITestOutputHelper output)
         const string scene = "The players meet a clown at a fair. Everything about him is a joke.";
         var model = new ScriptedInterviewer([Answer("tone", "Comic", "Everything about him is a joke")]);
 
-        var (told, screen) = await Interview(model, scene + "\nyes\n");
+        var (told, screen) = await Interview(model, scene + "\na fair\na clown\nyes\n");
 
         Assert.Contains("  tone: Comic   [inferred]\n    from \"Everything about him is a joke\"", screen);
         foreach (var field in new[] { "race", "nameLetter", "nameSyllables", "familyLetter" })
@@ -176,7 +175,7 @@ public class SceneInterviewTests(ITestOutputHelper output)
         })
         {
             var model = new ScriptedInterviewer([Answer("nameLetter", "K", quote)]);
-            var (told, screen) = await Interview(model, scene + "\nyes\n");
+            var (told, screen) = await Interview(model, scene + "\nthe market\nbaker\nyes\n");
 
             Assert.StartsWith("Rejected:", model.Results["call-nameLetter"]);
             Assert.Contains("  nameLetter: [rolled]", screen);
@@ -240,13 +239,85 @@ public class SceneInterviewTests(ITestOutputHelper output)
     {
         var model = new ScriptedInterviewer([]);
 
-        var (_, screen) = await Interview(model, SceneDraftTests.Tavern + "\nno\n");
+        var (_, screen) = await Interview(model, SceneDraftTests.Tavern + "\nhis tavern\ntavern owner\nno\n");
 
         Assert.Contains("- `tone` (choice:", model.Told);
         Assert.DoesNotContain("`nameLetter`", model.Told);
         Assert.DoesNotContain("`familyLetter`", model.Told);
         Assert.Contains("  nameLetter: [rolled]", screen);
         Assert.Contains("  familyLetter: [rolled]", screen);
+    }
+
+    // A scene with no place and no role: the model records nothing, so the interview asks, setting
+    // before occupation (the schema's order), and the screen says whose words they are (ADR-010, decision 4).
+    [Fact]
+    public async Task A_scene_with_no_place_and_no_role_asks_two_questions_in_schema_order()
+    {
+        var (told, screen) = await Interview(
+            new ScriptedInterviewer([]), "The players meet a stranger.\n  the docks \n a smith\nyes\n");
+        output.WriteLine(screen);
+
+        const string intro = "\nYour scene does not say this, and the dice cannot pick it:\n";
+        var setting = screen.IndexOf(intro + "  setting: Where\n> ", StringComparison.Ordinal);
+        var occupation = screen.IndexOf(intro + "  occupation: Who\n> ", StringComparison.Ordinal);
+        Assert.True(setting >= 0, screen);
+        Assert.True(occupation > setting, screen);
+        Assert.Contains("  setting: the docks   [my words]\n    typed when asked", screen);
+        Assert.Contains("  occupation: a smith   [my words]\n    typed when asked", screen);
+        Assert.DoesNotContain("[default]", screen);
+        Assert.Equal("the docks", told!.RollArguments["setting"]);
+        Assert.Equal("a smith", told.RollArguments["occupation"]);
+    }
+
+    // A scene that names both, with a want and without one, gets no question (the want is never asked).
+    [Fact]
+    public async Task A_scene_that_names_both_gets_no_question_with_a_want_and_without_one()
+    {
+        FunctionCallContent[] both = [Answer("setting", "his tavern", "at his tavern"), Answer("occupation", "tavern owner", "meet a tavern owner")];
+        var withWant = both.Append(Answer("playersWant", "ask about a thieves guild", "to ask about a thieves guild"));
+
+        var (_, plain) = await Interview(new ScriptedInterviewer(both), SceneDraftTests.Tavern + "\nno\n");
+        var (_, wanted) = await Interview(new ScriptedInterviewer([.. withWant]), SceneDraftTests.Tavern + "\nno\n");
+
+        Assert.DoesNotContain("does not say this", plain);
+        Assert.DoesNotContain("does not say this", wanted);
+        Assert.Contains("  playersWant: [not given]", plain);
+        Assert.Contains("  playersWant: ask about a thieves guild   [my words]", wanted);
+    }
+
+    // A scene with no want shows [not given] and rolls with a null want, the key present.
+    [Fact]
+    public async Task A_scene_with_no_want_shows_not_given_and_sends_a_null_want()
+    {
+        FunctionCallContent[] both = [Answer("setting", "his tavern", "at his tavern"), Answer("occupation", "tavern owner", "meet a tavern owner")];
+
+        var (told, screen) = await Interview(new ScriptedInterviewer(both), SceneDraftTests.Tavern + "\nyes\n");
+
+        Assert.Contains("  playersWant: [not given]\n    nothing recorded, so the character is written around winning their goodwill", screen);
+        Assert.True(told!.RollArguments.ContainsKey("playersWant"));
+        Assert.Null(told.RollArguments["playersWant"]);
+    }
+
+    [Fact]
+    public async Task An_empty_answer_asks_again()
+    {
+        var (told, screen) = await Interview(
+            new ScriptedInterviewer([]), "The players meet a stranger.\n\n   \nthe docks\na smith\nyes\n");
+
+        Assert.Equal(2, screen.Split("does not say this").Length - 1);   // setting once, occupation once
+        Assert.Contains("  setting: Where\n> > > ", screen);             // the prompt came back after each blank
+        Assert.Equal("the docks", told!.RollArguments["setting"]);
+    }
+
+    [Theory]
+    [InlineData("The players meet a stranger.\n")]                   // end of input at the first question
+    [InlineData("The players meet a stranger.\nthe docks\n")]        // and at the second
+    public async Task End_of_input_at_a_question_rolls_nothing(string typed)
+    {
+        var (told, screen) = await Interview(new ScriptedInterviewer([]), typed);
+
+        Assert.Null(told);
+        Assert.DoesNotContain("Roll this character?", screen);
     }
 
     private static FunctionCallContent Answer(string field, string value, string quote) =>
@@ -259,7 +330,7 @@ public class SceneInterviewTests(ITestOutputHelper output)
     {
         var screen = new StringWriter { NewLine = "\n" };
         var told = await SceneInterview.RunAsync(
-            model, new ChatOptions(), Fields, Defaults, new StringReader(typed), screen, CancellationToken.None);
+            model, new ChatOptions(), Fields, new StringReader(typed), screen, CancellationToken.None);
         return (told, screen.ToString());
     }
 

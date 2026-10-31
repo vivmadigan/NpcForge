@@ -106,6 +106,12 @@ if (load is not null)
     if (unknown.Count > 0)
         Console.Error.WriteLine($"[app] unknown in save {load}: {string.Join(", ", unknown)}");
 
+    // A null is a scene that left the field out (ADR-010), which is different from a key the save
+    // never had: each field is in one of the two lines, never both.
+    var notGiven = SavedView.NotGiven(RollField.ListFrom(tools.SchemaOf("roll_character")), saved.RootElement);
+    if (notGiven.Count > 0)
+        Console.Error.WriteLine($"[app] not given in save {load}: {string.Join(", ", notGiven)}");
+
     Console.WriteLine(saved.RootElement.GetProperty("text").GetString());
     return;
 }
@@ -131,10 +137,11 @@ if (run.Interview)
     NotGivenFiles.Require(fields, [WriterInput.DefaultSkillDir]);
 
     // The dialogue goes to stderr, so stdout stays the character text alone (lesson 007). The
-    // flag defaults fill a required field the scene never mentions. A copy of the options, so
+    // required field the scene never mentions is asked for, not filled from a flag default (ADR-010,
+    // decision 4); flag runs keep their defaults, in the else branch. A copy of the options, so
     // the interview's tool list never reaches the writer.
     var told = await SceneInterview.RunAsync(
-        client, options.Clone(), fields, run.RollArguments(), Console.In, Console.Error, CancellationToken.None);
+        client, options.Clone(), fields, Console.In, Console.Error, CancellationToken.None);
 
     // Anything but yes, end of input included: nothing is rolled, written or saved.
     if (told is null)
