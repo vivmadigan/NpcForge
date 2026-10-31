@@ -125,6 +125,11 @@ if (run.Interview)
     // The fields come from the server's own schema, so the console keeps no copy of them.
     var fields = RollField.ListFrom(tools.SchemaOf("roll_character"));
 
+    // A scene may leave a field out, and the writer then needs that field's not-given file. Only this
+    // path can produce a null, so a flag run and a lab are not checked (ADR-010, decision 5). Found
+    // now, before the greeting, so a gap costs nothing.
+    NotGivenFiles.Require(fields, [WriterInput.DefaultSkillDir]);
+
     // The dialogue goes to stderr, so stdout stays the character text alone (lesson 007). The
     // flag defaults fill a required field the scene never mentions. A copy of the options, so
     // the interview's tool list never reaches the writer.

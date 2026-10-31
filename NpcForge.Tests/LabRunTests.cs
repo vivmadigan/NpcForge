@@ -95,6 +95,21 @@ public class LabRunTests : IDisposable
         return new Result(ended.Folder, capture.ToString(), model.Calls.Count, ended.NoName);
     }
 
+    // A lab never has a null in its brief, so its skill folders need no not-given folder (ADR-010,
+    // decision 5). Skill() builds a folder without one, and the lab still runs.
+    [Fact]
+    public async Task A_lab_skill_folder_with_no_not_given_folder_still_runs()
+    {
+        var model = new LabStandIn();
+        var alpha = Skill("alpha");
+        Assert.False(Directory.Exists(Path.Combine(alpha, "not-given")));
+
+        var result = await RunLab(model, ["--lab", $"skill={alpha},{Skill("beta")}"], "yes\n");
+
+        Assert.Equal(2, model.Calls.Count);
+        Assert.Contains("[lab] written to ", result.Stderr);
+    }
+
     [Fact]
     public async Task A_skill_lab_writes_every_variant_and_take_and_each_skill_reaches_the_writer()
     {

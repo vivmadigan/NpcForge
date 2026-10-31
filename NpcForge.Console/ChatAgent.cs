@@ -47,12 +47,26 @@ public static class ChatAgent
         var tone = ToneOf(briefJson);
         // "\n" throughout, because git checks the files out with CRLF on Windows and LF on Linux: the
         // same commit then sends the same text and prints the same fingerprint on either machine.
-        var text = (File.ReadAllText(skillPath).TrimEnd() + "\n\n" + File.ReadAllText(ToneFiles.PathOf(skillDir, tone)))
+        // A field the brief holds as null adds its not-given file after SKILL.md and before the tone
+        // file, so the tone still governs (ADR-010, decision 5). A brief with no null adds nothing, so
+        // its text and trace are what they were before. Fields are found from the JSON, never named.
+        var notGiven = NotGivenOf(briefJson);
+        var text = (File.ReadAllText(skillPath).TrimEnd() + "\n\n"
+                + string.Concat(notGiven.Select(field => File.ReadAllText(NotGivenFiles.PathOf(skillDir, field)).TrimEnd() + "\n\n"))
+                + File.ReadAllText(ToneFiles.PathOf(skillDir, tone)))
             .ReplaceLineEndings("\n");
+        var notGivenTrace = string.Concat(notGiven.Select(field => $" + not-given/{field}.md"));
 
         // Proves which files the model was actually given, and that they came from bin rather
         // than the repo. If editing SKILL.md changes nothing, this line is where you look.
-        return (text, $"[skill] {skillPath} + tones/{tone}.md ({text.Length} chars, {Fingerprint.Of(text)})");
+        return (text, $"[skill] {skillPath}{notGivenTrace} + tones/{tone}.md ({text.Length} chars, {Fingerprint.Of(text)})");
+    }
+
+    // The top-level properties the brief holds as null, in brief order. A missing key is not a null.
+    private static List<string> NotGivenOf(string briefJson)
+    {
+        using var brief = JsonDocument.Parse(briefJson);
+        return [.. brief.RootElement.EnumerateObject().Where(p => p.Value.ValueKind == JsonValueKind.Null).Select(p => p.Name)];
     }
 
     private static string ToneOf(string briefJson)
