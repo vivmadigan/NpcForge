@@ -26,12 +26,18 @@ namespace NpcForge.Server
         public static CharacterBrief RollCharacter(
             [Description("Where the players meet this character, such as an inn in a major city")]
             string setting,
+            // Required and nullable on purpose (ADR-010). Null is "not given": the scene named no want,
+            // and the character is written around winning their goodwill. Required, so a caller must
+            // send that null; a forgotten argument is refused, never read as "not given". The console
+            // reads required-and-nullable from the schema as "never ask, never default".
             [Description("What the players want from this character, such as the name of a fence")]
-            string playersWant,
-            [Description("How hard it is to get what the players want: Easy, SomeWork or Wall")]
-            Difficulty difficulty,
+            string? playersWant,
             [Description("Who the character is, such as innkeeper or farmer")]
             string occupation,
+            // After occupation only because C# puts optional parameters last (CS1737). The brief keeps
+            // its own order, so the brief JSON does not move.
+            [Description("How hard it is to get what the players want: Easy, SomeWork or Wall")]
+            Difficulty? difficulty = null,
             // Any rolled trait can be handed in instead. Its die is still cast; the handed-in value wins.
             [Description("What the character wants for themselves, such as to be left alone")]
             string? characterWants = null,
@@ -58,6 +64,10 @@ namespace NpcForge.Server
             [Description("The letter the character's family name starts with")]
             NameLetter? familyLetter = null)
         {
+            // "Not given" has one spelling, null. A blank want would reach the writer as a want of nothing.
+            if (playersWant is not null && string.IsNullOrWhiteSpace(playersWant))
+                throw new McpException($"{nameof(playersWant)} is blank. Send null when the players want nothing given.");
+
             // The SDK's string-enum converter also accepts a number, so an undefined enum would bind
             // and be written back as that number. Refused here, before any die is cast, by name.
             RequireDefined(nameof(difficulty), difficulty);
@@ -84,13 +94,18 @@ namespace NpcForge.Server
             var rolledNameLetter = Tables.PickWeighted(Tables.NameLetters, Dice);
             var rolledNameSyllables = Tables.PickWeighted(Tables.SyllableCounts, Dice);
             var rolledFamilyLetter = Tables.PickWeighted(Tables.NameLetters, Dice);
+            // The thirteenth die, cast last so no older die moves (ADR-010). Cast even when a
+            // difficulty is handed in, like every other die.
+            var rolledDifficulty = Tables.PickWeighted(Tables.Difficulties, Dice);
+            var settledDifficulty = difficulty ?? rolledDifficulty;
 
             // The difficulty filter, in code. Left to the model, it would pick something agreeable.
-            var wants = Tables.Wants.Where(w => w.Fits.Contains(difficulty)).ToArray();
+            // It reads the settled difficulty, rolled or handed in.
+            var wants = Tables.Wants.Where(w => w.Fits.Contains(settledDifficulty)).ToArray();
 
             // Every obstacle except Wont when the difficulty is Easy: "they will not" does not fit
             // an ask that almost any attempt clears.
-            ObstacleKind[] obstacles = Enum.GetValues<ObstacleKind>().Where(o => !(difficulty == Difficulty.Easy && o == ObstacleKind.Wont)).ToArray();
+            ObstacleKind[] obstacles = Enum.GetValues<ObstacleKind>().Where(o => !(settledDifficulty == Difficulty.Easy && o == ObstacleKind.Wont)).ToArray();
 
             var rolledWants = ReadCast(wantsCast, wants).Text;
             var rolledObstacle = ReadCast(obstacleCast, obstacles);
@@ -99,7 +114,7 @@ namespace NpcForge.Server
             {
                 Setting = setting,
                 PlayersWant = playersWant,
-                Difficulty = difficulty,
+                Difficulty = settledDifficulty,
                 Occupation = occupation,
                 CharacterWants = characterWants ?? rolledWants,
                 Obstacle = obstacle ?? rolledObstacle,
@@ -121,9 +136,6 @@ namespace NpcForge.Server
             if (value is { } given && !Enum.IsDefined(given))
                 throw new McpException($"{parameter} {Convert.ToInt32(given)} is not one of its values.");
         }
-
-        private static void RequireDefined<T>(string parameter, T value) where T : struct, Enum
-            => RequireDefined(parameter, (T?)value);
 
         // The dice: the whole of the variety, and the model cannot reach them. An empty table
         // throws here, and the app's CallDirectAsync turns that into a stopped run.

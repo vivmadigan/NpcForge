@@ -14,15 +14,15 @@ public class BriefFieldsTests
             .Select(field => (field.Name, ((Array)field.GetValue(null)!).Length));
 
     // Six rows is the least a text table may have, so a trait does not repeat across a few characters.
-    // SyllableCounts is exempt by name, as the fixed choices are: tone is an enum with no table, and the
-    // count has three values. The same exemption `obstacle` has.
+    // SyllableCounts and Difficulties are exempt by name, as the fixed choices are: tone is an enum with
+    // no table, and each has three values. The same exemption `obstacle` has.
     [Fact]
     public void Every_text_table_has_at_least_six_rows()
     {
         var tables = AllTables().ToList();
 
         Assert.True(tables.Count >= 8, $"Only {tables.Count} tables were found; the reflection is looking in the wrong place.");
-        var tooShort = tables.Where(t => t.Name != nameof(Tables.SyllableCounts) && t.Rows < 6).ToList();
+        var tooShort = tables.Where(t => t.Name is not (nameof(Tables.SyllableCounts) or nameof(Tables.Difficulties)) && t.Rows < 6).ToList();
         Assert.True(tooShort.Count == 0, "Fewer than six rows: " + string.Join(", ", tooShort.Select(t => $"{t.Name} ({t.Rows})")));
     }
 
@@ -53,6 +53,14 @@ public class BriefFieldsTests
     {
         Assert.Equal([(Syllables.One, 1), (Syllables.Two, 2), (Syllables.Three, 1)],
             Tables.SyllableCounts.Select(s => (s.Value, s.Weight)));
+    }
+
+    // The owner's rows, settled 2026-10-30 (ADR-010): a missing difficulty is most often some work.
+    [Fact]
+    public void The_difficulty_table_is_easy_one_some_work_two_wall_one()
+    {
+        Assert.Equal([(Difficulty.Easy, 1), (Difficulty.SomeWork, 2), (Difficulty.Wall, 1)],
+            Tables.Difficulties.Select(d => (d.Value, d.Weight)));
     }
 
     // Many seeded picks land near their weights: a pick that ignored them (uniform over the rows) would

@@ -21,8 +21,8 @@ public class SceneDraftTests
     [
         new("setting", "Where", null, Required: true),
         new("playersWant", "What the players want", null, Required: true),
-        new("difficulty", "How hard", ["Easy", "SomeWork", "Wall"], Required: true),
         new("occupation", "Who", null, Required: true),
+        new("difficulty", "How hard", ["Easy", "SomeWork", "Wall"], Required: false),
         new("characterWants", "What they want", null, Required: false),
         new("obstacle", "Why not", ["Wont", "Cant", "ForAPrice"], Required: false),
         new("attitude", "How they come across", null, Required: false),
@@ -334,12 +334,12 @@ public class SceneDraftTests
         draft.Record("obstacle", "Cant", "knows nothing about the guild");
         draft.Record("attitude", "doesn't want to get involved", "doesn't want to get involved");
 
+        // No difficulty: the scene never gave one, so the server's dice roll it (ADR-010).
         Assert.Equal(
             new Dictionary<string, object?>
             {
                 ["setting"] = "his tavern",
                 ["playersWant"] = "the name of a fence",
-                ["difficulty"] = "Wall",
                 ["occupation"] = "tavern owner",
                 ["obstacle"] = "Cant",
                 ["attitude"] = "doesn't want to get involved",
