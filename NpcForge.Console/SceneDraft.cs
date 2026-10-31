@@ -2,7 +2,7 @@ namespace NpcForge;
 
 // Where a field's value came from (ADR-007). Code decides it from the field's kind, never the model:
 // record_answer has no label argument. MyWords and Inferred belong to a recorded answer; Rolled and
-// Default are what a field with no answer gets, decided by whether roll_character requires it.
+// Default are what a field with no answer gets, decided by its WhenMissing kind.
 public enum Label { MyWords, Inferred, Rolled, Default }
 
 // Why record_answer refused a call, one reason per check, so a test can assert which check refused
@@ -132,13 +132,14 @@ public sealed class SceneDraft(string scene, IReadOnlyList<RollField> fields)
     private string Typed(Words.Sentence sentence, int at, int count) =>
         scene[sentence.Words[at].Start..sentence.Words[at + count - 1].End];
 
-    // Every field in the server's order. An answer keeps its own label; a required field nobody
-    // recorded takes its flag default; anything else is left to the dice.
+    // Every field in the server's order. An answer keeps its own label; an Ask or NotGiven field nobody
+    // recorded takes its flag default (NotGiven gets its own label in unit 6); a Roll field is
+    // left to the dice.
     public IReadOnlyList<ConfirmationLine> Lines(IReadOnlyDictionary<string, object?> defaults) =>
     [
         .. fields.Select(field => _answers.TryGetValue(field.Name, out var answer)
             ? new ConfirmationLine(field, answer.Value, answer.Label, answer.Quote, answer.Sentence)
-            : field.Required
+            : field.WhenMissing != WhenMissing.Roll
                 ? new ConfirmationLine(field, DefaultFor(field, defaults), Label.Default, null, null)
                 : new ConfirmationLine(field, null, Label.Rolled, null, null)),
     ];

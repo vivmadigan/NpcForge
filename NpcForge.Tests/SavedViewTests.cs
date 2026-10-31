@@ -63,7 +63,7 @@ public class SavedViewTests
     [Fact]
     public void A_field_added_to_the_schema_later_is_unknown_with_no_edit()
     {
-        RollField[] fields = [.. SceneDraftTests.Fields, new("pet", "A pet", null, Required: false)];
+        RollField[] fields = [.. SceneDraftTests.Fields, new("pet", "A pet", null, WhenMissing.Roll)];
 
         var unknown = SavedView.Unknown(fields, Entry(OldBrief + NewFields, Kessa));
 

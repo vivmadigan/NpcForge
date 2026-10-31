@@ -19,22 +19,22 @@ public class SceneDraftTests
 
     public static readonly IReadOnlyList<RollField> Fields =
     [
-        new("setting", "Where", null, Required: true),
-        new("playersWant", "What the players want", null, Required: true),
-        new("occupation", "Who", null, Required: true),
-        new("difficulty", "How hard", ["Easy", "SomeWork", "Wall"], Required: false),
-        new("characterWants", "What they want", null, Required: false),
-        new("obstacle", "Why not", ["Wont", "Cant", "ForAPrice"], Required: false),
-        new("attitude", "How they come across", null, Required: false),
-        new("mannerism", "A habit", null, Required: false),
-        new("weakness", "A weakness", null, Required: false),
-        new("willNotDiscuss", "A subject", null, Required: false),
-        new("wrongAbout", "A false belief", null, Required: false),
-        new("tone", "How it is written", ["Serious", "Comic", "Heartfelt"], Required: false),
-        new("race", "Their people", null, Required: false),
-        new("nameLetter", "First name letter", Alphabet, Required: false),
-        new("nameSyllables", "First name syllables", ["1", "2", "3"], Required: false),
-        new("familyLetter", "Family name letter", Alphabet, Required: false),
+        new("setting", "Where", null, WhenMissing.Ask),
+        new("playersWant", "What the players want", null, WhenMissing.NotGiven),
+        new("occupation", "Who", null, WhenMissing.Ask),
+        new("difficulty", "How hard", ["Easy", "SomeWork", "Wall"], WhenMissing.Roll),
+        new("characterWants", "What they want", null, WhenMissing.Roll),
+        new("obstacle", "Why not", ["Wont", "Cant", "ForAPrice"], WhenMissing.Roll),
+        new("attitude", "How they come across", null, WhenMissing.Roll),
+        new("mannerism", "A habit", null, WhenMissing.Roll),
+        new("weakness", "A weakness", null, WhenMissing.Roll),
+        new("willNotDiscuss", "A subject", null, WhenMissing.Roll),
+        new("wrongAbout", "A false belief", null, WhenMissing.Roll),
+        new("tone", "How it is written", ["Serious", "Comic", "Heartfelt"], WhenMissing.Roll),
+        new("race", "Their people", null, WhenMissing.Roll),
+        new("nameLetter", "First name letter", Alphabet, WhenMissing.Roll),
+        new("nameSyllables", "First name syllables", ["1", "2", "3"], WhenMissing.Roll),
+        new("familyLetter", "Family name letter", Alphabet, WhenMissing.Roll),
     ];
 
     public static readonly IReadOnlyDictionary<string, object?> Defaults = RunOptions.Parse([]).RollArguments();
@@ -225,7 +225,7 @@ public class SceneDraftTests
     [InlineData(7, Rejection.LongChoiceNotFromAScene)]
     public void The_long_choice_rule_follows_the_fields_choice_count(int choices, Rejection expected)
     {
-        var field = new RollField("mood", "A mood", [.. Enumerable.Range(1, choices).Select(n => $"mood{n}")], Required: false);
+        var field = new RollField("mood", "A mood", [.. Enumerable.Range(1, choices).Select(n => $"mood{n}")], WhenMissing.Roll);
         var draft = new SceneDraft(Tavern, [field]);
 
         var result = draft.Record("mood", "mood1", "doesn't want to get involved");
