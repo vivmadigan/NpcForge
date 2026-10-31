@@ -20,10 +20,14 @@ public class RollFieldTests
              "tone", "race", "nameLetter", "nameSyllables", "familyLetter"],
             fields.Select(f => f.Name));
 
-        // Required means supplied, never rolled: these three take a flag default when the scene is
-        // silent. Difficulty is rolled when missing (ADR-010).
-        Assert.Equal(["setting", "playersWant", "occupation"],
-            fields.Where(f => f.Required).Select(f => f.Name));
+        // ADR-010, decision 1: the schema alone gives each field its kind. Setting and occupation are
+        // required and not nullable, so Ask; the want is required and nullable, so NotGiven; the rest
+        // are optional, so Roll. Difficulty is Roll because it is optional on the server.
+        Assert.Equal(WhenMissing.Ask, fields.Single(f => f.Name == "setting").WhenMissing);
+        Assert.Equal(WhenMissing.NotGiven, fields.Single(f => f.Name == "playersWant").WhenMissing);
+        Assert.Equal(WhenMissing.Ask, fields.Single(f => f.Name == "occupation").WhenMissing);
+        Assert.All(fields.Where(f => f.Name is not ("setting" or "playersWant" or "occupation")),
+            f => Assert.Equal(WhenMissing.Roll, f.WhenMissing));
 
         // The choice fields, and the nullable ones without the SDK's null among their choices.
         Assert.Equal(["Easy", "SomeWork", "Wall"], fields.Single(f => f.Name == "difficulty").Choices);
@@ -59,15 +63,15 @@ public class RollFieldTests
     }
 
     // SceneDraftTests.Fields is a hand copy of this list, so its tests run with no server. Held equal to
-    // the real schema on names, order, choices and kinds (Required, for now), so the copy cannot drift
+    // the real schema on names, order, choices and kinds (WhenMissing), so the copy cannot drift
     // from the server. Descriptions are the copy's own short ones, so they are not compared.
     [Fact]
     public async Task The_scene_draft_tests_hand_copy_matches_the_real_schema()
     {
         var fields = await FieldsFromServer();
 
-        Assert.Equal(fields.Select(f => (f.Name, f.Required, Choices: string.Join(",", f.Choices ?? []))),
-            SceneDraftTests.Fields.Select(f => (f.Name, f.Required, Choices: string.Join(",", f.Choices ?? []))));
+        Assert.Equal(fields.Select(f => (f.Name, f.WhenMissing, Choices: string.Join(",", f.Choices ?? []))),
+            SceneDraftTests.Fields.Select(f => (f.Name, f.WhenMissing, Choices: string.Join(",", f.Choices ?? []))));
     }
 
     // ADR-009: the syllable count is a number in a string, "1", "2", "3". The attribute on the server's
@@ -93,14 +97,14 @@ public class RollFieldTests
     }
 
     [Fact]
-    public async Task Every_required_field_has_a_flag_default()
+    public async Task Every_ask_and_not_given_field_has_a_flag_default()
     {
         var fields = await FieldsFromServer();
         var defaults = RunOptions.Parse([]).RollArguments();
 
         // A required parameter the flag table does not know would leave the interview with nothing
         // to roll with when the scene is silent. Caught here, not after a GM's yes.
-        Assert.All(fields.Where(f => f.Required), f => Assert.True(defaults.ContainsKey(f.Name), $"No default for {f.Name}"));
+        Assert.All(fields.Where(f => f.WhenMissing != WhenMissing.Roll), f => Assert.True(defaults.ContainsKey(f.Name), $"No default for {f.Name}"));
     }
 
     [Fact]
@@ -113,6 +117,24 @@ public class RollFieldTests
         var error = Assert.Throws<InvalidOperationException>(() => RollField.ListFrom(schema.RootElement));
 
         Assert.Contains("'setting' has no description", error.Message);
+    }
+
+    // ADR-010, decision 1: the kind comes from the schema's shape alone, with no server and no field
+    // name. Required text is Ask, required nullable text is NotGiven, optional text is Roll either way.
+    [Theory]
+    [InlineData("\"string\"", true, WhenMissing.Ask)]
+    [InlineData("[\"string\",\"null\"]", true, WhenMissing.NotGiven)]
+    [InlineData("\"string\"", false, WhenMissing.Roll)]
+    [InlineData("[\"string\",\"null\"]", false, WhenMissing.Roll)]
+    public void The_schema_shape_alone_gives_a_field_its_kind(string type, bool required, WhenMissing expected)
+    {
+        var requiredList = required ? "[\"thing\"]" : "[]";
+        using var schema = JsonDocument.Parse(
+            "{\"type\":\"object\",\"properties\":{\"thing\":{\"type\":" + type + ",\"description\":\"A thing\"}},\"required\":" + requiredList + "}");
+
+        var field = Assert.Single(RollField.ListFrom(schema.RootElement));
+
+        Assert.Equal(expected, field.WhenMissing);
     }
 
     [Fact]

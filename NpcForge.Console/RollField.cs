@@ -9,8 +9,13 @@ namespace NpcForge;
 //
 // Choices: the fixed list for a choice field (difficulty, obstacle), null for free text. The kind
 // decides what the interview may record: a choice may be inferred, free text must be the GM's words.
-// Required: in the schema's "required" list. Never rolled: an unmentioned one takes its flag default.
-public sealed record RollField(string Name, string Description, IReadOnlyList<string>? Choices, bool Required)
+// WhenMissing: what an unmentioned field gets, decided from the schema alone (ADR-010, decision 1),
+// so no console line names a field. Not in "required" is Roll: the dice pick it. In "required" and
+// its type admits null is NotGiven: the scene may leave it out, and null is the answer. In "required"
+// otherwise is Ask: the GM must say it, and until then it takes its flag default.
+public enum WhenMissing { Ask, NotGiven, Roll }
+
+public sealed record RollField(string Name, string Description, IReadOnlyList<string>? Choices, WhenMissing WhenMissing)
 {
     // The boundary: a JSON schema in, the field list out. A property shape this does not know
     // throws, so a server change fails a free test instead of a paid run.
@@ -40,11 +45,20 @@ public sealed record RollField(string Name, string Description, IReadOnlyList<st
                 ? [.. list.EnumerateArray().Where(choice => choice.ValueKind == JsonValueKind.String).Select(choice => choice.GetString()!)]
                 : null;
 
-            fields.Add(new RollField(property.Name, description, choices, required.Contains(property.Name)));
+            var whenMissing = !required.Contains(property.Name) ? WhenMissing.Roll
+                : AdmitsNull(schema) ? WhenMissing.NotGiven
+                : WhenMissing.Ask;
+
+            fields.Add(new RollField(property.Name, description, choices, whenMissing));
         }
 
         return fields;
     }
+
+    // IsText has already checked the type, so a type that lists "null" is the SDK's nullable string.
+    private static bool AdmitsNull(JsonElement schema) =>
+        schema.GetProperty("type") is { ValueKind: JsonValueKind.Array } type
+        && type.EnumerateArray().Any(t => t.GetString() == "null");
 
     // "string", or ["string","null"] for a parameter that may be left out.
     private static bool IsText(JsonElement schema)

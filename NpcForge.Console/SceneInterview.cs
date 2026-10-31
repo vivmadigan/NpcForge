@@ -116,6 +116,17 @@ public static class SceneInterview
         return instructions;
     }
 
+    // MyWords and Inferred answers come from the scene, so their evidence is a Quoted. An answer
+    // with other evidence has no from/in lines to show.
+    private static void WriteQuoted(TextWriter screen, Evidence? evidence)
+    {
+        if (evidence is not Quoted quoted)
+            return;
+
+        screen.WriteLine($"    from \"{quoted.Quote}\"");
+        screen.WriteLine($"    in   \"{quoted.Sentence}\"");
+    }
+
     // Every field, its label, the words behind it and the whole sentence they came from (ADR-007).
     private static void WriteConfirmation(TextWriter screen, IReadOnlyList<ConfirmationLine> lines)
     {
@@ -128,13 +139,11 @@ public static class SceneInterview
             {
                 case Label.MyWords:
                     screen.WriteLine($"  {line.Field.Name}: {line.Value}   [my words]");
-                    screen.WriteLine($"    from \"{line.Quote}\"");
-                    screen.WriteLine($"    in   \"{line.Sentence}\"");
+                    WriteQuoted(screen, line.Evidence);
                     break;
                 case Label.Inferred:
                     screen.WriteLine($"  {line.Field.Name}: {line.Value}   [inferred]");
-                    screen.WriteLine($"    from \"{line.Quote}\"");
-                    screen.WriteLine($"    in   \"{line.Sentence}\"");
+                    WriteQuoted(screen, line.Evidence);
                     break;
                 case Label.Default:
                     screen.WriteLine($"  {line.Field.Name}: {line.Value}   [default]");
