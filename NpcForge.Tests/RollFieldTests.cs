@@ -12,15 +12,17 @@ public class RollFieldTests
     {
         var fields = await FieldsFromServer();
 
-        // The brief's order, as CharacterBrief and roll_character have it.
+        // roll_character's parameter order. Difficulty is after occupation because it is optional and
+        // C# puts optional parameters last (ADR-010); CharacterBrief keeps its own order.
         Assert.Equal(
-            ["setting", "playersWant", "difficulty", "occupation", "characterWants", "obstacle",
+            ["setting", "playersWant", "occupation", "difficulty", "characterWants", "obstacle",
              "attitude", "mannerism", "weakness", "willNotDiscuss", "wrongAbout",
              "tone", "race", "nameLetter", "nameSyllables", "familyLetter"],
             fields.Select(f => f.Name));
 
-        // Required means supplied, never rolled: these four take a flag default when the scene is silent.
-        Assert.Equal(["setting", "playersWant", "difficulty", "occupation"],
+        // Required means supplied, never rolled: these three take a flag default when the scene is
+        // silent. Difficulty is rolled when missing (ADR-010).
+        Assert.Equal(["setting", "playersWant", "occupation"],
             fields.Where(f => f.Required).Select(f => f.Name));
 
         // The choice fields, and the nullable ones without the SDK's null among their choices.
@@ -32,6 +34,40 @@ public class RollFieldTests
 
         // The interviewer reads these to know each field.
         Assert.All(fields, f => Assert.False(string.IsNullOrWhiteSpace(f.Description)));
+    }
+
+    // ADR-010: the schema itself says which kind each required field is. playersWant is required and
+    // admits null ("not given"); setting and occupation are required and do not. If a later SDK stops
+    // writing the null, this fails, and the fallback is a server-owned list (ADR-010, decision 1).
+    [Fact]
+    public async Task The_schema_requires_three_fields_and_only_the_want_admits_null()
+    {
+        await using var tools = new McpToolSource();
+        await tools.ConnectAsync(CancellationToken.None);
+        var schema = tools.SchemaOf("roll_character");
+
+        Assert.Equal(["setting", "playersWant", "occupation"],
+            schema.GetProperty("required").EnumerateArray().Select(name => name.GetString()));
+        bool AdmitsNull(string field)
+        {
+            var type = schema.GetProperty("properties").GetProperty(field).GetProperty("type");
+            return type.ValueKind == JsonValueKind.Array && type.EnumerateArray().Any(t => t.GetString() == "null");
+        }
+        Assert.True(AdmitsNull("playersWant"), schema.GetProperty("properties").GetProperty("playersWant").GetRawText());
+        Assert.False(AdmitsNull("setting"));
+        Assert.False(AdmitsNull("occupation"));
+    }
+
+    // SceneDraftTests.Fields is a hand copy of this list, so its tests run with no server. Held equal to
+    // the real schema on names, order, choices and kinds (Required, for now), so the copy cannot drift
+    // from the server. Descriptions are the copy's own short ones, so they are not compared.
+    [Fact]
+    public async Task The_scene_draft_tests_hand_copy_matches_the_real_schema()
+    {
+        var fields = await FieldsFromServer();
+
+        Assert.Equal(fields.Select(f => (f.Name, f.Required, Choices: string.Join(",", f.Choices ?? []))),
+            SceneDraftTests.Fields.Select(f => (f.Name, f.Required, Choices: string.Join(",", f.Choices ?? []))));
     }
 
     // ADR-009: the syllable count is a number in a string, "1", "2", "3". The attribute on the server's

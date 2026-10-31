@@ -399,6 +399,106 @@ public class McpToolSourceTests
         }
     }
 
+    // ADR-010: a want not given is a null, and the null is written. A missing key would read as a save
+    // from before the record, shown as unknown.
+    [Fact]
+    public async Task A_null_want_comes_back_as_a_written_null()
+    {
+        await using var tools = new McpToolSource();
+        await tools.ConnectAsync(CancellationToken.None);
+        var args = RollArgs();
+        args["playersWant"] = null;
+
+        var briefJson = await tools.CallDirectAsync("roll_character", args, CancellationToken.None);
+
+        using var brief = JsonDocument.Parse(briefJson);
+        Assert.True(brief.RootElement.TryGetProperty("playersWant", out var want), $"no playersWant key in {briefJson}");
+        Assert.Equal(JsonValueKind.Null, want.ValueKind);
+    }
+
+    // The schema says "you must say": a forgotten want is refused, a null one rolls. The control is the
+    // same call with the null, so the missing key is the only reason for the refusal (lesson 004).
+    [Fact]
+    public async Task An_omitted_want_is_refused_while_a_null_one_rolls()
+    {
+        await using var tools = new McpToolSource();
+        await tools.ConnectAsync(CancellationToken.None);
+        var omitted = RollArgs();
+        Assert.True(omitted.Remove("playersWant"));
+        var nulled = RollArgs();
+        nulled["playersWant"] = null;
+
+        var refused = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            tools.CallDirectAsync("roll_character", omitted, CancellationToken.None));
+        var rolled = await tools.CallDirectAsync("roll_character", nulled, CancellationToken.None);
+
+        Assert.Contains("roll_character failed", refused.Message);
+        Assert.Equal("innkeeper", JsonDocument.Parse(rolled).RootElement.GetProperty("occupation").GetString());
+    }
+
+    // "Not given" has one spelling. A blank want is refused in the server's own words, by name.
+    [Theory]
+    [InlineData("")]
+    [InlineData("   ")]
+    public async Task A_blank_want_is_refused_by_name(string blank)
+    {
+        await using var tools = new McpToolSource();
+        await tools.ConnectAsync(CancellationToken.None);
+        var args = RollArgs();
+        args["playersWant"] = blank;
+
+        var error = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            tools.CallDirectAsync("roll_character", args, CancellationToken.None));
+
+        Assert.Contains("playersWant is blank", error.Message);
+    }
+
+    // save_character binds through CharacterBrief: the null is kept in the file, and the same brief with
+    // the key taken out is refused and saves nothing.
+    [Fact]
+    public async Task Save_keeps_a_null_want_and_refuses_the_brief_without_the_key()
+    {
+        var file = TempSaveFile();
+        try
+        {
+            await using var tools = new McpToolSource(file);
+            await tools.ConnectAsync(CancellationToken.None);
+            var args = RollArgs();
+            args["playersWant"] = null;
+            var full = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(
+                await tools.CallDirectAsync("roll_character", args, CancellationToken.None))!;
+            var lacking = new Dictionary<string, JsonElement>(full);
+            Assert.True(lacking.Remove("playersWant"));
+
+            var refused = await Assert.ThrowsAsync<InvalidOperationException>(() => tools.CallDirectAsync("save_character", new()
+            {
+                ["brief"] = JsonSerializer.SerializeToElement(lacking),
+                ["name"] = KessaVale,
+                ["text"] = "A character.",
+            }, CancellationToken.None));
+            Assert.False(File.Exists(file), "a refused save writes nothing");
+
+            var savedAs = await tools.CallDirectAsync("save_character", new()
+            {
+                ["brief"] = JsonSerializer.SerializeToElement(full),
+                ["name"] = KessaVale,
+                ["text"] = "A character.",
+            }, CancellationToken.None);
+
+            Assert.Contains("save_character failed", refused.Message);
+            Assert.Equal("1", savedAs);
+            // The file itself, not a load: the null must be on disk as a key.
+            using var saved = JsonDocument.Parse(File.ReadAllText(file));
+            var brief = saved.RootElement.GetProperty("1").GetProperty("brief");
+            Assert.True(brief.TryGetProperty("playersWant", out var want), "the saved brief has no playersWant key");
+            Assert.Equal(JsonValueKind.Null, want.ValueKind);
+        }
+        finally
+        {
+            File.Delete(file);
+        }
+    }
+
     private static string TempSaveFile() =>
         Path.Combine(Path.GetTempPath(), $"npcforge-test-{Guid.NewGuid():N}.json");
 

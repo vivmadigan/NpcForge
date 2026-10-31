@@ -7,9 +7,12 @@ namespace NpcForge.Server
 {
     public sealed record CharacterBrief
     {
-        // you supply these four
+        // you supply these four; a missing want is null, and a missing difficulty is rolled
         public required string Setting { get; init; }
-        public required string PlayersWant { get; init; }
+        // Null is "not given" (ADR-010), and it is always written: a missing key is a save from
+        // before this record, shown as unknown. Without Never, the SDK's options drop the null.
+        [JsonIgnore(Condition = JsonIgnoreCondition.Never)]
+        public required string? PlayersWant { get; init; }
         public required Difficulty Difficulty { get; init; }
         public required string Occupation { get; init; }      // who they are; supplied, not rolled (ADR-002)
 
