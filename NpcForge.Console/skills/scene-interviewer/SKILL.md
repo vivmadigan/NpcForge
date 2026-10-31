@@ -23,7 +23,8 @@ Rules for every call:
 - **Keep the quote short.** Inside one sentence, and no more than 12 words. Quote only the words
   that say this field.
 - **Never offer a value of your own.** If the GM did not say it, do not record it. A field you leave
-  out is rolled by the dice, which is what should happen. Leaving a field out is never a mistake.
+  out is asked of the GM, left as not given, or rolled by the dice; the app decides which. Leaving a
+  field out is never a mistake.
 
 Rules that depend on the kind of field:
 
@@ -34,6 +35,9 @@ Rules that depend on the kind of field:
 - **A choice field** (it lists its choices) takes one of its choices, exactly as listed. Choose only
   when the GM's words point to one, and quote those words, such as `Cant` from
   `has never heard of it`. If the scene does not point to one, do not record it.
+- **What the players want** is what they want from this character, not the character's own trouble.
+  A ferryman whose boat was sunk has a problem; it is not what the players want from him.
+  If the GM did not say what the players want from this person, do not record it.
 - **A tone** is how the scene is told, not who the character is: a scene played for laughs points to
   `Comic`, a quiet or tender one to `Heartfelt`. Record it only when the way the GM tells the scene
   shows it, and quote the sentence that does.
