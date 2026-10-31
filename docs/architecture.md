@@ -156,7 +156,13 @@ the only code that knows which one. `UseFunctionInvocation` stays off: it would 
 ## The brief
 
 `CharacterBrief`, on the server only.
-- **Supplied:** `setting`, `playersWant`, `difficulty`, `occupation`.
+- **Supplied:** `setting` and `occupation`. `playersWant` is supplied too, or null for "not given"
+  (ADR-010): the parameter is `string?`, required, with no default, so a caller must send the null
+  and a forgotten one is refused. `CharacterBrief` always writes the null, and a blank want is
+  refused by name.
+- **Given, inferred or rolled (ADR-010):** `difficulty`, from `Tables.Difficulties` (Easy 1,
+  SomeWork 2, Wall 1). Its die is the thirteenth, cast last and every time. The parameter comes after
+  `occupation` because C# puts optional parameters last; the brief keeps its own order.
 - **Rolled, inside what the difficulty allows:** `characterWants`, `obstacle`, `attitude`,
   `mannerism`, `weakness`, `willNotDiscuss`, `wrongAbout`.
 - **Given, inferred or rolled (ADR-009):** `tone` (Serious, Comic or Heartfelt), `race` (free text,
@@ -165,7 +171,9 @@ the only code that knows which one. `UseFunctionInvocation` stays off: it would 
   they were. A letter field is never read from a scene: it is rolled or set by flag.
 
 The difficulty filter is code: each want is tagged with the difficulties it fits, and `Easy` never
-rolls `Wont`. Enums travel as their names, and `roll_character` refuses a value an enum does not
+rolls `Wont`. The wants and obstacle dice are cast first, as `NextDouble` values, and read against
+their tables only once the difficulty is settled, given or rolled (`CharacterTools.ReadCast`). Seeded
+`Random` computes `Next(n)` as `(int)(NextDouble() * n)`, so this keeps every seed's brief. Enums travel as their names, and `roll_character` refuses a value an enum does not
 define. The brief is settled once and never changes, and it is
 half of the save format (ADR-003).
 
@@ -210,7 +218,9 @@ one turn per field plus three; out of turns (`TurnCapReachedException`) it goes 
 confirmation with what was recorded, since every answer there already passed its checks.
 
 - **The fields** come from `roll_character`'s schema (`RollField.ListFrom`): name, order,
-  description, choices for an enum, and whether it is required. The SDK writes the nullable
+  description, choices for an enum, and what a missing one gets (`WhenMissing`, ADR-010): not in
+  `required` is *Roll*; required with a type that admits null is *NotGiven*; any other required field
+  is *Ask*. Today that makes `setting` and `occupation` Ask, `playersWant` NotGiven and the rest Roll. The SDK writes the nullable
   `ObstacleKind` as type `["string","null"]` with a null among its choices; the null is dropped. A
   trait added on the server reaches the interview with no console change.
 - **The checks** are in `SceneDraft.Record`, pure, each with its own `Rejection`: an unknown field, an
@@ -225,8 +235,16 @@ confirmation with what was recorded, since every answer there already passed its
   quote across it is rolled instead.
 - **The labels** are decided by code, never claimed by the model: *my words* for a free-text field,
   stored as the GM typed it, cut from the scene; *inferred* for a choice, stored as the server spells
-  it; *rolled* for an optional field nobody recorded, left out of the roll; *default* for a required
-  field nobody recorded, which takes its flag default.
+  it; *rolled* for a Roll field nobody recorded, left out of the roll; *not given* for a NotGiven
+  field nobody recorded, sent to the roll as null. An interview never uses a flag default.
+- **The questions** (ADR-010, decision 4): after the interviewer's loop, code asks one question for
+  each Ask field nobody recorded, in schema order, built from the field's name and description. An
+  empty line asks again, and end of input rolls nothing. The answer enters through
+  `SceneDraft.RecordAsked`, which takes only an Ask field and a value that is not blank, and is shown
+  as *my words*, "typed when asked". An answer carries its evidence: `Quoted` from `record_answer`,
+  `Asked` from a question. `SceneDraft.Lines` throws while an Ask field has no answer, so a
+  confirmation or a roll with a hole cannot be built. The answer reaches the writer through the
+  brief only; the scene stays the line the GM typed (ADR-008).
 - **The confirmation** shows every field, its label, the quote as the GM typed it and the whole
   sentence it sits in. The greeting, the confirmation and the question go to stderr, so stdout stays
   the character text. Labels and quotes stop there: the writer's first message and the save are the
@@ -247,7 +265,8 @@ through, so the replay sees nothing new.
 
 `NpcForge.Console/skills/scene-interviewer/SKILL.md` is the interviewer's: quote the GM exactly, at
 most one sentence and 12 words, never offer a value, free text only as the GM's words, a choice only
-when the GM's words point to it, no follow-up questions. The interview appends the field list from
+when the GM's words point to it, the players' want read as what they want from this character, and
+no questions of its own (code asks for a missing Ask field). The interview appends the field list from
 the server's schema to it.
 
 `NpcForge.Console/skills/namer/SKILL.md` is the namer's: follow the dice, fit the name to the race
@@ -260,6 +279,13 @@ index 0, followed by a blank line and one tone file from `skills/npc-writer/tone
 JSON, so the model is never shown the other two. A tone file says how to write; the brief still says
 what is true (ADR-009). `ToneFiles.Missing` compares the schema's tone choices with a skill folder's
 `tones/`, and `Program.cs` stops with the missing paths straight after connect, before the interview.
+
+A field the brief holds as null adds `skills/npc-writer/not-given/<field>.md` between `SKILL.md` and
+the tone file, so the tone still governs, and the `[skill]` line names it (ADR-010, decision 5).
+Today that is `not-given/playersWant.md`: the character is written around winning the players'
+goodwill, with a hook from the scene. A brief with no null is sent exactly as before.
+`NotGivenFiles.Require` checks the schema's NotGiven fields on the interview path, before the
+greeting; a flag run and a lab never have a null and are not checked.
 `SKILL.md` sets the output order, what each difficulty and obstacle oblige the writer to do, that
 every lever names the brief entry or the words of the scene it comes from, that the writer uses the
 name it was told ("Their name is ...") exactly and invents no other, and "show the trait,
@@ -305,7 +331,9 @@ One JSON file, `NpcForge.Server/characters.json`: every run, numbered from 1, th
 and the text together (ADR-003, ADR-009). An entry is `{ "brief": {...}, "name": { "syllables":
 ["Kes", "sa"], "family": "Vale" }, "text": "..." }`; a save from before the namer has no `name`,
 which `SavedCharacter` leaves out when null so the entry keeps its bytes, and `--load` lists it as
-unknown. The server keeps each saved brief as the JSON it was saved as (`SavedCharacter.Brief`
+unknown. A missing brief key is unknown too; a key saved as null is not given, and `--load` prints
+`[app] not given in save N: playersWant` for it (`SavedView.NotGiven`). A field is in one line or the
+other, never both. The server keeps each saved brief as the JSON it was saved as (`SavedCharacter.Brief`
 is a `JsonElement`), so an old entry is read and written back without passing through `CharacterBrief`
 and never gains a field added later (ADR-009). `save_character` still binds a new brief through
 `CharacterBrief`. `NPCFORGE_CHARACTERS` overrides the path. The path is always absolute, because
@@ -388,16 +416,26 @@ One real run is recorded once, and the whole app replays against it for free (AD
 - `RunOptionsTests` and `FlagRefusalTests`: the flag table, its refusals, when the interview runs,
   and which save file a run uses; and a typo'd flag next to the paid default stops at the parser,
   through the whole app.
-- `RollFieldTests`, against the real server: the eleven fields in order, the four required, the two
-  choice lists, a description on each, and a flag default for every required field.
+- `RollFieldTests`, against the real server: the fields in order, each one's `WhenMissing` kind, the
+  choice lists, a description on each, and a flag default for every Ask and NotGiven field; the
+  schema's `required` list and the want's nullable type; the hand copy in `SceneDraftTests` equal to
+  the real schema; and the three schema shapes with no server.
+- `DiceOrderTests`: a late read picks what `Next(n)` picks; seeds 1 to 12 at every difficulty match
+  a golden captured before the reorder; and a missing difficulty is rolled last and rolls what handing
+  it in rolls.
 - `SceneDraftTests`: every check of ADR-007 with its reason, the labels, the value and quote as the
-  GM typed them, rolled and default fields, and the roll arguments. Pure.
+  GM typed them, rolled and not-given fields, the GM's typed answers and their refusals, an Ask field
+  with no answer that cannot be confirmed, and the roll arguments. Pure.
 - `SceneInterviewTests`: a scripted stand-in interviewer. The model is offered only `record_answer`
   and naming `roll_character` fails; anything but `yes`, end of input included, returns nothing to
   roll; `yes` returns the arguments only after the confirmation was shown; the tavern scene's
   confirmation; a described trait reaches the brief from the real server; and the app with no answer
   flag waits for a scene and, at end of input, rolls and saves nothing. A yes hands the scene back
-  as typed, trimmed.
+  as typed, trimmed. A scene with no place and no role asks two questions in schema order, an empty
+  answer asks again, end of input at a question rolls nothing, and a scene with no want shows
+  `[not given]` and sends a null.
+- `NotGivenFileTests`: the default skill folder has every not-given file, and the app, run on a copy
+  of its build with one deleted, stops an interview before the greeting and names the file.
 - `WriterMessageTests`: through the real `ChatAgent` and its skill, the writer is sent the scene word
   for word, then the name, with the brief last; with no name on the input the namer runs first and
   its name reaches the writer, and with one it is skipped; a namer that never follows the dice stops
