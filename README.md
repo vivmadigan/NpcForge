@@ -104,8 +104,10 @@ brief, so the character acts inside the situation you described. Better characte
 brief carries a tone, a race and name dice; the writer is told how to write in its tone; a namer
 names each character inside its dice before the writer starts, with the name kept in the save; and a
 writers' lab (`--lab`) writes one brief with two skills, temperatures or tones side by side, or
-blind for you to guess and `--score`. A blind tone check scored 5 of 6. Next: filling the gaps a
-scene leaves, faster tests, keeping and editing characters, and in time a website with logins and a
+blind for you to guess and `--score`. A blind tone check scored 5 of 6. A scene's gaps are filled
+honestly: the interview asks you for a missing place or role, marks a missing want as not given and
+writes the character to be won over, with a hook from your scene, and rolls a missing difficulty.
+Next: faster tests, keeping and editing characters, and in time a website with logins and a
 database so friends can use it. See
 [ROADMAP.md](ROADMAP.md).
 

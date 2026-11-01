@@ -265,7 +265,8 @@ through, so the replay sees nothing new.
 
 `NpcForge.Console/skills/scene-interviewer/SKILL.md` is the interviewer's: quote the GM exactly, at
 most one sentence and 12 words, never offer a value, free text only as the GM's words, a choice only
-when the GM's words point to it, the players' want read as what they want from this character, and
+when the GM's words point to it, the players' want read as what they want from this character, a people named with the role split
+into `race` and `occupation`, and
 no questions of its own (code asks for a missing Ask field). The interview appends the field list from
 the server's schema to it.
 
@@ -513,3 +514,4 @@ agents and named, not numbered.
 | The writer reads the scene (epic 7) | The GM's scene reaches the writer, and the control scene gives a character who acts inside it on three seeds of three | |
 | Talk to it (epic 2) | A bare run interviews the GM, every field traces to their words or the dice, nothing rolls before a yes, and a spending cap stops a session | |
 | Better characters (epic 3) | Tone, race and name dice join the brief; one tone file reaches the writer; a namer names inside the dice and the save keeps it; a blind lab tells the tones apart 5 of 6 times | |
+| Fill the gaps in a scene (epic 8) | A missing place or role is asked for, a missing want is not given and written for goodwill, a missing difficulty is rolled; the bakery scene passed on three seeds of three | |
