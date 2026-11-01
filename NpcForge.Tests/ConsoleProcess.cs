@@ -1,5 +1,6 @@
 using System.Diagnostics;               // Process, ProcessStartInfo
 using System.Reflection;                // AssemblyConfigurationAttribute
+using System.Text;                      // UTF8Encoding
 
 namespace NpcForge.Tests;
 
@@ -41,6 +42,10 @@ internal static class ConsoleProcess
             // Always ours, never the test runner's: a run that reaches the scene interview reads
             // `input`, then end of input, which stops without rolling instead of waiting for a GM.
             RedirectStandardInput = true,
+            // `input` goes in as UTF-8 bytes with no BOM, as a GM's scene file piped in does. Left
+            // unset, .NET writes it in the console's code page, and a curly apostrophe would never
+            // reach the app as the bytes a real pipe sends.
+            StandardInputEncoding = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false),
         };
         // consoleDll: a copy of the console's build output that a test has changed, such as one with
         // a tone file deleted. Run directly, because `dotnet run` would build the repo's own.

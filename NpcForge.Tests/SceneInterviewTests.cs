@@ -232,6 +232,53 @@ public class SceneInterviewTests(ITestOutputHelper output)
         }
     }
 
+    // A scene piped in from a UTF-8 file reaches the interviewer as the GM wrote it. A curly
+    // apostrophe is three bytes in UTF-8; decoded in the console's OEM code page it became "ÔÇÖ",
+    // so the model was sent, and quoted back, words the GM never typed. The recording is made here,
+    // in process, from the scene as it should arrive, so the console's one model call matches it
+    // only if stdin was decoded as UTF-8; when it was not, the replay names the line that differs.
+    // Free: the replay provider.
+    [Fact]
+    public async Task A_piped_scene_reaches_the_interviewer_with_its_curly_apostrophe()
+    {
+        const string scene = "The players meet a baker at her shop. It’s her daughter’s bakery now, and she wants it back.";
+        var recording = Path.Combine(Path.GetTempPath(), $"npcforge-utf8-{Guid.NewGuid():N}.jsonl");
+        var saveFile = Path.Combine(Path.GetTempPath(), $"npcforge-utf8-{Guid.NewGuid():N}.json");
+        try
+        {
+            // The options the console sends, read from the fixture it wrote, so this copies no setting.
+            var fixtureCall = JsonSerializer.Deserialize<RecordedCall>(
+                File.ReadLines(RecordedRun.Fixture).Skip(1).First(), Recording.Json)!;
+            var options = fixtureCall.Request.Options.Deserialize<ChatOptions>(Recording.Json)!;
+            // And the fields from the real server, as Program.cs reads them, so the instructions match too.
+            IReadOnlyList<RollField> fields;
+            await using (var tools = new McpToolSource())
+            {
+                await tools.ConnectAsync(CancellationToken.None);
+                fields = RollField.ListFrom(tools.SchemaOf("roll_character"));
+            }
+            var recorder = new RecordingChatClient(new ScriptedInterviewer([]), recording, []);
+            await SceneInterview.RunAsync(
+                recorder, options, fields, new StringReader(scene + "\nno\n"), TextWriter.Null, CancellationToken.None);
+
+            var run = await ConsoleProcess.RunAsync(
+                ["--provider", "replay", "--recording", recording],
+                offline: true,
+                environment: new() { ["NPCFORGE_CHARACTERS"] = saveFile },
+                input: scene + "\nno\n");
+
+            // The stderr is the message, so a failure shows the replay's "recorded:" and "now:" lines.
+            Assert.False(run.Stderr.Contains("differs from the recording"), run.Stderr);
+            Assert.True(run.ExitCode == 0, run.Stderr);
+            Assert.Contains("[app] not rolled: the GM did not say yes", run.Stderr);
+        }
+        finally
+        {
+            File.Delete(recording);
+            File.Delete(saveFile);
+        }
+    }
+
     // ADR-009, amended 2026-10-26: a letter field is never read from a scene, so the interviewer is
     // not told about it and spends no turn on it. The confirmation still shows it, rolled.
     [Fact]
