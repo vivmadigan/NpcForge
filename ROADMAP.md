@@ -59,7 +59,7 @@ they want. The room comes from my scene.
 
 **Constraints.**
 - How the character looks is rolled, not invented. New dice on the server, such as build, a face or
-  hair detail and one telling detail of clothing, from tables I approve. As with race, my scene's
+  hair detail and one telling detail of clothing, from tables we work out together. As with race, my scene's
   words win: a "bald dwarf" is bald whatever the dice say.
 - The room and what the character is doing come from my scene. Where the scene says nothing about
   the room, it stays short and plain, or a gap in square brackets, never an invented layout.
@@ -75,15 +75,16 @@ they want. The room comes from my scene.
 - Free tests: the brief carries the look dice; a look handed in replaces its die and moves no other
   die; a seed's older traits are what they were before the new dice; the interview can record a look
   the scene states, quoted.
-- The tables (*needs my eyes*).
+- The tables, worked out with me before the ADR (*needs my eyes*).
 - The bakery scene and the control scene, three seeds each, open with a read-aloud passage that puts
   the character in the scene's room, describes them from their dice, and ends with an opening line
   that fits their attitude and the tone (*needs my eyes*, paid).
 - The replay fixture is re-recorded with the new skill and passes.
 
 **Tasks.**
+- Work out the tables with me first: which tables we need and what goes in each. I have ideas, so
+  the agent brings questions and a draft to react to, not a finished list.
 - ADR: the look dice, their tables, where they go in the dice order, and how the writer is told.
-- The look tables, for me to approve.
 - The writer's new first section: the read-aloud passage and the opening line.
 - Re-record the replay fixture.
 
