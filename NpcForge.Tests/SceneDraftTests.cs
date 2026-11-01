@@ -281,6 +281,22 @@ public class SceneDraftTests
             draft.Answers["occupation"]);
     }
 
+    // The interviewer skill splits "an elf ferryman" into a race and an occupation, both from the same
+    // words, so a people the scene names is not left to the race dice. One quote may back two fields.
+    [Fact]
+    public void One_quote_backs_both_the_race_and_the_occupation()
+    {
+        var draft = Draft("The players hail an elf ferryman at the crossing.");
+
+        var race = draft.Record("race", "elf", "an elf ferryman");
+        var occupation = draft.Record("occupation", "ferryman", "an elf ferryman");
+
+        Assert.Equal(Rejection.None, race.Reason);
+        Assert.Equal(Rejection.None, occupation.Reason);
+        Assert.Equal("elf", draft.Answers["race"].Value);
+        Assert.Equal("ferryman", draft.Answers["occupation"].Value);
+    }
+
     [Fact]
     public void An_unknown_field_is_rejected()
     {
