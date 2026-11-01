@@ -25,7 +25,6 @@ public static class SceneInterview
         IChatClient client,
         ChatOptions options,
         IReadOnlyList<RollField> fields,
-        IReadOnlyDictionary<string, object?> defaults,
         TextReader gm,
         TextWriter screen,
         CancellationToken ct)
@@ -63,8 +62,19 @@ public static class SceneInterview
         // never parse the model's prose).
         Console.Error.WriteLine($"[interview] {closing}");
 
+        // A field the scene left out and the dice cannot pick is asked for, in the server's order
+        // (ADR-010, decision 4). End of input here rolls nothing. The text comes from the field's own
+        // name and description, so no field is named in code.
+        foreach (var field in draft.StillToAsk)
+        {
+            var typed = await AskAsync(gm, screen, field);
+            if (typed is null)
+                return null;
+            draft.RecordAsked(field.Name, typed);
+        }
+
         screen.WriteLine();
-        WriteConfirmation(screen, draft.Lines(defaults));
+        WriteConfirmation(screen, draft.Lines());
         screen.WriteLine();
         screen.Write(Question + " ");
 
@@ -72,8 +82,28 @@ public static class SceneInterview
         if (answer is null)
             screen.WriteLine();         // end of input left the cursor after the question
         return answer?.Trim().Equals("yes", StringComparison.OrdinalIgnoreCase) == true
-            ? new Told(scene, draft.RollArguments(defaults))
+            ? new Told(scene, draft.RollArguments())
             : null;
+    }
+
+    // One question, asked again while the answer is blank. Null at end of input.
+    private static async Task<string?> AskAsync(TextReader gm, TextWriter screen, RollField field)
+    {
+        screen.WriteLine();
+        screen.WriteLine("Your scene does not say this, and the dice cannot pick it:");
+        screen.WriteLine($"  {field.Name}: {field.Description}");
+        while (true)
+        {
+            screen.Write("> ");
+            var line = await gm.ReadLineAsync();
+            if (line is null)
+            {
+                screen.WriteLine();     // end of input left the cursor after the prompt
+                return null;
+            }
+            if (!string.IsNullOrWhiteSpace(line))
+                return line;
+        }
     }
 
     // One line, asked again while it is empty. Code asks again, not the model: there are no
@@ -116,10 +146,15 @@ public static class SceneInterview
         return instructions;
     }
 
-    // MyWords and Inferred answers come from the scene, so their evidence is a Quoted. An answer
-    // with other evidence has no from/in lines to show.
+    // MyWords and Inferred answers from the scene have a Quoted; one the GM typed when asked has an
+    // Asked, shown as such (ADR-010, decision 4).
     private static void WriteQuoted(TextWriter screen, Evidence? evidence)
     {
+        if (evidence is Asked)
+        {
+            screen.WriteLine("    typed when asked");
+            return;
+        }
         if (evidence is not Quoted quoted)
             return;
 
@@ -145,9 +180,9 @@ public static class SceneInterview
                     screen.WriteLine($"  {line.Field.Name}: {line.Value}   [inferred]");
                     WriteQuoted(screen, line.Evidence);
                     break;
-                case Label.Default:
-                    screen.WriteLine($"  {line.Field.Name}: {line.Value}   [default]");
-                    screen.WriteLine("    nothing recorded, so it takes its usual default");
+                case Label.NotGiven:
+                    screen.WriteLine($"  {line.Field.Name}: [not given]");
+                    screen.WriteLine("    nothing recorded, so the character is written around winning their goodwill");
                     break;
                 case Label.Rolled:
                     screen.WriteLine($"  {line.Field.Name}: [rolled]");

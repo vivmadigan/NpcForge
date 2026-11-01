@@ -96,6 +96,36 @@ public class SavedViewTests
         Assert.Equal("[app] name Kessa Vale", fullLines[fullLines.FindIndex(l => l.StartsWith("[app] brief {")) + 1]);
     }
 
+    // ADR-010: a saved null is a want the scene left out. A missing key is Unknown, a null is NotGiven,
+    // and no field is ever in both.
+    [Fact]
+    public void A_null_in_the_save_is_not_given_and_a_missing_key_is_unknown_never_both()
+    {
+        var nullWant = OldBrief.Replace("\"playersWant\": \"the name of a fence\"", "\"playersWant\": null");
+
+        var notGiven = SavedView.NotGiven(SceneDraftTests.Fields, Entry(nullWant + NewFields, Kessa));
+        var unknown = SavedView.Unknown(SceneDraftTests.Fields, Entry(nullWant, Kessa));
+
+        Assert.Equal(["playersWant"], notGiven);
+        Assert.DoesNotContain("playersWant", unknown);
+        Assert.Empty(SavedView.NotGiven(SceneDraftTests.Fields, Entry(OldBrief)));
+    }
+
+    [Fact]
+    public async Task Load_prints_the_not_given_line_for_a_no_want_save_and_the_unknown_line_for_an_old_one_never_both()
+    {
+        var noWant = await LoadOf(OldBrief.Replace("\"playersWant\": \"the name of a fence\"", "\"playersWant\": null") + NewFields, Kessa);
+        var old = await LoadOf(OldBrief);
+
+        Assert.True(noWant.ExitCode == 0, noWant.Stderr);
+        Assert.Contains("[app] not given in save 1: playersWant", noWant.Stderr);
+        Assert.DoesNotContain("unknown in save", noWant.Stderr);
+
+        Assert.True(old.ExitCode == 0, old.Stderr);
+        Assert.Contains("unknown in save 1:", old.Stderr);
+        Assert.DoesNotContain("not given in save", old.Stderr);
+    }
+
     private static async Task<ConsoleProcess.Result> LoadOf(string briefFields, string name = "")
     {
         var fixture = Path.Combine(ConsoleProcess.RepoRoot, "NpcForge.Tests", "Fixtures", "replay.jsonl");
