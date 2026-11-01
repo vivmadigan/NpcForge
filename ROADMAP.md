@@ -35,12 +35,57 @@ Two rules for every epic, now that the Safety net exists:
 
 | # | Epic | In one line |
 | --- | --- | --- |
+| 10 | Read it to the table | A read-aloud opening, rolled looks and a first line |
 | 9 | Faster tests | The full suite in half the time, with no test weakened |
 | 4 | Keep and edit | Choose what to keep, and change it later |
 | 5 | Ready to grow | A structure that can sit behind a website and a database |
 | 6 | Friends can use it | A website with logins and a database, deployed |
 
 Epics 4 to 6 are drafts: sharpen each one before it starts.
+
+## 10. Read it to the table
+
+**Goal.** Every character opens with something I can read straight to my players, like the boxed
+text in an adventure module: where the character is in the room, what they look like and what they
+are doing as the party walks in, ending with the first thing they say. For example:
+
+> The public house has a cosy, familial feel: a few benches beside the main cask, a dozen round
+> tables around an inviting hearth. Behind the bar stands a large man with a bushy beard, a bald
+> head and an apron that hasn't been washed in weeks. He polishes the oak bar with fierce
+> concentration. He notices you as you walk forward and says, "…"
+
+The opening line comes from the scene and the character's traits: their attitude, the tone, what
+they want. The room comes from my scene.
+
+**Constraints.**
+- How the character looks is rolled, not invented. New dice on the server, such as build, a face or
+  hair detail and one telling detail of clothing, from tables I approve. As with race, my scene's
+  words win: a "bald dwarf" is bald whatever the dice say.
+- The room and what the character is doing come from my scene. Where the scene says nothing about
+  the room, it stays short and plain, or a gap in square brackets, never an invented layout.
+- The new dice come after the thirteen there are, so every seed's older traits stay as they are
+  (ADR-009, ADR-010).
+- This changes `roll_character`, so an ADR comes first.
+- It changes the writer's `SKILL.md`, so the replay fixture is re-recorded once, paid, after the
+  wording has settled, in the same PR (lesson 011).
+- Old saves still load unchanged; a save from before this epic has no look dice and shows them as
+  unknown.
+
+**Done when.**
+- Free tests: the brief carries the look dice; a look handed in replaces its die and moves no other
+  die; a seed's older traits are what they were before the new dice; the interview can record a look
+  the scene states, quoted.
+- The tables (*needs my eyes*).
+- The bakery scene and the control scene, three seeds each, open with a read-aloud passage that puts
+  the character in the scene's room, describes them from their dice, and ends with an opening line
+  that fits their attitude and the tone (*needs my eyes*, paid).
+- The replay fixture is re-recorded with the new skill and passes.
+
+**Tasks.**
+- ADR: the look dice, their tables, where they go in the dice order, and how the writer is told.
+- The look tables, for me to approve.
+- The writer's new first section: the read-aloud passage and the opening line.
+- Re-record the replay fixture.
 
 ## 9. Faster tests
 
