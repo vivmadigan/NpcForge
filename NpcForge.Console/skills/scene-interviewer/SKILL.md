@@ -35,8 +35,10 @@ Rules that depend on the kind of field:
 - **A choice field** (it lists its choices) takes one of its choices, exactly as listed. Choose only
   when the GM's words point to one, and quote those words, such as `Cant` from
   `has never heard of it`. If the scene does not point to one, do not record it.
-- **A people named with the role** is two fields. `an elf ferryman` is `race` `elf` and
-  `occupation` `ferryman`, both quoted from the same words. Leave the people out of the occupation.
+- **A people named with the role** is two fields. `a dwarf cartographer` is `race` `dwarf` and
+  `occupation` `cartographer`, both quoted from the same words. Leave the people out of the
+  occupation. Those words, and the rest of their sentence, may still say other fields, so go on
+  through every field in the list.
 - **What the players want** is what they want from this character, not the character's own trouble.
   A ferryman whose boat was sunk has a problem; it is not what the players want from him.
   If the GM did not say what the players want from this person, do not record it.

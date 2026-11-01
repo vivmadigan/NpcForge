@@ -281,7 +281,7 @@ public class SceneDraftTests
             draft.Answers["occupation"]);
     }
 
-    // The interviewer skill splits "an elf ferryman" into a race and an occupation, both from the same
+    // The interviewer skill splits "a dwarf cartographer" into a race and an occupation, both from the same
     // words, so a people the scene names is not left to the race dice. One quote may back two fields.
     [Fact]
     public void One_quote_backs_both_the_race_and_the_occupation()
