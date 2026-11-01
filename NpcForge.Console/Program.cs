@@ -8,9 +8,9 @@ using System.Text.Json;                 // JsonDocument
 Console.OutputEncoding = Encoding.UTF8;
 
 // UTF-8 in as well, so a curly apostrophe the GM types reaches the quote check as itself and not
-// as a "?". Only at a real console: piped input is already bytes in whatever encoding it was sent.
-if (!Console.IsInputRedirected)
-    Console.InputEncoding = Encoding.UTF8;
+// as a "?". Piped input too: a scene piped from a UTF-8 file is UTF-8 bytes, and without this they
+// are decoded in the console's OEM code page, so "’" arrives as "ÔÇÖ".
+Console.InputEncoding = Encoding.UTF8;
 
 // No host, no DI container. Everything is wired by hand, in the order it happens:
 // config, then the client, then the options, then connect, interview, roll, name, write, save. With
