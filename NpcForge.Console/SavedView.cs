@@ -17,6 +17,16 @@ public static class SavedView
         return [.. NameOf(savedEntry) is null ? missing.Append("name") : missing];
     }
 
+    // The schema's fields the saved brief holds as a JSON null, in schema order: a scene that left a
+    // NotGiven field out (ADR-010). A missing key is Unknown instead, so no field is in both lists.
+    public static IReadOnlyList<string> NotGiven(IReadOnlyList<RollField> fields, JsonElement savedEntry)
+    {
+        var brief = savedEntry.GetProperty("brief");
+        return [.. fields
+            .Where(field => brief.TryGetProperty(field.Name, out var value) && value.ValueKind == JsonValueKind.Null)
+            .Select(field => field.Name)];
+    }
+
     // The saved name, or null for a save from before the namer.
     public static NamedCharacter? NameOf(JsonElement savedEntry) =>
         savedEntry.TryGetProperty("name", out var name) && name.ValueKind == JsonValueKind.Object
