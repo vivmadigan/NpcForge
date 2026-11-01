@@ -259,7 +259,7 @@ public class SceneInterviewTests(ITestOutputHelper output)
             }
             var recorder = new RecordingChatClient(new ScriptedInterviewer([]), recording, []);
             await SceneInterview.RunAsync(
-                recorder, options, fields, Defaults, new StringReader(scene + "\nno\n"), TextWriter.Null, CancellationToken.None);
+                recorder, options, fields, new StringReader(scene + "\nno\n"), TextWriter.Null, CancellationToken.None);
 
             var run = await ConsoleProcess.RunAsync(
                 ["--provider", "replay", "--recording", recording],
