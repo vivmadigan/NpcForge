@@ -39,8 +39,14 @@ Rules that depend on the kind of field:
   is `race` `dwarf` and `occupation` `cartographer`, both quoted from the same words. Leave the
   people, the age and the look out of the occupation. Those words, and the rest of their sentence,
   may still say other fields, so go on through every field in the list.
-- **A gender** is often said only by the words the GM uses for the character, such as `he`, `her`
-  or `his`. Those words point to a choice; quote them. If the GM uses no such word for this
+- **A look** is their body, face, hair or gear. A mood or a manner is never a look; it is how they
+  come across.
+- **An age** is said only by a word about age, such as old, young or elderly. Man and woman say
+  nothing about age.
+- **A gender** is often said only by a word that is itself male or female, used for this
+  character: `he`, `she`, `him`, `her`, `his`, or a word such as widow or lad. Quote it with the
+  words around it that show it means this character. A role such as baker or innkeeper says no
+  gender, and neither does a word about someone else. If the GM uses no such word for this
   character, do not record it.
 - **What the players want** is what they want from this character, not the character's own trouble.
   A ferryman whose boat was sunk has a problem; it is not what the players want from him.
