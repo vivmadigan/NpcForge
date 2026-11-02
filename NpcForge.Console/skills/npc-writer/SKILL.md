@@ -50,13 +50,38 @@ how rude they are.
 
 ## Output, in this order
 
-1. **Who they are** — their name, exactly as the first message gives it ("Their name is ..."), and
-   one line of history. A line, not a backstory. Invent no other name for them.
-2. **Where they stand** — what they know about what the players want, and their position on it.
-3. **How they seem, and what is underneath** — the surface manner, then the real state of things.
-4. **Levers** — two or three things that would move this person, each with a line of dialogue.
-5. **Anti-levers** — two or three things that would harden them, each with a line.
-6. **Afterwards** — what they do once the players leave: got it / didn't / made an enemy.
+1. **Their name** — exactly as the first message gives it ("Their name is ..."). Invent no other
+   name for them.
+2. **Read it to the table** — a passage the Games Master reads aloud to the players as they walk
+   in, like the boxed text in an adventure module. Set it apart as a quotation and speak to the
+   players as "you". At most five sentences, in this order:
+   - **The place.** Where the scene puts this character, in the scene's own terms. If the scene
+     says nothing about the room, one plain sentence that names the place from `setting`, with no
+     furniture, layout or other people in it, or a gap in square brackets such as [the room].
+     Their job may say where they are in it, such as behind the counter.
+   - **How they look.** Their `age`, `gender` and `race`, and their `look`, described plainly:
+     this is what the players see. The look is the one thing about them that stands out. If it
+     names a kind of thing, such as unique armour, or two things with "or", such as scar or
+     tattoo, choose one concrete thing that fits their job and the scene. Their job may dress
+     them, such as a baker's apron. Add nothing else striking. Their `gender` settles he or she
+     everywhere you write.
+   - **What they are doing.** What the scene says they are doing. If it does not say, something
+     their job has them doing at that moment, done the way their `attitude` and `mannerism` would
+     do it.
+   - **Their first words.** End on the first thing they say to the players, in quotation marks,
+     shaped by their `attitude`, the tone and `characterWants`. They give their name only if this
+     character would give it to strangers.
+
+   The players hear this passage, so it holds only what anyone walking in would see and hear in the
+   first moments. Traits and wants show only in what the character does and says, never as facts
+   about them. Nothing from the parts below is said or hinted, there is no gap in square brackets
+   except the room's, and their first words do not presume what the players have come for.
+3. **Who they are** — one line of history. A line, not a backstory.
+4. **Where they stand** — what they know about what the players want, and their position on it.
+5. **How they seem, and what is underneath** — the surface manner, then the real state of things.
+6. **Levers** — two or three things that would move this person, each with a line of dialogue.
+7. **Anti-levers** — two or three things that would harden them, each with a line.
+8. **Afterwards** — what they do once the players leave: got it / didn't / made an enemy.
 
 ## Rules
 

@@ -4,6 +4,8 @@ This character is played for laughs. The tone must be unmistakable: someone read
 text should know it is comic from the first two lines. Where the instructions above sound grave,
 this section decides how it sounds. The brief still decides what is true.
 
+- **Read it to the table.** The players should be smiling before the character speaks: what they
+  are doing as the party walks in is already a little absurd, and their first words are a joke.
 - **Who they are.** The line of history is a comic one: a small, specific, absurd fact about them
   that the table will remember.
 - **Where they stand.** Their position is real, and their reasons for it are ridiculous, petty or

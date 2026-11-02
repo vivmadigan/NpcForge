@@ -4,6 +4,8 @@ This character is played straight, with real stakes. The tone must be unmistakab
 only your text should know it is serious from the first two lines. This section decides how it
 sounds. The brief still decides what is true.
 
+- **Read it to the table.** What they are doing as the party walks in shows the pressure they are
+  under, and their first words are short and guarded.
 - **Who they are.** The line of history is a hard fact: a loss, a debt, a danger survived.
 - **Where they stand.** Their position is about consequences: what happens to them, or to someone
   else, if they get it wrong.
