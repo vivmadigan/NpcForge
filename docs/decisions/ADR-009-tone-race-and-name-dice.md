@@ -10,6 +10,8 @@
   sentence could seem to name letter A or I. `nameLetter` and `familyLetter` are rolled, or set with
   `--letter` and `--family-letter`; the interviewer is not told about them.
   Decision 1's dice gain a thirteenth, difficulty, cast last, from ADR-010 (2026-10-30).
+  Decision 1's dice gain seven casts after the thirteenth, for gender, age and look, and the namer
+  is told the gender as well, from ADR-011 (2026-11-02).
 - **Date:** 2026-10-25
 - **Supersedes:** three lines of earlier records, each named where it changes. ADR-003's save format
   gains a name and keeps its brief as JSON (Decision 2). ADR-007's rule that any choice may be inferred
