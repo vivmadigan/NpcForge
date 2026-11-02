@@ -192,35 +192,44 @@ message.
 `SKILL.md`'s output becomes: "Their name", then "Read it to the table", then "Who they are" (the
 line of history, which no longer carries the name), then the rest as before. The passage's rules,
 which the paid runs may reword but not drop:
-- It is read aloud to the players as they walk in: second person, at most five sentences, set apart
-  as a quotation.
+- It is read aloud to the players as they walk in: second person, at most five sentences, a
+  Markdown block quote.
 - **The place** is the scene's, in the scene's terms. Where the scene says nothing about the room,
   one plain sentence that names the place from the setting, with no furniture, layout or other
-  people, or a gap in square brackets.
+  people. The setting always names a place, so the passage needs no gap for the room.
 - **Where they are in it** may come from their job, such as behind the counter.
-- **How they look** comes from their age, gender, race and look, described plainly. The look is
-  the detail that stands out. A look that names a kind, such as unique armour, or two with "or", is
-  made concrete by the writer, fitted to their job and the scene. Their job may dress them, such as
-  a baker's apron, and nothing else striking is added.
-- **What they are doing** comes from their job, attitude and mannerism, unless the scene says.
-- **Their first words** end it, in quotes, from their attitude, the tone and what they want. They
-  give their name only if they would.
+- **How they look** comes from their age, gender, race and look, described plainly, the age in
+  plain words. The look is what stands out: one look, or a 20's two separated by `;`, each shown.
+  A colour look is already settled. A look that names a kind, such as unique armour, is made
+  concrete by the writer, fitted to their job and the scene; a look with "or" is one of the two,
+  and "multiple" stays more than one. Their job may dress them, such as a baker's apron, and
+  nothing else striking is added.
+- **What they are doing** is their work, done the way their attitude and mannerism would, unless
+  the scene says.
+- **Their first words** end it, in quotes, as their attitude and the tone would say them. They may
+  lean towards what they want and never say it. They give their name only if they would.
 - **Only what the players can see and hear.** The passage holds what anyone walking in would see
-  and hear in the first moments. Traits and wants show only as behaviour. Nothing from the parts
-  below it is said or hinted, no gap in square brackets but the room's, and the first words do not
-  presume what the players came for.
+  and hear in the first moments. Nothing of what is underneath, what they really want, their
+  position, their weakness, what they will not discuss or what they are wrong about is said or
+  hinted, and the first words do not presume what the players came for. The passage holds no gap
+  in square brackets; what the scene leaves open stays a gap in the parts below.
 
-Each tone file gains a line for the passage, as concrete as its others, saying what the tone
-changes in what they are doing and in their first words. `not-given/playersWant.md` names the parts
-instead of numbering them, and says what a no-want brief changes in the passage: their first words
-meet strangers, with no job or ask the scene does not give.
+Each tone file gains a line for the passage, as concrete as its others: the place stays plain, and
+the tone shows in how they do their work and in their first words, with nothing from the parts
+below. Comic adds that the look is never the joke. Each tone file's bar, "someone reading only your
+text should know it is comic", now reads the passage instead of "the first two lines", whose first
+is the name and second the plain place. `not-given/playersWant.md` names the parts instead of
+numbering them, and says what a no-want brief changes in the passage: their first words greet,
+warn off or size up strangers, and the hook and the twist stay for the parts below.
 
 ### 5. The interviewer
 
 The scene interviewer's skill (`skills/scene-interviewer/SKILL.md`) says an age, a gender and a
 look named with the role are fields of their own and stay out of the occupation, as a people does.
-It says a pronoun the scene uses for the character, such as "his", points to a gender, and is
-quoted. Its free-text example loses "old". Gender and age are inferred under ADR-007's rule for a
+A look is their body, face, hair or gear, never a mood or a manner. An age is said only by a word
+about age; man and woman say none. A gender is said by a word that is itself male or female, used
+for this character, and is quoted with the words that show whom it means; a role such as baker says
+no gender. Its free-text example loses "old". Gender and age are inferred under ADR-007's rule for a
 choice: the quote must be the GM's words, and the confirmation shows what was recorded. The paid
 checks include a scene with no word for the gender, to catch an interviewer that guesses one.
 
@@ -294,5 +303,6 @@ will be pushed to it (lesson 011).
 - A baker can roll unique armour or a rare weapon. The writer makes it concrete inside the scene.
 - A die added after this record goes after the hair colour cast, in `RollCharacter`.
 - The passage makes every character longer, by a few sentences.
-- Paid: the epic's two scenes at three seeds each, a scene with no gender word through the
-  interview only, reruns after any rewording, and one re-record of the replay fixture last.
+- Paid: the epic's two scenes at three seeds each, one more bakery run on a seed whose look die
+  comes up 20 (seeds 1 to 12 never do), the interviewer alone on scenes that test its new rules,
+  reruns after any rewording, and one re-record of the replay fixture last.

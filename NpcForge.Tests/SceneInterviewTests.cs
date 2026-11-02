@@ -194,7 +194,7 @@ public class SceneInterviewTests(ITestOutputHelper output)
     }
 
     [Fact]
-    public async Task A_scene_with_no_word_for_gender_age_or_look_leaves_all_three_rolled()
+    public async Task A_gender_quote_the_GM_never_typed_leaves_gender_age_and_look_rolled()
     {
         var model = new ScriptedInterviewer([Answer("gender", "Male", "he runs the shop")]);
 
