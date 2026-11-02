@@ -163,6 +163,51 @@ public class SceneInterviewTests(ITestOutputHelper output)
         Assert.False(told.RollArguments.ContainsKey("race"));
     }
 
+    // ADR-011: a look the scene states, quoted, and a gender and an age from quotes, reach the confirmation
+    // with their labels and the real server's brief. A scene with no word for a gender leaves it rolled.
+    [Fact]
+    public async Task A_look_a_gender_and_an_age_the_scene_states_reach_the_confirmation_and_the_brief()
+    {
+        const string scene = "The players meet a bald old baker at her shop.";
+        var model = new ScriptedInterviewer(
+        [
+            Answer("look", "bald", "a bald old baker"),
+            Answer("age", "Old", "a bald old baker"),
+            Answer("gender", "Female", "at her shop"),
+        ]);
+
+        var (told, screen) = await Interview(model, scene + "\nthe market\nbaker\nyes\n");
+        output.WriteLine(screen);
+        var brief = await Roll(1, told!.RollArguments);
+
+        Assert.Contains("  look: bald   [my words]\n    from \"a bald old baker\"", screen);
+        Assert.Contains("  age: Old   [inferred]\n    from \"a bald old baker\"", screen);
+        Assert.Contains("  gender: Female   [inferred]\n    from \"at her shop\"", screen);
+        Assert.Equal(("bald", "Old", "Female"), (told.RollArguments["look"], told.RollArguments["age"], told.RollArguments["gender"]));
+        Assert.Equal("bald", brief.GetProperty("look").GetString());
+        Assert.Equal("Old", brief.GetProperty("age").GetString());
+        Assert.Equal("Female", brief.GetProperty("gender").GetString());
+        // The interviewer is told about all three, and the look is free text, not a choice.
+        Assert.Contains("- `gender` (choice: Male, Female):", model.Told);
+        Assert.Contains("- `age` (choice: Teenager, Adult, MiddleAged, Old):", model.Told);
+        Assert.Contains("- `look` (free text):", model.Told);
+    }
+
+    [Fact]
+    public async Task A_scene_with_no_word_for_gender_age_or_look_leaves_all_three_rolled()
+    {
+        var model = new ScriptedInterviewer([Answer("gender", "Male", "he runs the shop")]);
+
+        var (told, screen) = await Interview(model, "The players meet a baker at her shop.\nthe market\nbaker\nyes\n");
+
+        Assert.StartsWith("Rejected:", model.Results["call-gender"]);
+        foreach (var field in new[] { "gender", "age", "look" })
+        {
+            Assert.Contains($"  {field}: [rolled]", screen);
+            Assert.False(told!.RollArguments.ContainsKey(field));
+        }
+    }
+
     // ADR-009, amended 2026-10-26: a name letter is never recorded from a scene, even when the GM
     // says it outright, so no sentence can be made to look like it named one. It stays rolled.
     [Fact]
