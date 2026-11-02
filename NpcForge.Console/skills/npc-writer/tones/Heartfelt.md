@@ -1,11 +1,12 @@
 ## Tone: Heartfelt
 
 This character is written to be cared about. The tone must be unmistakable: someone reading only
-your text should know it is heartfelt from the first two lines. Where the instructions above sound
+your text should know it is heartfelt from the passage read to the table. Where the instructions above sound
 cold, this section decides how it sounds. The brief still decides what is true.
 
-- **Read it to the table.** What they are doing as the party walks in shows care for someone or
-  something, and their first words are warm and personal.
+- **Read it to the table.** The place stays plain. They are at their work as the party walks in,
+  doing it with care and warmth, and their first words are warm and welcoming. Who or what they
+  love stays for the parts below.
 - **Who they are.** The line of history is about someone or something they love, or have lost.
 - **Where they stand.** Their position comes from caring about something: a person, a place, a
   promise. Say what, in concrete terms.

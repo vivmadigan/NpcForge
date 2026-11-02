@@ -24,8 +24,8 @@ decides how it sounds.
 The parts of the output change like this:
 
 - **Their name.** As above.
-- **Read it to the table.** Their first words meet strangers walking in. They offer the scene's
-  hook only if the scene gives one; otherwise they greet, warn off or size up the players.
+- **Read it to the table.** Their first words meet strangers walking in: they greet, warn off or
+  size up the players. The hook and the twist stay for the parts below.
 - **Who they are.** As above, with nothing about what the players want.
 - **Where they stand.** What they think of the players walking in, and what they want from them:
   the scene's hook if there is one, and the twist.
