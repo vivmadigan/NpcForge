@@ -19,6 +19,12 @@ public class SavedViewTests
         , "tone": "Comic", "race": "dwarf", "nameLetter": "K", "nameSyllables": "2", "familyLetter": "V"
         """;
 
+    // ADR-011: the three fields after the five. A save from between the two records has the five and
+    // not these.
+    private const string LookFields = """
+        , "gender": "Female", "age": "Old", "look": "bald"
+        """;
+
     // A name as the server saves it.
     private const string Kessa = """ "name": { "syllables": ["Kes", "sa"], "family": "Vale" }, """;
 
@@ -29,23 +35,33 @@ public class SavedViewTests
     }
 
     [Fact]
-    public void An_old_save_lacks_the_five_fields_and_a_name_and_they_are_listed_in_schema_order_then_name()
+    public void An_old_save_lacks_the_eight_fields_and_a_name_and_they_are_listed_in_schema_order_then_name()
     {
         var unknown = SavedView.Unknown(SceneDraftTests.Fields, Entry(OldBrief));
 
-        Assert.Equal(["tone", "race", "nameLetter", "nameSyllables", "familyLetter", "name"], unknown);
+        Assert.Equal(["tone", "race", "nameLetter", "nameSyllables", "familyLetter", "gender", "age", "look", "name"], unknown);
+    }
+
+    // ADR-011: a save from after the name dice and before the look dice shows exactly the three as
+    // unknown, so gender, age and look are never invented for it.
+    [Fact]
+    public void A_save_from_before_the_look_dice_shows_gender_age_and_look_as_unknown()
+    {
+        var unknown = SavedView.Unknown(SceneDraftTests.Fields, Entry(OldBrief + NewFields, Kessa));
+
+        Assert.Equal(["gender", "age", "look"], unknown);
     }
 
     [Fact]
     public void A_save_with_every_field_and_a_name_has_nothing_unknown()
     {
-        Assert.Empty(SavedView.Unknown(SceneDraftTests.Fields, Entry(OldBrief + NewFields, Kessa)));
+        Assert.Empty(SavedView.Unknown(SceneDraftTests.Fields, Entry(OldBrief + NewFields + LookFields, Kessa)));
     }
 
     [Fact]
     public void A_save_with_every_brief_field_and_no_name_lists_only_name()
     {
-        Assert.Equal(["name"], SavedView.Unknown(SceneDraftTests.Fields, Entry(OldBrief + NewFields)));
+        Assert.Equal(["name"], SavedView.Unknown(SceneDraftTests.Fields, Entry(OldBrief + NewFields + LookFields)));
     }
 
     [Fact]
@@ -65,7 +81,7 @@ public class SavedViewTests
     {
         RollField[] fields = [.. SceneDraftTests.Fields, new("pet", "A pet", null, WhenMissing.Roll)];
 
-        var unknown = SavedView.Unknown(fields, Entry(OldBrief + NewFields, Kessa));
+        var unknown = SavedView.Unknown(fields, Entry(OldBrief + NewFields + LookFields, Kessa));
 
         Assert.Equal(["pet"], unknown);
     }
@@ -77,13 +93,14 @@ public class SavedViewTests
     public async Task Load_prints_the_unknown_line_after_the_brief_line_for_an_old_save()
     {
         var old = await LoadOf(OldBrief);
-        var full = await LoadOf(OldBrief + NewFields, Kessa);
+        var full = await LoadOf(OldBrief + NewFields + LookFields, Kessa);
+        var beforeLooks = await LoadOf(OldBrief + NewFields, Kessa);
 
         Assert.True(old.ExitCode == 0, old.Stderr);
         var lines = old.Stderr.Split('\n').Select(l => l.TrimEnd('\r')).ToList();
         var brief = lines.FindIndex(l => l.StartsWith("[app] brief {"));
         Assert.True(brief >= 0, old.Stderr);
-        Assert.Equal("[app] unknown in save 1: tone, race, nameLetter, nameSyllables, familyLetter, name", lines[brief + 1]);
+        Assert.Equal("[app] unknown in save 1: tone, race, nameLetter, nameSyllables, familyLetter, gender, age, look, name", lines[brief + 1]);
         Assert.DoesNotContain("[app] name ", old.Stderr);
         Assert.DoesNotContain("tone", lines[brief]);                    // the brief line stays the save as written
         Assert.Equal("A character.", old.Stdout.Trim());
@@ -94,6 +111,11 @@ public class SavedViewTests
         // A save with a name prints it, after the brief line (ADR-009).
         var fullLines = full.Stderr.Split('\n').Select(l => l.TrimEnd('\r')).ToList();
         Assert.Equal("[app] name Kessa Vale", fullLines[fullLines.FindIndex(l => l.StartsWith("[app] brief {")) + 1]);
+
+        // ADR-011: a save with the name dice and no look dice lists the three, and only the three.
+        Assert.True(beforeLooks.ExitCode == 0, beforeLooks.Stderr);
+        var unknownLine = beforeLooks.Stderr.Split('\n').Single(l => l.StartsWith("[app] unknown in save")).TrimEnd('\r');
+        Assert.Equal("[app] unknown in save 1: gender, age, look", unknownLine);
     }
 
     // ADR-010: a saved null is a want the scene left out. A missing key is Unknown, a null is NotGiven,
@@ -114,7 +136,7 @@ public class SavedViewTests
     [Fact]
     public async Task Load_prints_the_not_given_line_for_a_no_want_save_and_the_unknown_line_for_an_old_one_never_both()
     {
-        var noWant = await LoadOf(OldBrief.Replace("\"playersWant\": \"the name of a fence\"", "\"playersWant\": null") + NewFields, Kessa);
+        var noWant = await LoadOf(OldBrief.Replace("\"playersWant\": \"the name of a fence\"", "\"playersWant\": null") + NewFields + LookFields, Kessa);
         var old = await LoadOf(OldBrief);
 
         Assert.True(noWant.ExitCode == 0, noWant.Stderr);

@@ -5,10 +5,18 @@ namespace NpcForge.Tests;
 
 // ADR-010 moves when the wants and obstacle dice are read, not when they are cast. These tests hold
 // every seed's brief where it was: a golden of seeds 1 to 12 at each difficulty, captured on the code
-// before the change, and the real server rolled against it.
+// before the change, and the real server rolled against it. ADR-011 adds seven casts after those, so
+// a second golden pins what they rolled, captured on the code that rolls them, and the two together
+// are the whole brief.
 public class DiceOrderTests
 {
+    // Never rewritten: what the code before ADR-010 rolled, without the fields ADR-011 added.
     private static readonly string Golden = Path.Combine(ConsoleProcess.RepoRoot, "NpcForge.Tests", "Fixtures", "rolls-seeds-1-to-12.json");
+
+    // ADR-011: gender, age and look, for the same keys.
+    private static readonly string LooksGolden = Path.Combine(ConsoleProcess.RepoRoot, "NpcForge.Tests", "Fixtures", "looks-seeds-1-to-12.json");
+
+    private static readonly string[] LookFields = ["gender", "age", "look"];
 
     private static readonly string[] Difficulties = ["Easy", "SomeWork", "Wall"];
 
@@ -22,33 +30,49 @@ public class DiceOrderTests
         foreach (var (c, brief) in rolled)
             now[$"{c.seed}/{c.difficulty}"] = brief;
 
-        // Missing only when the golden is first captured, on the code before the change.
-        if (!File.Exists(Golden))
+        // Missing only when the look golden is first captured, on the code that rolls the look dice.
+        if (!File.Exists(LooksGolden))
         {
-            File.WriteAllText(Golden, now.ToJsonString(new JsonSerializerOptions { WriteIndented = true }) + "\n");
-            Assert.Fail($"Captured {Golden}. Commit it, then run again.");
+            var captured = new JsonObject();
+            foreach (var (key, brief) in now)
+            {
+                var looks = new JsonObject();
+                foreach (var field in LookFields)
+                    looks[field] = brief![field]!.DeepClone();
+                captured[key] = looks;
+            }
+            File.WriteAllText(LooksGolden, captured.ToJsonString(new JsonSerializerOptions { WriteIndented = true }) + "\n");
+            Assert.Fail($"Captured {LooksGolden}. Commit it, then run again.");
         }
 
-        var golden = JsonNode.Parse(File.ReadAllText(Golden))!.AsObject();
-        Assert.Equal(golden.Select(e => e.Key).Order(), now.Select(e => e.Key).Order());
-        foreach (var (key, was) in golden)
-            foreach (var (field, value) in was!.AsObject())
-                Assert.True(JsonNode.DeepEquals(value, now[key]![field]), $"{field} moved in {key}: was {value?.ToJsonString()}, now {now[key]![field]?.ToJsonString()}");
+        foreach (var path in new[] { Golden, LooksGolden })
+        {
+            var golden = JsonNode.Parse(File.ReadAllText(path))!.AsObject();
+            Assert.Equal(golden.Select(e => e.Key).Order(), now.Select(e => e.Key).Order());
+            foreach (var (key, was) in golden)
+                foreach (var (field, value) in was!.AsObject())
+                    Assert.True(JsonNode.DeepEquals(value, now[key]![field]), $"{field} moved in {key}: was {value?.ToJsonString()}, now {now[key]![field]?.ToJsonString()}");
+        }
+
+        // The look golden holds the three and nothing else, so the two files never both pin one field.
+        foreach (var (key, was) in JsonNode.Parse(File.ReadAllText(LooksGolden))!.AsObject())
+            Assert.Equal(LookFields, was!.AsObject().Select(e => e.Key));
     }
 
     // ADR-010: a missing difficulty is rolled, as the thirteenth die. Seeds 1 to 12 with none handed in,
-    // checked against the golden, where the same seeds had each difficulty handed in:
+    // checked against the two goldens together, where the same seeds had each difficulty handed in:
     // - all three difficulties come up, so the die reads the whole table;
-    // - every die but the wants and obstacle, which read the difficulty, matches every handed-in case;
+    // - every die but the wants and obstacle, which read the difficulty, matches every handed-in case,
+    //   the look dice after the thirteenth among them;
     // - the case handed the difficulty the die rolled matches whole, so rolled and handed in are one;
     // - a rolled Easy never rolls Wont. Seeds 5, 8 and 11 roll Easy, and each one's obstacle cast is
     //   under a third, so the full three-row table would read it as Wont (worked out from
     //   new Random(seed) when this test was written). The Easy rule must read the rolled difficulty to
     //   pass. The test holds that those three still roll Easy, so the claim cannot go stale unseen.
     [Fact]
-    public async Task A_missing_difficulty_is_rolled_last_and_rolls_what_handing_it_in_rolls()
+    public async Task A_missing_difficulty_is_the_thirteenth_die_and_rolls_what_handing_it_in_rolls()
     {
-        var golden = JsonNode.Parse(File.ReadAllText(Golden))!.AsObject();
+        var golden = WholeGolden();
         var rolled = await RollSixAtATime(Enumerable.Range(1, 12), seed => RollWithSeed(seed, difficulty: null));
 
         Assert.Equal(Difficulties, rolled.Select(r => r.brief["difficulty"]!.GetValue<string>()).Distinct().Order());
@@ -65,6 +89,16 @@ public class DiceOrderTests
             if (difficulty == "Easy")
                 Assert.NotEqual("Wont", brief["obstacle"]!.GetValue<string>());
         }
+    }
+
+    // The two goldens as one: every key's whole brief, the older fields and the look fields together.
+    private static JsonObject WholeGolden()
+    {
+        var whole = JsonNode.Parse(File.ReadAllText(Golden))!.AsObject();
+        foreach (var (key, looks) in JsonNode.Parse(File.ReadAllText(LooksGolden))!.AsObject())
+            foreach (var (field, value) in looks!.AsObject())
+                whole[key]![field] = value!.DeepClone();
+        return whole;
     }
 
     // The reorder rests on this: on a seeded Random, a cast read late against a table of n rows picks

@@ -62,11 +62,21 @@ namespace NpcForge.Server
             [Description("How many syllables the character's first name has: 1, 2 or 3")]
             Syllables? nameSyllables = null,
             [Description("The letter the character's family name starts with")]
-            NameLetter? familyLetter = null)
+            NameLetter? familyLetter = null,
+            [Description("Whether the character is male or female: Male or Female")]
+            Gender? gender = null,
+            [Description("How old the character is: Teenager, Adult, MiddleAged or Old")]
+            Age? age = null,
+            [Description("What stands out about how the character looks, such as bald or a scar across one cheek. Not their people or their age, which are fields of their own")]
+            string? look = null)
         {
             // "Not given" has one spelling, null. A blank want would reach the writer as a want of nothing.
             if (playersWant is not null && string.IsNullOrWhiteSpace(playersWant))
                 throw new McpException($"{nameof(playersWant)} is blank. Send null when the players want nothing given.");
+
+            // A blank look would reach the writer as a look of nothing. Leaving it out rolls one.
+            if (look is not null && string.IsNullOrWhiteSpace(look))
+                throw new McpException($"{nameof(look)} is blank. Leave it out to roll one.");
 
             // The SDK's string-enum converter also accepts a number, so an undefined enum would bind
             // and be written back as that number. Refused here, before any die is cast, by name.
@@ -76,6 +86,8 @@ namespace NpcForge.Server
             RequireDefined(nameof(nameLetter), nameLetter);
             RequireDefined(nameof(nameSyllables), nameSyllables);
             RequireDefined(nameof(familyLetter), familyLetter);
+            RequireDefined(nameof(gender), gender);
+            RequireDefined(nameof(age), age);
 
             // Every die is cast, every time, in this order, and a handed-in value replaces its die's
             // result instead of skipping the die. One seed then rolls the same dice whatever is
@@ -94,10 +106,18 @@ namespace NpcForge.Server
             var rolledNameLetter = Tables.PickWeighted(Tables.NameLetters, Dice);
             var rolledNameSyllables = Tables.PickWeighted(Tables.SyllableCounts, Dice);
             var rolledFamilyLetter = Tables.PickWeighted(Tables.NameLetters, Dice);
-            // The thirteenth die, cast last so no older die moves (ADR-010). Cast even when a
+            // The thirteenth die, cast after the twelve so none of them moves (ADR-010). Cast even when a
             // difficulty is handed in, like every other die.
             var rolledDifficulty = Tables.PickWeighted(Tables.Difficulties, Dice);
+            // Seven more after the thirteenth, so no older die moves (ADR-011): gender, age, then the look's
+            // five casts in the order of LookCasts. All seven are cast here, before any handed-in value is
+            // read. The look is read late, from its casts and the settled age, so a handed-in look, age or
+            // gender replaces a result and never skips a die.
+            var rolledGender = Pick(Enum.GetValues<Gender>());
+            var rolledAge = Pick(Enum.GetValues<Age>());
+            var lookCasts = new LookCasts(Dice.NextDouble(), Dice.NextDouble(), Dice.NextDouble(), Dice.NextDouble(), Dice.NextDouble());
             var settledDifficulty = difficulty ?? rolledDifficulty;
+            var settledAge = age ?? rolledAge;
 
             // The difficulty filter, in code. Left to the model, it would pick something agreeable.
             // It reads the settled difficulty, rolled or handed in.
@@ -109,6 +129,7 @@ namespace NpcForge.Server
 
             var rolledWants = ReadCast(wantsCast, wants).Text;
             var rolledObstacle = ReadCast(obstacleCast, obstacles);
+            var rolledLook = Looks.Text(Looks.Read(lookCasts, settledAge));
 
             return new CharacterBrief
             {
@@ -128,6 +149,9 @@ namespace NpcForge.Server
                 NameLetter = nameLetter ?? rolledNameLetter,
                 NameSyllables = nameSyllables ?? rolledNameSyllables,
                 FamilyLetter = familyLetter ?? rolledFamilyLetter,
+                Gender = gender ?? rolledGender,
+                Age = settledAge,
+                Look = look ?? rolledLook,
             };
         }
 
