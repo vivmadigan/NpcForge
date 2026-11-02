@@ -54,15 +54,21 @@ are doing as the party walks in, ending with the first thing they say. For examp
 > head and an apron that hasn't been washed in weeks. He polishes the oak bar with fierce
 > concentration. He notices you as you walk forward and says, "…"
 
-The opening line comes from the scene and the character's traits: their attitude, the tone, what
-they want. The room comes from my scene.
+The dice settle some of it, and the model writes the passage from everything rolled, put together.
+The sheet still starts with the character's name, for me; the passage comes straight after it, then
+everything the sheet had before. The character says their name in the passage only if they would.
 
 **Constraints.**
-- How the character looks is rolled, not invented. New dice on the server, such as build, a face or
-  hair detail and one telling detail of clothing, from tables we work out together. As with race, my scene's
-  words win: a "bald dwarf" is bald whatever the dice say.
-- The room and what the character is doing come from my scene. Where the scene says nothing about
-  the room, it stays short and plain, or a gap in square brackets, never an invented layout.
+- Simple is best. An NPC is a cardboard cut-out until the players dig in, so this adds a front to
+  the cut-out and nothing more: two looks, a room, an action and a line, on top of what we have.
+- How the character looks is rolled, not invented, from the tables below. As with race, my scene's
+  words win: a "bald dwarf" is bald, and then nothing else is rolled for the look.
+- The room comes from my scene. Where the scene says nothing about the room, it stays short and
+  plain, or a gap in square brackets, never an invented layout.
+- What the character is doing is written from their job, their attitude and their mannerism. If my
+  scene says what they are doing, the scene wins.
+- The opening line is written from their attitude, the tone and what they want.
+- The namer is told the gender, so the name fits the character.
 - The new dice come after the thirteen there are, so every seed's older traits stay as they are
   (ADR-009, ADR-010).
 - This changes `roll_character`, so an ADR comes first.
@@ -71,21 +77,39 @@ they want. The room comes from my scene.
 - Old saves still load unchanged; a save from before this epic has no look dice and shows them as
   unknown.
 
+**Tables** (settled with me, 2026-11-02).
+- **Age and gender**, a d8: a male or female teenager, adult, middle-aged or old person, all eight
+  equally likely. Cast as two dice, gender then age, so a scene that states one keeps the other
+  rolled.
+- **Unique look**, a d20: 1 bad posture, 2 bald, 3 beautiful, 4 big nose or ears, 5 cross-eyed,
+  6 pale, 7 short, 8 tall, 9 unique armour, 10 unique clothing, 11 unique jewellery, 12 unique
+  emblem or symbol, 13 unusual eye colour, 14 unusual hair colour, 15 unusual hair or beard style,
+  16 scar or tattoo, 17 multiple scars or tattoos, 18 rare item or weapon, 19 paralysed part,
+  20 two more looks. The two more never repeat a look, never come up 20, and never clash: short with
+  tall, bald with a hair look, a scar or tattoo with multiple.
+- **Unusual eye colour**, a d8: violet; amber, almost gold; pale grey, nearly colourless; one blue,
+  one brown; bright green; so dark they look black; silver; red.
+- **Unusual hair colour**, a d8: copper red; snow white; blue-black; a single white streak; dyed a
+  bright colour; two colours, half light and half dark; golden, almost metallic; silver. An old
+  character never gets snow white or silver, which would not be unusual on them.
+- Every look die is cast every time, used or not, so a look handed in moves no other die.
+
 **Done when.**
-- Free tests: the brief carries the look dice; a look handed in replaces its die and moves no other
-  die; a seed's older traits are what they were before the new dice; the interview can record a look
-  the scene states, quoted.
-- The tables, worked out with me before the ADR (*needs my eyes*).
-- The bakery scene and the control scene, three seeds each, open with a read-aloud passage that puts
-  the character in the scene's room, describes them from their dice, and ends with an opening line
-  that fits their attitude and the tone (*needs my eyes*, paid).
+- Free tests: the brief carries gender, age and look; each one handed in replaces its die and moves
+  no other die; a seed's thirteen older traits are what they were before the new dice; a 20 gives
+  two looks that never repeat, never are 20 and never clash; an old character never gets snow white
+  or silver hair; the interview records a look the scene states, quoted, and a gender or age the
+  scene states; an old save loads and shows gender, age and look as unknown.
+- The bakery scene and the control scene, three seeds each, give the name, then a read-aloud passage
+  that puts the character in the scene's room, describes them from their dice, shows them at their
+  work, and ends with an opening line that fits their attitude and the tone (*needs my eyes*, paid).
 - The replay fixture is re-recorded with the new skill and passes.
 
 **Tasks.**
-- Work out the tables with me first: which tables we need and what goes in each. I have ideas, so
-  the agent brings questions and a draft to react to, not a finished list.
-- ADR: the look dice, their tables, where they go in the dice order, and how the writer is told.
-- The writer's new first section: the read-aloud passage and the opening line.
+- ADR: the look dice, their tables, where they go in the dice order, the namer, and how the writer
+  is told.
+- The look dice on the server; the namer reads the gender.
+- The writer's new section: the read-aloud passage and the opening line.
 - Re-record the replay fixture.
 
 ## 9. Faster tests
