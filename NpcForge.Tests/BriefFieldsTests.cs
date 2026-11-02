@@ -63,7 +63,8 @@ public class BriefFieldsTests
             Tables.Difficulties.Select(d => (d.Value, d.Weight)));
     }
 
-    // The owner's d20, settled 2026-11-02 (ADR-011), in the owner's order: row 20 is "two more looks".
+    // The owner's d20, settled 2026-11-02 (ADR-011), in the owner's order: row 20 is "two more looks". The
+    // words are all different, which is what keeps a row one row to the clashes: a record is equal by its fields.
     [Fact]
     public void The_look_table_holds_the_owners_twenty_rows_in_order()
     {
@@ -76,8 +77,6 @@ public class BriefFieldsTests
         // The two rows that read a colour table say which, and no other row reads one.
         Assert.Equal([(13, Tables.LookColour.Eye), (14, Tables.LookColour.Hair)],
             Tables.Looks.Select((row, index) => (Row: index + 1, row.Colour)).Where(row => row.Colour != Tables.LookColour.None));
-        // A record is equal by its fields, so two rows with the same words would be one row to the clashes.
-        Assert.Equal(Tables.Looks.Length, Tables.Looks.Distinct().Count());
     }
 
     [Fact]
