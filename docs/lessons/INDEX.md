@@ -22,3 +22,4 @@ not a lesson. Older lessons mention `PLAN.md` and plan versions; those are in gi
 - [010 A tone file that only nudges the voice gives six characters that read the same](010-tone-file-that-nudges-the-voice.md) — applies to: NpcForge.Console/skills/npc-writer/tones/*.md, NpcForge.Console/skills/npc-writer/SKILL.md
 - [011 A PR merged before its last push leaves master without its re-record](011-pr-merged-before-its-rerecord.md) — applies to: NpcForge.Tests/Fixtures/replay.jsonl, NpcForge.Server/characters.json, PRs that need a paid re-record
 - [012 A test that starts many servers at once fails one run in three](012-many-servers-at-once-outlast-the-start-up-wait.md) — applies to: NpcForge.Tests/DiceOrderTests.cs, tests that start several servers
+- [013 An edit to a skill file leaves the build stale, and a plain `dotnet build` does not clear it](013-skill-edit-leaves-the-build-stale.md) — applies to: NpcForge.Tests/ConsoleProcess.cs, NpcForge.Console/skills/**
