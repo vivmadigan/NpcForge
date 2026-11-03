@@ -35,6 +35,9 @@ public class SceneDraftTests
         new("nameLetter", "First name letter", Alphabet, WhenMissing.Roll),
         new("nameSyllables", "First name syllables", ["1", "2", "3"], WhenMissing.Roll),
         new("familyLetter", "Family name letter", Alphabet, WhenMissing.Roll),
+        new("gender", "Male or female", ["Male", "Female"], WhenMissing.Roll),
+        new("age", "How old", ["Teenager", "Adult", "MiddleAged", "Old"], WhenMissing.Roll),
+        new("look", "What stands out about how they look", null, WhenMissing.Roll),
     ];
 
     private static SceneDraft Draft(string scene = Tavern) => new(scene, Fields);
@@ -148,6 +151,8 @@ public class SceneDraftTests
     [InlineData("obstacle", "won’t", "Wont")]
     [InlineData("obstacle", "for a price", "ForAPrice")]
     [InlineData("difficulty", "Some Work", "SomeWork")]
+    [InlineData("age", "middle aged", "MiddleAged")]
+    [InlineData("gender", "female", "Female")]
     public void A_choice_spelled_with_spaces_or_an_apostrophe_is_stored_as_the_server_spells_it(string field, string value, string stored)
     {
         var draft = Draft();
@@ -238,6 +243,57 @@ public class SceneDraftTests
         Assert.Equal(Rejection.None, draft.Record("race", "dwarf", "meet a dwarf smith").Reason);
         Assert.Equal(Label.MyWords, draft.Answers["race"].Label);
         Assert.Equal(Rejection.ValueNotInQuote, draft.Record("race", "gnome", "meet a dwarf smith").Reason);
+    }
+
+    // ADR-011: a look is free text and must be the GM's own words, quoted, as a race is.
+    [Fact]
+    public void A_look_is_free_text_and_must_be_the_GMs_words()
+    {
+        var draft = Draft("The players meet a bald smith at her forge.");
+
+        Assert.Equal(Rejection.None, draft.Record("look", "bald", "meet a bald smith").Reason);
+        Assert.Equal(Label.MyWords, draft.Answers["look"].Label);
+        Assert.Equal(Rejection.ValueNotInQuote, draft.Record("look", "a scar across one cheek", "meet a bald smith").Reason);
+    }
+
+    // ADR-011: gender and age are short choices, so they are inferred as ADR-007 allows. A pronoun the
+    // scene uses points to a gender, and an age word to an age; each is a quote of the GM's words.
+    [Fact]
+    public void A_gender_from_a_pronoun_and_an_age_from_a_word_are_kept_and_labelled_inferred()
+    {
+        var draft = Draft("The players meet an old baker at her shop.");
+
+        Assert.Equal(Rejection.None, draft.Record("gender", "Female", "at her shop").Reason);
+        Assert.Equal(Rejection.None, draft.Record("age", "Old", "an old baker").Reason);
+
+        var lines = Asked(draft).Lines();
+        var gender = lines.Single(l => l.Field.Name == "gender");
+        var age = lines.Single(l => l.Field.Name == "age");
+        Assert.Equal(("Female", Label.Inferred), (gender.Value, gender.Label));
+        Assert.Equal(("Old", Label.Inferred), (age.Value, age.Label));
+    }
+
+    // A quote the GM never typed cannot back a gender: a model that guesses one has nothing to quote.
+    [Fact]
+    public void A_gender_with_a_quote_the_GM_never_typed_is_rejected_and_left_to_the_dice()
+    {
+        var draft = Draft("The players meet a baker at her shop.");
+
+        var result = draft.Record("gender", "Male", "he runs the shop");
+
+        Assert.Equal(Rejection.QuoteNotTyped, result.Reason);
+        Assert.Empty(draft.Answers);
+        Assert.Equal(Label.Rolled, Asked(draft).Lines().Single(l => l.Field.Name == "gender").Label);
+    }
+
+    [Theory]
+    [InlineData("gender", "other")]
+    [InlineData("age", "ancient")]
+    public void A_gender_or_age_not_in_its_list_is_rejected(string field, string value)
+    {
+        var result = Draft().Record(field, value, "doesn't want to get involved");
+
+        Assert.Equal(Rejection.ValueNotInList, result.Reason);
     }
 
     [Fact]

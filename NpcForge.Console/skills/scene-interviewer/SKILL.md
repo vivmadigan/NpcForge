@@ -30,15 +30,24 @@ Rules that depend on the kind of field:
 
 - **A free-text field** takes the GM's words as its value. The value must be words copied from your
   quote, next to each other as they are there, with none left out between them, such as value
-  `old blacksmith` from quote `they ask the old blacksmith`. If you could only describe the field in
-  your own words, do not record it.
+  `head cook` from quote `they ask the head cook`. If you could only describe the field in your own
+  words, do not record it.
 - **A choice field** (it lists its choices) takes one of its choices, exactly as listed. Choose only
   when the GM's words point to one, and quote those words, such as `Cant` from
   `has never heard of it`. If the scene does not point to one, do not record it.
-- **A people named with the role** is two fields. `a dwarf cartographer` is `race` `dwarf` and
-  `occupation` `cartographer`, both quoted from the same words. Leave the people out of the
-  occupation. Those words, and the rest of their sentence, may still say other fields, so go on
-  through every field in the list.
+- **A people, an age or a look named with the role** is a field of its own. `a dwarf cartographer`
+  is `race` `dwarf` and `occupation` `cartographer`, both quoted from the same words. Leave the
+  people, the age and the look out of the occupation. Those words, and the rest of their sentence,
+  may still say other fields, so go on through every field in the list.
+- **A look** is their body, face, hair or gear. A mood or a manner is never a look; it is how they
+  come across.
+- **An age** is said only by a word about age, such as old, young or elderly. Man and woman say
+  nothing about age.
+- **A gender** is often said only by a word that is itself male or female, used for this
+  character: `he`, `she`, `him`, `her`, `his`, or a word such as widow or lad. Quote it with the
+  words around it that show it means this character. A role such as baker or innkeeper says no
+  gender, and neither does a word about someone else. If the GM uses no such word for this
+  character, do not record it.
 - **What the players want** is what they want from this character, not the character's own trouble.
   A ferryman whose boat was sunk has a problem; it is not what the players want from him.
   If the GM did not say what the players want from this person, do not record it.

@@ -7,7 +7,7 @@ namespace NpcForge.Tests;
 public class NamerTests
 {
     private const string Brief =
-        """{"setting":"a mill","occupation":"miller","tone":"Comic","race":"dwarf","nameLetter":"K","nameSyllables":"2","familyLetter":"V"}""";
+        """{"setting":"a mill","occupation":"miller","tone":"Comic","race":"dwarf","nameLetter":"K","nameSyllables":"2","familyLetter":"V","gender":"Female","age":"Old","look":"bald"}""";
 
     private static WriterInput Input(string? scene = null) => new(Brief, scene, WriterInput.DefaultSkillDir);
 
@@ -116,7 +116,7 @@ public class NamerTests
     }
 
     [Fact]
-    public async Task The_namer_is_told_its_skill_the_race_the_dice_and_the_scene_and_offered_only_give_name()
+    public async Task The_namer_is_told_its_skill_the_race_the_gender_the_dice_and_the_scene_and_offered_only_give_name()
     {
         var model = new NamerStandIn(new NamerStandIn.Turn(([ "Kes", "sa" ], "Vale")));
 
@@ -126,24 +126,40 @@ public class NamerTests
         Assert.Equal(File.ReadAllText(Namer.SkillPath).ReplaceLineEndings("\n"), first.System);
         Assert.Equal(["give_name"], first.Tools);
         Assert.Equal(
-            "Name this character.\n\nRace: dwarf\nFirst name: starts with K, 2 syllables\nFamily name: starts with V\n\n" +
+            "Name this character.\n\nRace: dwarf\nGender: female\nFirst name: starts with K, 2 syllables\nFamily name: starts with V\n\n" +
             "This is the scene the GM described, in their own words.\n\n<scene>\nA dusty mill by a river.\n</scene>",
             first.FirstUser);
-        // Told the race, the dice and the scene, and nothing else of the brief.
+        // Told the race, the gender, the dice and the scene, and nothing else of the brief (ADR-011):
+        // not the age or the look, which are in this brief.
         Assert.DoesNotContain("miller", first.FirstUser);
         Assert.DoesNotContain("Comic", first.FirstUser);
+        Assert.DoesNotContain("Old", first.FirstUser);
+        Assert.DoesNotContain("bald", first.FirstUser);
     }
 
     [Fact]
-    public async Task With_no_scene_the_namer_is_told_the_race_and_the_dice_only()
+    public async Task With_no_scene_the_namer_is_told_the_race_the_gender_and_the_dice_only()
     {
         var model = new NamerStandIn(new NamerStandIn.Turn(([ "Kes", "sa" ], "Vale")));
 
         await Name(model);
 
         Assert.Equal(
-            "Name this character.\n\nRace: dwarf\nFirst name: starts with K, 2 syllables\nFamily name: starts with V",
+            "Name this character.\n\nRace: dwarf\nGender: female\nFirst name: starts with K, 2 syllables\nFamily name: starts with V",
             model.NamerCalls[0].FirstUser);
+    }
+
+    // ADR-011: the gender is read from the brief as the race is. Male and Female are what the server
+    // writes; the namer is told them in lower case, and a brief with none is refused, not guessed.
+    [Fact]
+    public void The_gender_in_the_first_message_is_the_briefs_and_a_brief_without_one_is_refused()
+    {
+        var male = Brief.Replace("\"Female\"", "\"Male\"");
+        var none = Brief.Replace(",\"gender\":\"Female\"", "");
+
+        Assert.Contains("Race: dwarf\nGender: male\nFirst name", Namer.FirstMessage(male, scene: null));
+        Assert.Contains("Race: dwarf\nGender: female\nFirst name", Namer.FirstMessage(Brief, scene: null));
+        Assert.Throws<KeyNotFoundException>(() => Namer.FirstMessage(none, scene: null));
     }
 
     // A Windows checkout has CRLF files and a Linux one LF. The namer is sent "\n" either way, so a

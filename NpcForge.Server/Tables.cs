@@ -8,6 +8,14 @@ namespace NpcForge.Server
     {
         public record Want(string Text, params Difficulty[] Fits);
 
+        // ADR-011. A look row says whether it reads a colour table, so no code finds a row by its text.
+        public enum LookColour { None, Eye, Hair }
+        public sealed record LookRow(string Text, LookColour Colour = LookColour.None);
+
+        // A hair colour says whether it would be usual on an old character, so the rule travels with
+        // the row and a reworded colour cannot drop it.
+        public sealed record HairColour(string Text, bool UsualWhenOld = false);
+
         // A row that comes up Weight times in the total. The first weighted tables (ADR-009); the
         // older ones are plain arrays because every row weighs the same.
         public record Weighted<T>(T Value, int Weight);
@@ -217,6 +225,69 @@ namespace NpcForge.Server
             new(Syllables.One, 1),
             new(Syllables.Two, 2),
             new(Syllables.Three, 1),
+        ];
+
+        // The owner's d20 of looks (ADR-011, settled 2026-11-02). The rows Looks.cs puts in a clash, and
+        // the 20, are fields of their own, so it names them by reference and never by their text.
+        public static readonly LookRow Short = new("short");
+        public static readonly LookRow Tall = new("tall");
+        public static readonly LookRow Bald = new("bald");
+        public static readonly LookRow UnusualHairColour = new("unusual hair colour", LookColour.Hair);
+        public static readonly LookRow UnusualHairStyle = new("unusual hair or beard style");
+        public static readonly LookRow ScarOrTattoo = new("scar or tattoo");
+        public static readonly LookRow MultipleScarsOrTattoos = new("multiple scars or tattoos");
+        public static readonly LookRow TwoMoreLooks = new("two more looks");
+
+        // All twenty rows, as the owner's die reads them. Row 20 is "two more looks", so a brief never
+        // holds it: Looks.Read turns it into two looks.
+        public static readonly LookRow[] Looks =
+        [
+            new("bad posture"),
+            Bald,
+            new("beautiful"),
+            new("big nose or ears"),
+            new("cross-eyed"),
+            new("pale"),
+            Short,
+            Tall,
+            new("unique armour"),
+            new("unique clothing"),
+            new("unique jewellery"),
+            new("unique emblem or symbol"),
+            new("unusual eye colour", LookColour.Eye),
+            UnusualHairColour,
+            UnusualHairStyle,
+            ScarOrTattoo,
+            MultipleScarsOrTattoos,
+            new("rare item or weapon"),
+            new("paralysed part"),
+            TwoMoreLooks,
+        ];
+
+        public static readonly string[] EyeColours =
+        [
+            "violet",
+            "amber, almost gold",
+            "pale grey, nearly colourless",
+            "one blue, one brown",
+            "bright green",
+            "so dark they look black",
+            "silver",
+            "red",
+        ];
+
+        // Snow white and silver are what an old head of hair usually is, so they are not unusual on an
+        // old character and Looks.Read leaves them out for one.
+        public static readonly HairColour[] HairColours =
+        [
+            new("copper red"),
+            new("snow white", UsualWhenOld: true),
+            new("blue-black"),
+            new("a single white streak"),
+            new("dyed a bright colour"),
+            new("two colours, half light and half dark"),
+            new("golden, almost metallic"),
+            new("silver", UsualWhenOld: true),
         ];
     }
 }

@@ -1,9 +1,13 @@
 ## Tone: Comic
 
 This character is played for laughs. The tone must be unmistakable: someone reading only your
-text should know it is comic from the first two lines. Where the instructions above sound grave,
+text should know it is comic from the passage read to the table. Where the instructions above sound grave,
 this section decides how it sounds. The brief still decides what is true.
 
+- **Read it to the table.** The place stays plain; the comedy starts with them. The players should
+  be smiling before the character speaks: they are at their work as the party walks in, doing it a
+  little absurdly, and their first words are a joke. Their look is described plainly and is never
+  the joke.
 - **Who they are.** The line of history is a comic one: a small, specific, absurd fact about them
   that the table will remember.
 - **Where they stand.** Their position is real, and their reasons for it are ridiculous, petty or

@@ -17,7 +17,7 @@ public class RollFieldTests
         Assert.Equal(
             ["setting", "playersWant", "occupation", "difficulty", "characterWants", "obstacle",
              "attitude", "mannerism", "weakness", "willNotDiscuss", "wrongAbout",
-             "tone", "race", "nameLetter", "nameSyllables", "familyLetter"],
+             "tone", "race", "nameLetter", "nameSyllables", "familyLetter", "gender", "age", "look"],
             fields.Select(f => f.Name));
 
         // ADR-010, decision 1: the schema alone gives each field its kind. Setting and occupation are
@@ -33,7 +33,11 @@ public class RollFieldTests
         Assert.Equal(["Easy", "SomeWork", "Wall"], fields.Single(f => f.Name == "difficulty").Choices);
         Assert.Equal(["Wont", "Cant", "ForAPrice"], fields.Single(f => f.Name == "obstacle").Choices);
         Assert.Equal(["Serious", "Comic", "Heartfelt"], fields.Single(f => f.Name == "tone").Choices);
-        Assert.All(fields.Where(f => f.Name is not ("difficulty" or "obstacle" or "tone" or "nameLetter" or "nameSyllables" or "familyLetter")),
+        // ADR-011: gender is a choice of two and age of four, which the interview may infer from a quote. The
+        // look is free text, the GM's own words.
+        Assert.Equal(["Male", "Female"], fields.Single(f => f.Name == "gender").Choices);
+        Assert.Equal(["Teenager", "Adult", "MiddleAged", "Old"], fields.Single(f => f.Name == "age").Choices);
+        Assert.All(fields.Where(f => f.Name is not ("difficulty" or "obstacle" or "tone" or "nameLetter" or "nameSyllables" or "familyLetter" or "gender" or "age")),
             f => Assert.Null(f.Choices));
 
         // The interviewer reads these to know each field.

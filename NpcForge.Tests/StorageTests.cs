@@ -126,5 +126,8 @@ public class StorageTests
         NameLetter = NameLetter.T,
         NameSyllables = Syllables.Two,
         FamilyLetter = NameLetter.B,
+        Gender = Gender.Male,
+        Age = Age.MiddleAged,
+        Look = "a scar across one cheek",
     };
 }

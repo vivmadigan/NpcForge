@@ -1,6 +1,7 @@
 # ADR-010: A scene's gaps are asked for, marked not given, or rolled, as `roll_character` says
 
-- **Status:** accepted
+- **Status:** accepted. Amended 2026-11-02: the difficulty die is no longer cast last; ADR-011's
+  seven look casts follow it. It stays the thirteenth, and no older die moves.
 - **Date:** 2026-10-30
 - **Supersedes:** two lines of earlier records, each named where it changes. ADR-007's rule that a
   required field the scene never mentions takes its flag's default ends for interviews; flag runs

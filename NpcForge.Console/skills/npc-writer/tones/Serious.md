@@ -1,9 +1,12 @@
 ## Tone: Serious
 
 This character is played straight, with real stakes. The tone must be unmistakable: someone reading
-only your text should know it is serious from the first two lines. This section decides how it
+only your text should know it is serious from the passage read to the table. This section decides how it
 sounds. The brief still decides what is true.
 
+- **Read it to the table.** The place stays plain. They are at their work as the party walks in,
+  doing it carefully and watchfully, and their first words are short and guarded. What presses on
+  them stays for the parts below.
 - **Who they are.** The line of history is a hard fact: a loss, a debt, a danger survived.
 - **Where they stand.** Their position is about consequences: what happens to them, or to someone
   else, if they get it wrong.

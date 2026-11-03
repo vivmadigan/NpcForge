@@ -1,0 +1,182 @@
+{
+  "1/Easy": {
+    "gender": "Female",
+    "age": "MiddleAged",
+    "look": "unusual hair colour: two colours, half light and half dark"
+  },
+  "1/SomeWork": {
+    "gender": "Female",
+    "age": "MiddleAged",
+    "look": "unusual hair colour: two colours, half light and half dark"
+  },
+  "1/Wall": {
+    "gender": "Female",
+    "age": "MiddleAged",
+    "look": "unusual hair colour: two colours, half light and half dark"
+  },
+  "2/Easy": {
+    "gender": "Female",
+    "age": "Adult",
+    "look": "pale"
+  },
+  "2/SomeWork": {
+    "gender": "Female",
+    "age": "Adult",
+    "look": "pale"
+  },
+  "2/Wall": {
+    "gender": "Female",
+    "age": "Adult",
+    "look": "pale"
+  },
+  "3/Easy": {
+    "gender": "Male",
+    "age": "Teenager",
+    "look": "paralysed part"
+  },
+  "3/SomeWork": {
+    "gender": "Male",
+    "age": "Teenager",
+    "look": "paralysed part"
+  },
+  "3/Wall": {
+    "gender": "Male",
+    "age": "Teenager",
+    "look": "paralysed part"
+  },
+  "4/Easy": {
+    "gender": "Female",
+    "age": "Old",
+    "look": "unique jewellery"
+  },
+  "4/SomeWork": {
+    "gender": "Female",
+    "age": "Old",
+    "look": "unique jewellery"
+  },
+  "4/Wall": {
+    "gender": "Female",
+    "age": "Old",
+    "look": "unique jewellery"
+  },
+  "5/Easy": {
+    "gender": "Male",
+    "age": "Adult",
+    "look": "big nose or ears"
+  },
+  "5/SomeWork": {
+    "gender": "Male",
+    "age": "Adult",
+    "look": "big nose or ears"
+  },
+  "5/Wall": {
+    "gender": "Male",
+    "age": "Adult",
+    "look": "big nose or ears"
+  },
+  "6/Easy": {
+    "gender": "Female",
+    "age": "Teenager",
+    "look": "scar or tattoo"
+  },
+  "6/SomeWork": {
+    "gender": "Female",
+    "age": "Teenager",
+    "look": "scar or tattoo"
+  },
+  "6/Wall": {
+    "gender": "Female",
+    "age": "Teenager",
+    "look": "scar or tattoo"
+  },
+  "7/Easy": {
+    "gender": "Male",
+    "age": "Old",
+    "look": "unique armour"
+  },
+  "7/SomeWork": {
+    "gender": "Male",
+    "age": "Old",
+    "look": "unique armour"
+  },
+  "7/Wall": {
+    "gender": "Male",
+    "age": "Old",
+    "look": "unique armour"
+  },
+  "8/Easy": {
+    "gender": "Female",
+    "age": "MiddleAged",
+    "look": "bad posture"
+  },
+  "8/SomeWork": {
+    "gender": "Female",
+    "age": "MiddleAged",
+    "look": "bad posture"
+  },
+  "8/Wall": {
+    "gender": "Female",
+    "age": "MiddleAged",
+    "look": "bad posture"
+  },
+  "9/Easy": {
+    "gender": "Male",
+    "age": "Adult",
+    "look": "unusual hair colour: golden, almost metallic"
+  },
+  "9/SomeWork": {
+    "gender": "Male",
+    "age": "Adult",
+    "look": "unusual hair colour: golden, almost metallic"
+  },
+  "9/Wall": {
+    "gender": "Male",
+    "age": "Adult",
+    "look": "unusual hair colour: golden, almost metallic"
+  },
+  "10/Easy": {
+    "gender": "Female",
+    "age": "Old",
+    "look": "pale"
+  },
+  "10/SomeWork": {
+    "gender": "Female",
+    "age": "Old",
+    "look": "pale"
+  },
+  "10/Wall": {
+    "gender": "Female",
+    "age": "Old",
+    "look": "pale"
+  },
+  "11/Easy": {
+    "gender": "Male",
+    "age": "MiddleAged",
+    "look": "paralysed part"
+  },
+  "11/SomeWork": {
+    "gender": "Male",
+    "age": "MiddleAged",
+    "look": "paralysed part"
+  },
+  "11/Wall": {
+    "gender": "Male",
+    "age": "MiddleAged",
+    "look": "paralysed part"
+  },
+  "12/Easy": {
+    "gender": "Female",
+    "age": "Adult",
+    "look": "unique jewellery"
+  },
+  "12/SomeWork": {
+    "gender": "Female",
+    "age": "Adult",
+    "look": "unique jewellery"
+  },
+  "12/Wall": {
+    "gender": "Female",
+    "age": "Adult",
+    "look": "unique jewellery"
+  }
+}

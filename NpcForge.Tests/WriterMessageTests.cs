@@ -60,7 +60,7 @@ public class WriterMessageTests
     }
 
     private const string BriefWithDice =
-        """{"setting":"a mill","occupation":"miller","tone":"Comic","race":"dwarf","nameLetter":"K","nameSyllables":"2","familyLetter":"V"}""";
+        """{"setting":"a mill","occupation":"miller","tone":"Comic","race":"dwarf","nameLetter":"K","nameSyllables":"2","familyLetter":"V","gender":"Female"}""";
 
     // With no name on the input, WriteAsync runs the namer first and tells the writer the name it
     // accepted, before the brief.

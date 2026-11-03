@@ -26,7 +26,7 @@ you ──► Program.cs
           │     records the GM's words with record_answer, show them, wait for "yes"
           │ 2. roll: call roll_character directly ─────────► server: tables and dice
           │ ◄─────────────────────────────────────────────── the brief, as JSON
-          │ 3. name: the namer skill; the race, the name dice and the scene
+          │ 3. name: the namer skill; the race, the gender, the name dice and the scene
           │       AgentLoop ◄──► model, which must call give_name (console),
           │       checked against the dice; no accepted name stops the run here
           │ 4. write: SKILL.md plus the brief's one tone file as the system message;
@@ -161,7 +161,7 @@ the only code that knows which one. `UseFunctionInvocation` stays off: it would 
   and a forgotten one is refused. `CharacterBrief` always writes the null, and a blank want is
   refused by name.
 - **Given, inferred or rolled (ADR-010):** `difficulty`, from `Tables.Difficulties` (Easy 1,
-  SomeWork 2, Wall 1). Its die is the thirteenth, cast last and every time. The parameter comes after
+  SomeWork 2, Wall 1). Its die is the thirteenth, cast every time. The parameter comes after
   `occupation` because C# puts optional parameters last; the brief keeps its own order.
 - **Rolled, inside what the difficulty allows:** `characterWants`, `obstacle`, `attitude`,
   `mannerism`, `weakness`, `willNotDiscuss`, `wrongAbout`.
@@ -169,6 +169,14 @@ the only code that knows which one. `UseFunctionInvocation` stays off: it would 
   rolled from a weighted table), and the name dice `nameLetter`, `nameSyllables` (written "1", "2",
   "3") and `familyLetter`. Their dice are cast after the seven above, so a seed's old traits stay as
   they were. A letter field is never read from a scene: it is rolled or set by flag.
+- **Given, inferred or rolled (ADR-011):** `gender` (Male or Female), `age` (Teenager, Adult,
+  MiddleAged or Old) and `look` (free text). Seven casts follow the thirteenth die, every time and
+  all in `RollCharacter`: gender, age, the look's d20, two extra looks, an eye colour and a hair
+  colour. `Looks.Read` is pure and reads the look from its casts and the settled age, against the
+  owner's rows on `Tables`: a 20 gives two looks that never repeat or clash, written with "; "
+  between them; a colour look carries its colour after ": "; an old character never gets snow white
+  or silver hair. `rolls-seeds-1-to-12.json` holds the older fields and is never rewritten;
+  `looks-seeds-1-to-12.json` pins the three new ones for the same seeds.
 
 The difficulty filter is code: each want is tagged with the difficulties it fits, and `Easy` never
 rolls `Wont`. The wants and obstacle dice are cast first, as `NextDouble` values, and read against
@@ -186,7 +194,7 @@ rolls the same other traits whatever is handed in (ADR-009).
 
 ADR-009 decision 4. `Namer.RunAsync` runs before the writer, inside `ChatAgent.WriteAsync`, unless
 the `WriterInput` already carries a name (the lab's variants do). It runs `AgentLoop` with the
-`namer` skill, a first message that holds the race, the name dice in words and the scene, and one
+`namer` skill, a first message that holds the race, the gender, the name dice in words and the scene, and one
 console tool, `give_name(syllables, family)`, for example `["Kes", "sa"], "Vale"`. The writer's
 tool list does not change, because the namer runs on a copy of the options.
 
@@ -265,13 +273,13 @@ through, so the replay sees nothing new.
 
 `NpcForge.Console/skills/scene-interviewer/SKILL.md` is the interviewer's: quote the GM exactly, at
 most one sentence and 12 words, never offer a value, free text only as the GM's words, a choice only
-when the GM's words point to it, the players' want read as what they want from this character, a people named with the role split
-into `race` and `occupation`, and
+when the GM's words point to it, the players' want read as what they want from this character, a people, an age or a look named
+with the role kept out of `occupation`, a gender only from a word that is itself male or female, and
 no questions of its own (code asks for a missing Ask field). The interview appends the field list from
 the server's schema to it.
 
-`NpcForge.Console/skills/namer/SKILL.md` is the namer's: follow the dice, fit the name to the race
-and the scene, hand it back split into syllables through `give_name`, and stop once a name is
+`NpcForge.Console/skills/namer/SKILL.md` is the namer's: follow the dice, fit the name to the race,
+the gender and the scene, hand it back split into syllables through `give_name`, and stop once a name is
 accepted. It is sent as it is, with no appended text.
 
 `NpcForge.Console/skills/npc-writer/SKILL.md` is copied to `bin` and read into a system message at
@@ -287,7 +295,13 @@ Today that is `not-given/playersWant.md`: the character is written around winnin
 goodwill, with a hook from the scene. A brief with no null is sent exactly as before.
 `NotGivenFiles.Require` checks the schema's NotGiven fields on the interview path, before the
 greeting; a flag run and a lab never have a null and are not checked.
-`SKILL.md` sets the output order, what each difficulty and obstacle oblige the writer to do, that
+`SKILL.md` sets the output order: the name, a passage read aloud to the players (ADR-011), then who
+they are, where they stand, how they seem, levers, anti-levers and afterwards. The passage is a
+block quote of at most five sentences: the scene's room, plain where the scene says nothing; the
+character from their age, gender, race and look; their work, in their attitude and mannerism; and
+their first words. It holds only what the players can see and hear, and no gap in square brackets.
+Each tone file and `not-given/playersWant.md` say what they change in it. `SKILL.md` also sets
+what each difficulty and obstacle oblige the writer to do, that
 every lever names the brief entry or the words of the scene it comes from, that the writer uses the
 name it was told ("Their name is ...") exactly and invents no other, and "show the trait,
 never state it". When a scene is sent, it is settled like the brief: the traits are played through
@@ -515,3 +529,4 @@ agents and named, not numbered.
 | Talk to it (epic 2) | A bare run interviews the GM, every field traces to their words or the dice, nothing rolls before a yes, and a spending cap stops a session | |
 | Better characters (epic 3) | Tone, race and name dice join the brief; one tone file reaches the writer; a namer names inside the dice and the save keeps it; a blind lab tells the tones apart 5 of 6 times | |
 | Fill the gaps in a scene (epic 8) | A missing place or role is asked for, a missing want is not given and written for goodwill, a missing difficulty is rolled; the bakery scene passed on three seeds of three | |
+| Read it to the table (epic 10) | A rolled gender, age and look join the brief with no older die moved; every sheet opens with the name and a passage to read aloud, which passed on seven runs of seven across the bakery and control scenes | |

@@ -29,6 +29,7 @@ Decision, Why, Consequences.
 | What the writer is sent | The skill, then one message: the instruction, the GM's scene word for word when there is one, and the brief last. The brief wins where they disagree. The scene is not saved. | [ADR-008](ADR-008-writer-reads-the-scene.md), superseding one line of ADR-007 |
 | Tone, race and name dice ("Better characters") | Five flat brief fields (`tone`, `race`, `nameLetter`, `nameSyllables`, `familyLetter`), given, inferred or rolled, with every die cast in a fixed order. A choice of more than six values is recorded only when its value is in the GM's quote. Saves keep the brief as JSON, so old saves never gain a field and show "unknown" only on screen. One tone file joins the writer's skill. A namer turn hands back the name split into syllables, and code checks its letter and count. A `--lab` flag writes one brief several ways through the one write path, with a blind sheet and `--score`. | [ADR-009](ADR-009-tone-race-and-name-dice.md) |
 | Gaps in a scene ("Fill the gaps in a scene") | In an interview, what the scene leaves out follows `roll_character`'s signature: a missing place or role is asked for, a missing want is a null shown as `[not given]`, and a missing difficulty is rolled from the owner's table, its die cast last. Flag runs keep their defaults. A null in the brief adds `not-given/<field>.md` to the writer's skill. | [ADR-010](ADR-010-scene-gaps-asked-not-given-or-rolled.md), superseding ADR-007's default rule for interviews |
+| Look dice and a passage read to the table ("Read it to the table") | Three flat brief fields after the thirteen dice: `gender` and `age`, short choices, and `look`, the GM's words or the owner's d20 with its colour tables. Seven casts every time, in `RollCharacter`, read by a pure `Looks.Read`. The namer is told the gender. The writer's sheet runs name, a passage read aloud to the players, then the rest; each tone file and the not-given file say what they change in it. The interviewer keeps an age, a gender and a look out of the role. | [ADR-011](ADR-011-look-dice-and-a-passage-read-to-the-table.md), amending one line each of ADR-009 and ADR-010 |
 
 ## Records
 
@@ -39,8 +40,9 @@ Decision, Why, Consequences.
 - [ADR-006 Agents write the code; the user sets the task, the constraints and what done means](ADR-006-agents-write-the-code.md) — accepted 2026-10-24
 - [ADR-007 The scene interview records the GM's own words, and only a choice may be inferred](ADR-007-scene-interview-labels.md) — accepted 2026-10-25; one line superseded by ADR-008, and its default rule for interviews by ADR-010
 - [ADR-008 The writer is sent the GM's scene, word for word, beside the brief](ADR-008-writer-reads-the-scene.md) — accepted 2026-10-25
-- [ADR-009 Tone, race and name dice join the brief, a namer names the character, and a lab compares writers](ADR-009-tone-race-and-name-dice.md) — accepted 2026-10-25; its dice gain a thirteenth from ADR-010
-- [ADR-010 A scene's gaps are asked for, marked not given, or rolled, as `roll_character` says](ADR-010-scene-gaps-asked-not-given-or-rolled.md) — accepted 2026-10-30
+- [ADR-009 Tone, race and name dice join the brief, a namer names the character, and a lab compares writers](ADR-009-tone-race-and-name-dice.md) — accepted 2026-10-25; its dice gain a thirteenth from ADR-010, and seven look casts and the namer's gender from ADR-011
+- [ADR-010 A scene's gaps are asked for, marked not given, or rolled, as `roll_character` says](ADR-010-scene-gaps-asked-not-given-or-rolled.md) — accepted 2026-10-30; its die is no longer cast last, from ADR-011
+- [ADR-011 Look dice join the brief, and the writer opens with a passage read to the table](ADR-011-look-dice-and-a-passage-read-to-the-table.md) — accepted 2026-11-02
 
 ADR-004 was reserved for the server layers by a plan that no longer exists, and was never written.
 Older records mention plan versions and `PLAN.md`; those are in git at commit `cd20b60`.

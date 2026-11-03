@@ -32,6 +32,13 @@ namespace NpcForge.Server
         public required NameLetter NameLetter { get; init; }
         public required Syllables NameSyllables { get; init; }
         public required NameLetter FamilyLetter { get; init; }
+
+        // ADR-011. Gender and age are the owner's d8, cast as two dice, and a scene that states one
+        // keeps the other rolled. Look is what stands out about how they look, as one phrase, so a
+        // scene's "bald" and a 20's two looks both fit the one field.
+        public required Gender Gender { get; init; }
+        public required Age Age { get; init; }
+        public required string Look { get; init; }
     }
 
     // The MCP SDK already sends "Wall" on the wire. Plain JsonSerializer sends 2, and step 8's
@@ -44,6 +51,12 @@ namespace NpcForge.Server
 
     [JsonConverter(typeof(JsonStringEnumConverter))]
     public enum Tone { Serious, Comic, Heartfelt }
+
+    [JsonConverter(typeof(JsonStringEnumConverter))]
+    public enum Gender { Male, Female }
+
+    [JsonConverter(typeof(JsonStringEnumConverter))]
+    public enum Age { Teenager, Adult, MiddleAged, Old }
 
     // A letter of the alphabet, written as itself. Both the first name and the family name use it.
     [JsonConverter(typeof(JsonStringEnumConverter))]

@@ -21,16 +21,19 @@ decides how it sounds.
   strangers, and say why. Cant: they would help, but what they can offer is smaller than it looks.
   ForAPrice: they warm up once they are paid, in goodwill or in coin; name the price.
 
-The six parts of the output change like this:
+The parts of the output change like this:
 
-1. **Who they are.** As above, with nothing about what the players want.
-2. **Where they stand.** What they think of the players walking in, and what they want from them:
-   the scene's hook if there is one, and the twist.
-3. **How they seem, and what is underneath.** The surface they show strangers, then what the
-   players would see once trusted.
-4. **Levers.** Two or three ways to win their goodwill, each with a line of dialogue and what it
-   earns: a better deal, the job, a tip, a door opened.
-5. **Anti-levers.** Two or three ways to lose it, each with a line and what it costs: full price,
-   turned away, an enemy made.
-6. **Afterwards.** What they do once the players leave: won over / left as they were / made an
-   enemy.
+- **Their name.** As above.
+- **Read it to the table.** Their first words meet strangers walking in: they greet, warn off or
+  size up the players. The hook and the twist stay for the parts below.
+- **Who they are.** As above, with nothing about what the players want.
+- **Where they stand.** What they think of the players walking in, and what they want from them:
+  the scene's hook if there is one, and the twist.
+- **How they seem, and what is underneath.** The surface they show strangers, then what the
+  players would see once trusted.
+- **Levers.** Two or three ways to win their goodwill, each with a line of dialogue and what it
+  earns: a better deal, the job, a tip, a door opened.
+- **Anti-levers.** Two or three ways to lose it, each with a line and what it costs: full price,
+  turned away, an enemy made.
+- **Afterwards.** What they do once the players leave: won over / left as they were / made an
+  enemy.

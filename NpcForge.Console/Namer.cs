@@ -64,17 +64,22 @@ public static class Namer
         return (text, $"[skill] {skillPath} ({text.Length} chars, {Fingerprint.Of(text)})");
     }
 
-    // What the namer is told: the race, the name dice and the scene, and nothing else of the brief.
-    // Each die is written out in words by code, so the namer is told the dice and never reads JSON.
+    // What the namer is told: the race, the gender, the name dice and the scene, and nothing else of the
+    // brief (ADR-011: a name chosen blind to the gender can belong to the wrong person, and the writer
+    // may not change it). Each die is written out in words by code, so the namer is told the dice and
+    // never reads JSON.
     public static string FirstMessage(string briefJson, string? scene)
     {
         var dice = NameDice.From(briefJson);
         using var brief = JsonDocument.Parse(briefJson);
         var race = brief.RootElement.GetProperty("race").GetString();
+        // Read as strictly as the race: a brief with no gender throws here, before the namer is paid for.
+        var gender = brief.RootElement.GetProperty("gender").GetString()!.ToLowerInvariant();
 
         var message =
             "Name this character.\n\n" +
             $"Race: {race}\n" +
+            $"Gender: {gender}\n" +
             $"First name: starts with {dice.Letter}, {dice.Syllables} syllable{(dice.Syllables == 1 ? "" : "s")}\n" +
             $"Family name: starts with {dice.FamilyLetter}";
 

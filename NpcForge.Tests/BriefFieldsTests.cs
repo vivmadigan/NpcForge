@@ -63,6 +63,42 @@ public class BriefFieldsTests
             Tables.Difficulties.Select(d => (d.Value, d.Weight)));
     }
 
+    // The owner's d20, settled 2026-11-02 (ADR-011), in the owner's order: row 20 is "two more looks". The
+    // words are all different, which is what keeps a row one row to the clashes: a record is equal by its fields.
+    [Fact]
+    public void The_look_table_holds_the_owners_twenty_rows_in_order()
+    {
+        Assert.Equal(
+            ["bad posture", "bald", "beautiful", "big nose or ears", "cross-eyed", "pale", "short", "tall",
+             "unique armour", "unique clothing", "unique jewellery", "unique emblem or symbol",
+             "unusual eye colour", "unusual hair colour", "unusual hair or beard style", "scar or tattoo",
+             "multiple scars or tattoos", "rare item or weapon", "paralysed part", "two more looks"],
+            Tables.Looks.Select(row => row.Text));
+        // The two rows that read a colour table say which, and no other row reads one.
+        Assert.Equal([(13, Tables.LookColour.Eye), (14, Tables.LookColour.Hair)],
+            Tables.Looks.Select((row, index) => (Row: index + 1, row.Colour)).Where(row => row.Colour != Tables.LookColour.None));
+    }
+
+    [Fact]
+    public void The_eye_colour_table_holds_the_owners_eight_rows_in_order()
+    {
+        Assert.Equal(
+            ["violet", "amber, almost gold", "pale grey, nearly colourless", "one blue, one brown",
+             "bright green", "so dark they look black", "silver", "red"],
+            Tables.EyeColours);
+    }
+
+    // Snow white and silver, and only those, are usual on an old character.
+    [Fact]
+    public void The_hair_colour_table_holds_the_owners_eight_rows_and_marks_snow_white_and_silver_as_usual_when_old()
+    {
+        Assert.Equal(
+            [("copper red", false), ("snow white", true), ("blue-black", false), ("a single white streak", false),
+             ("dyed a bright colour", false), ("two colours, half light and half dark", false),
+             ("golden, almost metallic", false), ("silver", true)],
+            Tables.HairColours.Select(colour => (colour.Text, colour.UsualWhenOld)));
+    }
+
     // Many seeded picks land near their weights: a pick that ignored them (uniform over the rows) would
     // give every race about 2,455 of 27,000, and human would miss its 7,000 by thousands.
     [Fact]

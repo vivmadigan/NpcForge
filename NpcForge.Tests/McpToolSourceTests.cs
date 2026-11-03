@@ -220,6 +220,111 @@ public class McpToolSourceTests
         Assert.Contains(brief["familyLetter"].GetString(), Tables.NameLetters.Select(l => l.Value.ToString()));
     }
 
+    // ADR-011: every brief carries gender, age and look as strings, after familyLetter, with no flag and
+    // no default: the dice give them.
+    [Fact]
+    public async Task Every_brief_carries_gender_age_and_look_as_strings_after_the_name_dice()
+    {
+        using var brief = JsonDocument.Parse(await RollWithSeed(5));
+        var properties = brief.RootElement.EnumerateObject().ToList();
+
+        Assert.Equal(["gender", "age", "look"], properties.TakeLast(3).Select(p => p.Name));
+        Assert.Equal("familyLetter", properties[^4].Name);
+        Assert.All(properties.TakeLast(3), p => Assert.Equal(JsonValueKind.String, p.Value.ValueKind));
+        Assert.Contains(brief.RootElement.GetProperty("gender").GetString(), new[] { "Male", "Female" });
+        Assert.Contains(brief.RootElement.GetProperty("age").GetString(), new[] { "Teenager", "Adult", "MiddleAged", "Old" });
+        Assert.False(string.IsNullOrWhiteSpace(brief.RootElement.GetProperty("look").GetString()));
+    }
+
+    // ADR-011: a handed-in look, gender or age replaces its result and skips no cast. On one server, a roll
+    // with the value handed in, then a roll with nothing handed in, must give the second roll a fresh
+    // server gives after a plain first roll. A skipped cast moves every die after it, and no field of the
+    // first roll shows that. Each case is a server of its own, so they run at once.
+    [Fact]
+    public async Task A_handed_in_look_gender_or_age_moves_no_die_on_the_next_roll()
+    {
+        var plain = SecondRoll(5, RollArgs());
+        var afterEach = new Dictionary<string, Task<string>>
+        {
+            ["look"] = SecondRoll(5, RollArgs("look", "a scar across one cheek")),
+            ["gender"] = SecondRoll(5, RollArgs("gender", "Female")),
+            ["age"] = SecondRoll(5, RollArgs("age", "Old")),
+        };
+        await Task.WhenAll(afterEach.Values.Append(plain));
+
+        foreach (var (field, after) in afterEach)
+            Assert.True(await plain == await after, $"the second roll moved when {field} was handed in on the first");
+    }
+
+    // Handing in the value the dice rolled gives the same brief, whole. Seed 4 rolls an old character
+    // and seed 9 an adult whose look reads a hair colour, so age is handed in both ways round.
+    [Theory]
+    [InlineData(4)]
+    [InlineData(9)]
+    public async Task Handing_in_the_rolled_gender_age_or_look_gives_the_same_brief(int seed)
+    {
+        var plain = await RollWithSeed(seed);
+        using var brief = JsonDocument.Parse(plain);
+        var fields = new[] { "gender", "age", "look" };
+
+        var handed = await Task.WhenAll(fields.Select(field =>
+            RollWithSeed(seed, RollArgs(field, brief.RootElement.GetProperty(field).GetString()!))));
+
+        foreach (var (field, again) in fields.Zip(handed))
+            Assert.True(plain == again, $"handing in the rolled {field} changed the brief");
+    }
+
+    // Handing in another gender or look changes that field and no other. Seed 5 rolls a male with
+    // "big nose or ears"; the test holds that, so the claim cannot go stale unseen.
+    [Fact]
+    public async Task Handing_in_another_gender_or_look_changes_only_that_field()
+    {
+        var rolling = RollWithSeed(5);
+        var handing = new Dictionary<string, (string Value, Task<string> Brief)>();
+        foreach (var (field, value) in new[] { ("gender", "Female"), ("look", "a scar across one cheek") })
+            handing[field] = (value, RollWithSeed(5, RollArgs(field, value)));
+        await Task.WhenAll(handing.Values.Select(h => h.Brief).Append(rolling));
+        var plain = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(await rolling)!;
+        Assert.Equal("Male", plain["gender"].GetString());
+
+        foreach (var (field, (value, brief)) in handing)
+        {
+            var changed = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(await brief)!;
+
+            Assert.Equal(value, changed[field].GetString());
+            foreach (var (name, was) in plain.Where(e => e.Key != field))
+                Assert.True(was.ToString() == changed[name].ToString(), $"{name} moved when {field} was handed in");
+        }
+    }
+
+    // Age is read by the look: an old character is never given the hair colours that are usual on them.
+    // Seed 9 rolls an adult whose look is "unusual hair colour: golden, almost metallic". Handed Old, the
+    // same hair cast is read against six colours and gives another, and nothing else moves. Handed
+    // another age that is not old, the look stays. Held here, so the seed cannot go stale unseen.
+    [Fact]
+    public async Task Handing_in_another_age_changes_the_age_and_the_hair_colour_the_look_reads()
+    {
+        var rolling = RollWithSeed(9);
+        var asOldRolling = RollWithSeed(9, RollArgs("age", "Old"));
+        var asTeenagerRolling = RollWithSeed(9, RollArgs("age", "Teenager"));
+        await Task.WhenAll(rolling, asOldRolling, asTeenagerRolling);
+        var plain = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(await rolling)!;
+        var asOld = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(await asOldRolling)!;
+        var asTeenager = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(await asTeenagerRolling)!;
+
+        Assert.Equal("Adult", plain["age"].GetString());
+        Assert.Equal("unusual hair colour: golden, almost metallic", plain["look"].GetString());
+        Assert.Equal("Old", asOld["age"].GetString());
+        Assert.Equal("unusual hair colour: two colours, half light and half dark", asOld["look"].GetString());
+        Assert.Equal("Teenager", asTeenager["age"].GetString());
+        Assert.Equal(plain["look"].GetString(), asTeenager["look"].GetString());
+        foreach (var (name, was) in plain.Where(e => e.Key is not ("age" or "look")))
+        {
+            Assert.True(was.ToString() == asOld[name].ToString(), $"{name} moved when age was handed in as Old");
+            Assert.True(was.ToString() == asTeenager[name].ToString(), $"{name} moved when age was handed in as Teenager");
+        }
+    }
+
     // A given tone, race, letter, count or family letter is kept; the one not given is rolled.
     [Fact]
     public async Task A_given_value_is_kept_and_a_value_not_given_is_rolled()
@@ -323,6 +428,10 @@ public class McpToolSourceTests
     [InlineData("nameSyllables", "0")]
     [InlineData("familyLetter", 99)]
     [InlineData("familyLetter", "99")]
+    [InlineData("gender", 9)]
+    [InlineData("gender", "9")]
+    [InlineData("age", 9)]
+    [InlineData("age", "9")]
     public async Task An_enum_value_that_is_not_defined_is_refused_by_the_name_of_its_field(string parameter, object value)
     {
         await using var tools = new McpToolSource();
@@ -335,6 +444,33 @@ public class McpToolSourceTests
 
         // The reason, not just a failure (lesson 004): the server's own words, naming the field.
         Assert.Contains($"{parameter} {value} is not one of its values", error.Message);
+    }
+
+    // ADR-011: a blank look would reach the writer as a look of nothing, so it is refused by name, as a
+    // blank want is. The control is the same call with the look left out, which rolls one.
+    [Fact]
+    public async Task A_blank_look_is_refused_by_name_and_a_left_out_look_rolls()
+    {
+        await using var tools = new McpToolSource();
+        await tools.ConnectAsync(CancellationToken.None);
+
+        foreach (var blank in new[] { "", "   " })
+        {
+            var error = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+                tools.CallDirectAsync("roll_character", RollArgs("look", blank), CancellationToken.None));
+            Assert.Contains("look is blank", error.Message);
+        }
+        var rolled = await tools.CallDirectAsync("roll_character", RollArgs(), CancellationToken.None);
+        Assert.False(string.IsNullOrWhiteSpace(JsonDocument.Parse(rolled).RootElement.GetProperty("look").GetString()));
+    }
+
+    // Two rolls on one server, the dice carrying on from the first into the second. Returns the second.
+    private static async Task<string> SecondRoll(int seed, Dictionary<string, object?> first)
+    {
+        await using var tools = new McpToolSource(seed: seed);
+        await tools.ConnectAsync(CancellationToken.None);
+        await tools.CallDirectAsync("roll_character", first, CancellationToken.None);
+        return await tools.CallDirectAsync("roll_character", RollArgs(), CancellationToken.None);
     }
 
     private static async Task<string> RollWithSeed(int seed, Dictionary<string, object?> args)
@@ -509,4 +645,11 @@ public class McpToolSourceTests
         ["difficulty"] = "Wall",
         ["occupation"] = "innkeeper",
     };
+
+    private static Dictionary<string, object?> RollArgs(string handedIn, string value)
+    {
+        var args = RollArgs();
+        args[handedIn] = value;
+        return args;
+    }
 }

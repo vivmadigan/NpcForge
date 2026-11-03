@@ -117,7 +117,9 @@ internal static class ConsoleProcess
                         && !file.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}"))
             .OrderByDescending(File.GetLastWriteTimeUtc)
             .First();
+        // An edit to a file the build only copies, such as a skill, leaves the dll as it was, so a
+        // plain build does not clear this; --no-incremental does (lesson 013).
         Assert.True(File.GetLastWriteTimeUtc(dll) >= File.GetLastWriteTimeUtc(newest),
-            $"The {BuildConfiguration} build of {name} is stale: {Path.GetRelativePath(RepoRoot, newest)} is newer than the build. Run `dotnet build -c {BuildConfiguration}`.");
+            $"The {BuildConfiguration} build of {name} is stale: {Path.GetRelativePath(RepoRoot, newest)} is newer than the build. Run `dotnet build -c {BuildConfiguration} --no-incremental`.");
     }
 }
