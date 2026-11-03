@@ -35,82 +35,12 @@ Two rules for every epic, now that the Safety net exists:
 
 | # | Epic | In one line |
 | --- | --- | --- |
-| 10 | Read it to the table | A read-aloud opening, rolled looks and a first line |
 | 9 | Faster tests | The full suite in half the time, with no test weakened |
 | 4 | Keep and edit | Choose what to keep, and change it later |
 | 5 | Ready to grow | A structure that can sit behind a website and a database |
 | 6 | Friends can use it | A website with logins and a database, deployed |
 
 Epics 4 to 6 are drafts: sharpen each one before it starts.
-
-## 10. Read it to the table
-
-**Goal.** Every character opens with something I can read straight to my players, like the boxed
-text in an adventure module: where the character is in the room, what they look like and what they
-are doing as the party walks in, ending with the first thing they say. For example:
-
-> The public house has a cosy, familial feel: a few benches beside the main cask, a dozen round
-> tables around an inviting hearth. Behind the bar stands a large man with a bushy beard, a bald
-> head and an apron that hasn't been washed in weeks. He polishes the oak bar with fierce
-> concentration. He notices you as you walk forward and says, "…"
-
-The dice settle some of it, and the model writes the passage from everything rolled, put together.
-The sheet still starts with the character's name, for me; the passage comes straight after it, then
-everything the sheet had before. The character says their name in the passage only if they would.
-
-**Constraints.**
-- Simple is best. An NPC is a cardboard cut-out until the players dig in, so this adds a front to
-  the cut-out and nothing more: two looks, a room, an action and a line, on top of what we have.
-- How the character looks is rolled, not invented, from the tables below. As with race, my scene's
-  words win: a "bald dwarf" is bald, and then nothing else is rolled for the look.
-- The room comes from my scene. Where the scene says nothing about the room, it stays short and
-  plain, or a gap in square brackets, never an invented layout.
-- What the character is doing is written from their job, their attitude and their mannerism. If my
-  scene says what they are doing, the scene wins.
-- The opening line is written from their attitude, the tone and what they want.
-- The namer is told the gender, so the name fits the character.
-- The new dice come after the thirteen there are, so every seed's older traits stay as they are
-  (ADR-009, ADR-010).
-- This changes `roll_character`, so an ADR comes first.
-- It changes the writer's `SKILL.md`, so the replay fixture is re-recorded once, paid, after the
-  wording has settled, in the same PR (lesson 011).
-- Old saves still load unchanged; a save from before this epic has no look dice and shows them as
-  unknown.
-
-**Tables** (settled with me, 2026-11-02).
-- **Age and gender**, a d8: a male or female teenager, adult, middle-aged or old person, all eight
-  equally likely. Cast as two dice, gender then age, so a scene that states one keeps the other
-  rolled.
-- **Unique look**, a d20: 1 bad posture, 2 bald, 3 beautiful, 4 big nose or ears, 5 cross-eyed,
-  6 pale, 7 short, 8 tall, 9 unique armour, 10 unique clothing, 11 unique jewellery, 12 unique
-  emblem or symbol, 13 unusual eye colour, 14 unusual hair colour, 15 unusual hair or beard style,
-  16 scar or tattoo, 17 multiple scars or tattoos, 18 rare item or weapon, 19 paralysed part,
-  20 two more looks. The two more never repeat a look, never come up 20, and never clash: short with
-  tall, bald with a hair look, a scar or tattoo with multiple.
-- **Unusual eye colour**, a d8: violet; amber, almost gold; pale grey, nearly colourless; one blue,
-  one brown; bright green; so dark they look black; silver; red.
-- **Unusual hair colour**, a d8: copper red; snow white; blue-black; a single white streak; dyed a
-  bright colour; two colours, half light and half dark; golden, almost metallic; silver. An old
-  character never gets snow white or silver, which would not be unusual on them.
-- Every look die is cast every time, used or not, so a look handed in moves no other die.
-
-**Done when.**
-- Free tests: the brief carries gender, age and look; each one handed in replaces its die and moves
-  no other die; a seed's thirteen older traits are what they were before the new dice; a 20 gives
-  two looks that never repeat, never are 20 and never clash; an old character never gets snow white
-  or silver hair; the interview records a look the scene states, quoted, and a gender or age the
-  scene states; an old save loads and shows gender, age and look as unknown.
-- The bakery scene and the control scene, three seeds each, give the name, then a read-aloud passage
-  that puts the character in the scene's room, describes them from their dice, shows them at their
-  work, and ends with an opening line that fits their attitude and the tone (*needs my eyes*, paid).
-- The replay fixture is re-recorded with the new skill and passes.
-
-**Tasks.**
-- ADR: the look dice, their tables, where they go in the dice order, the namer, and how the writer
-  is told.
-- The look dice on the server; the namer reads the gender.
-- The writer's new section: the read-aloud passage and the opening line.
-- Re-record the replay fixture.
 
 ## 9. Faster tests
 
@@ -213,3 +143,9 @@ find it there.
   no question and a baker who offers the thief-catching job, three seeds of three, and a goblin once
   the interviewer split race from role. See ADR-010, lesson 012 and
   `docs/runs/2026-11-01-01-epic8-checks.md`.
+- **Read it to the table** (epic 10, 2026-11-03). Every brief rolls a gender, an age and a look
+  from the owner's tables (a d20 of looks whose 20 gives two, with eye and hair colours), with no
+  older die moved, and a scene's words win. The namer is told the gender. Every sheet opens with
+  the name and a passage to read aloud as the party walks in: the scene's room, how they look,
+  their work and their first words. Seven runs of seven passed across the bakery and control
+  scenes. See ADR-011, lesson 013 and `docs/runs/2026-11-03-01-epic10-checks.md`.

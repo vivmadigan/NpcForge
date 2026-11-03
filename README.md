@@ -29,10 +29,14 @@ writing. The dice give the variety.
 2. The app has the server roll up a **character brief**: what the character wants, what kind of
    obstacle they are, an attitude, a mannerism, a weakness, something they will not talk about,
    and one thing they are wrong about. The rolls stay inside what the difficulty allows, so a wall
-   does not come out cheerfully helpful.
+   does not come out cheerfully helpful. It also rolls how they look: a gender, an age, and one
+   thing that stands out, such as a scar or copper-red hair, unless your scene says.
 3. The model gets the brief as settled fact, plus writing guidance, and writes the character in a
    fixed order:
-   - **Who they are.** The name the namer gave them, and one line of history.
+   - **Their name**, as the namer gave it.
+   - **Read it to the table.** A few sentences to read aloud as the party walks in: the room from
+     your scene, how they look, what they are doing, and the first thing they say.
+   - **Who they are.** One line of history.
    - **Where they stand** on what the players want.
    - **How they seem, and what is underneath.**
    - **Levers.** Two or three things that would move them, each with a line of dialogue.
@@ -107,6 +111,8 @@ writers' lab (`--lab`) writes one brief with two skills, temperatures or tones s
 blind for you to guess and `--score`. A blind tone check scored 5 of 6. A scene's gaps are filled
 honestly: the interview asks you for a missing place or role, marks a missing want as not given and
 writes the character to be won over, with a hook from your scene, and rolls a missing difficulty.
+Every character now opens with a passage you can read straight to your players, from a rolled
+gender, age and look, and the name fits the gender.
 Next: faster tests, keeping and editing characters, and in time a website with logins and a
 database so friends can use it. See
 [ROADMAP.md](ROADMAP.md).

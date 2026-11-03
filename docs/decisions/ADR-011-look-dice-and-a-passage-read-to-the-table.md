@@ -14,7 +14,8 @@ something to read straight to the players, like the boxed text in an adventure m
 character is in the room, what they look like and what they are doing as the party walks in,
 ending with the first thing they say. The owner settled these on 2026-11-02, before the design, and
 this record does not reopen them:
-- The tables, as ROADMAP.md lists them: age and gender (the owner's d8, cast as two dice), a unique
+- The tables, as ROADMAP.md listed them at `dd843fc` and `Tables.cs` now holds them, row for row:
+  age and gender (the owner's d8, cast as two dice), a unique
   look (a d20 whose 20 gives two more looks that never repeat, never come up 20 and never clash),
   and two d8 colour tables for an unusual eye or hair colour. An old character never gets snow white
   or silver hair.
