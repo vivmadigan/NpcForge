@@ -1,6 +1,5 @@
 using System.Text.Json;
 using Microsoft.Extensions.AI;      // FunctionCallContent
-using NpcForge.Server;              // Tables: the rows the dice roll from
 
 
 namespace NpcForge.Tests;
