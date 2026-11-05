@@ -7,7 +7,11 @@ namespace NpcForge.Tests;
 // Storage itself, the one place that reads and writes the file, and use a copy of the real
 // characters.json at a temp path, never the original.
 // Storage reads NPCFORGE_CHARACTERS on every call, so the tests set it for the process and put
-// it back. They share one collection so they do not overlap each other.
+// it back. Any server or console a test starts in that window inherits it, so the collection runs
+// alone, never beside a test that starts one: a save file must not reach another test (epic 9).
+[CollectionDefinition("Storage", DisableParallelization = true)]
+public class StorageCollection;
+
 [Collection("Storage")]
 public class StorageTests
 {
