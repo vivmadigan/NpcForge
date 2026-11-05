@@ -23,7 +23,7 @@
   </ItemGroup>
 
 	<ItemGroup>
-		<!-- Build order only. McpToolSource starts the server with dotnet run and the no-build flag,
+		<!-- Build order only. McpToolSource starts the server's built launcher from its bin folder,
          so the server has to be built whenever this project is. ReferenceOutputAssembly="false" means
          no types cross: the two processes still share nothing. -->
 		<ProjectReference Include="..\NpcForge.Server\NpcForge.Server.csproj" ReferenceOutputAssembly="false" />
