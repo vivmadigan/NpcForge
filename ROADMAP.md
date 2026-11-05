@@ -35,36 +35,11 @@ Two rules for every epic, now that the Safety net exists:
 
 | # | Epic | In one line |
 | --- | --- | --- |
-| 9 | Faster tests | The full suite in half the time, with no test weakened |
 | 4 | Keep and edit | Choose what to keep, and change it later |
 | 5 | Ready to grow | A structure that can sit behind a website and a database |
 | 6 | Friends can use it | A website with logins and a database, deployed |
 
 Epics 4 to 6 are drafts: sharpen each one before it starts.
-
-## 9. Faster tests
-
-**Goal.** The full `dotnet test` takes about eight to ten minutes, which makes every change slow to
-prove. I want it fast enough to run on every change without thinking twice.
-
-**Constraints.**
-- A restructure of the tests only. Nothing the app does changes, and the replay test passes
-  unchanged and is never re-recorded.
-- No test is deleted, skipped or weakened to save time. Every test that fails today on a broken
-  guard still fails on it.
-- Tests stay independent: a shared server or process never lets one test's save file, seed or
-  stderr reach another, and the full suite passes in any order.
-- Measure first. The epic starts by timing where the minutes go, so the fix targets the real cost,
-  not a guess. The current guess is that the tests starting the console and the MCP server, about
-  28 call sites in 13 files, take most of the time.
-
-**Done when.**
-- The full suite's time is measured before and after on the same machine, and the after time is
-  at most half the before time.
-- Every test passes, the test count is unchanged, and a break-it check on three guards picked at
-  random still fails its test.
-- `AGENTS.md` and the verify skill say how long the suite takes, and how to run the fast part on
-  its own.
 
 ## 4. Keep and edit (draft)
 
@@ -149,3 +124,11 @@ find it there.
   the name and a passage to read aloud as the party walks in: the scene's room, how they look,
   their work and their first words. Seven runs of seven passed across the bakery and control
   scenes. See ADR-011, lesson 013 and `docs/runs/2026-11-03-01-epic10-checks.md`.
+- **Faster tests** (epic 9, 2026-11-05). The free suite went from 12 m 19 s to a median 71 s, all 455
+  tests kept and passing, and a break-it check on three random guards failed all three. Each server
+  had waited 5 s to close: the console's MCP client moved to 2.3.1, which closes the server's stdin
+  first, and the server stays on 2.2.0. The console starts the server's launcher instead of
+  `dotnet run`. The owner allowed both app changes, which the epic had ruled out; stdout is
+  unchanged, and each run's stderr now ends with the server's own shutdown lines.
+  `dotnet test --filter "Category!=Process"` runs the 331 tests that start no process in about 5 s.
+  See lesson 014.

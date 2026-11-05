@@ -329,16 +329,21 @@ trace.
 
 ## Starting the server
 
-`dotnet run --project <server> --no-build`, with the path built from `AppContext.BaseDirectory`
-(four folders up), so the app and the tests find it the same way. No build at launch, because build
-output on stdout would corrupt the wire; the `ProjectReference` keeps the server from going stale.
-Settings reach it as environment variables (`NPCFORGE_CHARACTERS`, `NPCFORGE_SEED`), which arrive
-before any MCP message.
+The server's own launcher, `NpcForge.Server/bin/<configuration>/net10.0/NpcForge.Server.exe`
+(`NpcForge.Server` off Windows), started directly, with the project path built from
+`AppContext.BaseDirectory` (four folders up), so the app and the tests find it the same way. The
+framework folder is named outright, because tests run copies of the console from sibling folders of
+`net10.0`. No build at launch, because build output on stdout would corrupt the wire; the
+`ProjectReference` keeps the server from going stale, and a missing launcher stops the start with
+the build to run. Settings reach it as environment variables (`NPCFORGE_CHARACTERS`,
+`NPCFORGE_SEED`), which arrive before any MCP message. Until epic 9 it was `dotnet run --no-build`,
+which read the project before every start: about 2 s to the first reply, against about 0.6 s now.
+The launcher keeps the process named `NpcForge.Server`, which is how the verify doctor and the
+debugger find it.
 
-It is started in the configuration the console was built in. `dotnet run --no-build` with no `-c`
-runs the Debug build, so a Release console would drive a Debug server that may be stale or missing.
-`McpToolSource` reads the console assembly's `AssemblyConfigurationAttribute` and passes that as `-c`
-(lesson 008).
+It is started in the configuration the console was built in, so a Release console never drives a
+Debug server that may be stale or missing. `McpToolSource` reads the console assembly's
+`AssemblyConfigurationAttribute` and picks that configuration's folder (lesson 008, ADR-012).
 
 ## Storage
 
@@ -409,13 +414,21 @@ One real run is recorded once, and the whole app replays against it for free (AD
 
 ## Tests
 
-`dotnet test` is free: no network and no model.
+`dotnet test` is free: no network and no model. The whole suite takes about a minute on a quiet
+16-core machine. A test that starts the console or a server carries `[Trait("Category", "Process")]`,
+so `dotnet test --filter "Category!=Process"` runs the 331 tests that start none in about 5 s.
+xUnit runs one class's tests one after another and classes side by side, so the slowest chains are
+the classes that start many servers: `McpToolSourceTests`, `SeededRollTests`, and `LabRunTests`,
+which runs alone at the end because the lab swaps the process-wide `Console.Error`.
 - `AgentLoopTests`: the loop exits when the model sends no tool calls, throws at the cap, and runs a
   tool call through the real server. Fake models throughout.
 - `McpToolSourceTests`, against the real server: the model can neither see nor name an app-only
   tool, a save loads back byte for byte with its name, a brief without `nameLetter` is refused and
-  saves nothing, an unknown number stops the run, and the same seed rolls the same brief from two
-  servers.
+  saves nothing, an unknown number stops the run, and an undefined enum value or a blank want or
+  look is refused by name.
+- `SeededRollTests`, against the real server: the same seed rolls the same brief from two servers,
+  and a handed-in value replaces its die without moving the others. Split from
+  `McpToolSourceTests` so the two run side by side.
 - `ReplayTests`: the whole app against the recorded run, as above, and the temp-file save.
 - `ReplaySensitivityTests`: the replay fails on a changed system prompt, an emptied tool list, a
   changed model option and a dropped writer turn, each on the fixture and on a copy with a namer
@@ -461,6 +474,8 @@ One real run is recorded once, and the whole app replays against it for free (AD
   file deleted, stops before the interview and names the file.
 - `StorageTests`: a copy of the real `characters.json` goes through `Storage.Load` and `Save` byte for
   byte, and a new save, with its name, leaves every old entry's bytes alone, with no `name` added.
+  They set `NPCFORGE_CHARACTERS` for the whole test process, so their collection runs alone, and no
+  server or console another test starts can inherit it.
 - `LabFlagTests`, `LabSheetTests`, `LabRunTests` and `LabScoreTests`: every lab refusal with its
   reason; the sheets, the key and the score, pure; the lab against the real server and a stand-in
   model (each variant reaches the writer, the confirmation stops without a yes, blind stderr holds no
@@ -482,6 +497,11 @@ for the wrong reason (lesson 004).
 Found in the debugger and in paid runs. Each one cost time once.
 - **OpenAI is on the Responses endpoint.** Chat Completions rejects function tools on reasoning
   models (lesson 001).
+- **The console and the server are on different MCP versions.** The console's client is on 2.3.1,
+  which closes the server's stdin before it waits for the server to exit. On 2.2.0 it waited out a
+  5 s timeout and then killed the server, so every run and every test that started a server paid
+  5 s at the end (lesson 014). The server stays on 2.2.0, because a 2.3 server refuses the client's
+  fallback `initialize` after a slow start. Its project file says why (ADR-012).
 - **`FinishReason` is null on OpenAI and set on Anthropic.** A `CallId` is `call_…` on one and
   `toolu_…` on the other. Treat it as opaque and echo it exactly.
 - **Never pass `ConversationId` back.** It lets OpenAI keep the history on its side. History stays
@@ -530,3 +550,4 @@ agents and named, not numbered.
 | Better characters (epic 3) | Tone, race and name dice join the brief; one tone file reaches the writer; a namer names inside the dice and the save keeps it; a blind lab tells the tones apart 5 of 6 times | |
 | Fill the gaps in a scene (epic 8) | A missing place or role is asked for, a missing want is not given and written for goodwill, a missing difficulty is rolled; the bakery scene passed on three seeds of three | |
 | Read it to the table (epic 10) | A rolled gender, age and look join the brief with no older die moved; every sheet opens with the name and a passage to read aloud, which passed on seven runs of seven across the bakery and control scenes | |
+| Faster tests (epic 9) | The free suite went from 12 m 19 s to about a minute with all 455 tests kept: a server closes at once on MCP 2.3.1, starts from its launcher, and the fast part runs on its own in 5 s | |

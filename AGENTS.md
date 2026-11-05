@@ -116,7 +116,8 @@ implementation and `haiku` for cheap checks. pstack's defaults name Fable; the m
 
 ```
 dotnet build
-dotnet test                                        # free: no network, no model calls
+dotnet test                                        # free: no network, no model calls; about a minute
+dotnet test --filter "Category!=Process"           # the fast part: no console or server, about 5 s
 dotnet run --project NpcForge.Console -- --load 3  # no model call; still needs an API key set
 dotnet run --project NpcForge.Console              # paid: OpenAI, default model
 dotnet run --project NpcForge.Console -- --provider anthropic --model claude-opus-5   # paid
@@ -127,7 +128,10 @@ dotnet run --project NpcForge.Console -- --provider anthropic --model claude-opu
   `docs/runs/README.md` has both commands for the replay fixture.
 - API keys are user-secrets on the console project: `OpenAI:ApiKey` and `Anthropic:ApiKey`.
 - A build fails while the app is running or paused in the debugger: it locks `NpcForge.Console.dll`.
-- Tests that start the server take several seconds each.
+- The full suite takes about a minute on a quiet 16-core machine (63 to 88 s over three runs), and
+  longer beside other work. Run the fast part between edits and the full suite before saying a task
+  is done. A test that starts the console or a server carries `[Trait("Category", "Process")]`, or it
+  hides in the fast part (`NpcForge.Tests/ConsoleProcess.cs`).
 
 ## Where things are
 
