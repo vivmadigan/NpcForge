@@ -9,6 +9,13 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.12" />
+    <!-- Stays on 2.2.0 while the console is on 2.3.1 (epic 9). When a slow start makes a 2.3 client's
+         discovery probe time out, the client falls back to initialize, and a 2.3 server refuses it
+         once that session has settled on the newer protocol version; 2.2.0 accepts it. With both on
+         2.3.1, 10 of 455 tests failed that way on a loaded machine. A 2.3 server would also reorder
+         tools/list, which needs an ADR, and write its schema on a newer
+         Microsoft.Extensions.AI.Abstractions than ADR-010 measured. The 5 s close was the client's
+         to fix, so a server bump buys no speed. -->
     <PackageReference Include="ModelContextProtocol" Version="2.2.0" />
   </ItemGroup>
 
