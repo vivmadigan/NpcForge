@@ -6,6 +6,7 @@ namespace NpcForge.Tests;
 // each test first makes its own recording: the real server rolls the brief, and a stand-in model
 // plays the namer and the writer through RecordingChatClient. The app then replays that recording,
 // free and offline, and the test reads what a user sees: the trace, the answer and the save.
+[Trait("Category", "Process")]
 public class NamedRunTests
 {
     // The dice are given, so the stand-in's name is known: K, 2 syllables, V gives Kara Vale.

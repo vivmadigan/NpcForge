@@ -112,8 +112,9 @@ blind for you to guess and `--score`. A blind tone check scored 5 of 6. A scene'
 honestly: the interview asks you for a missing place or role, marks a missing want as not given and
 writes the character to be won over, with a hook from your scene, and rolls a missing difficulty.
 Every character now opens with a passage you can read straight to your players, from a rolled
-gender, age and look, and the name fits the gender.
-Next: faster tests, keeping and editing characters, and in time a website with logins and a
+gender, age and look, and the name fits the gender. The free tests run in about a minute, and the
+part that starts no process in about 5 s.
+Next: keeping and editing characters, and in time a website with logins and a
 database so friends can use it. See
 [ROADMAP.md](ROADMAP.md).
 

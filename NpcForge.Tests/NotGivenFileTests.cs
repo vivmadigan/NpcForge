@@ -2,6 +2,7 @@ namespace NpcForge.Tests;
 
 // Not-given files (ADR-010, decision 5): one per field the scene may leave out, in the default skill
 // folder. A gap must stop an interview run before anything is paid for, so these tests use no model.
+[Trait("Category", "Process")]
 public class NotGivenFileTests : IDisposable
 {
     private readonly List<string> _cleanup = [];

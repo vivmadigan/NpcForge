@@ -8,6 +8,7 @@ namespace NpcForge.Tests;
 public class RollFieldTests
 {
     [Fact]
+    [Trait("Category", "Process")]
     public async Task Reads_every_roll_character_field_from_the_real_server()
     {
         var fields = await FieldsFromServer();
@@ -48,6 +49,7 @@ public class RollFieldTests
     // admits null ("not given"); setting and occupation are required and do not. If a later SDK stops
     // writing the null, this fails, and the fallback is a server-owned list (ADR-010, decision 1).
     [Fact]
+    [Trait("Category", "Process")]
     public async Task The_schema_requires_three_fields_and_only_the_want_admits_null()
     {
         await using var tools = new McpToolSource();
@@ -70,6 +72,7 @@ public class RollFieldTests
     // the real schema on names, order, choices and kinds (WhenMissing), so the copy cannot drift
     // from the server. Descriptions are the copy's own short ones, so they are not compared.
     [Fact]
+    [Trait("Category", "Process")]
     public async Task The_scene_draft_tests_hand_copy_matches_the_real_schema()
     {
         var fields = await FieldsFromServer();
@@ -81,6 +84,7 @@ public class RollFieldTests
     // ADR-009: the syllable count is a number in a string, "1", "2", "3". The attribute on the server's
     // enum must reach the schema, or the console would read the member names (One, Two, Three).
     [Fact]
+    [Trait("Category", "Process")]
     public async Task The_syllable_choices_are_written_as_digits()
     {
         var fields = await FieldsFromServer();
@@ -91,6 +95,7 @@ public class RollFieldTests
     // Both name letters offer the whole alphabet: the table the dice use leaves out Q, U, X, Y and Z,
     // but a GM may still ask for one.
     [Fact]
+    [Trait("Category", "Process")]
     public async Task Both_name_letters_offer_all_26_letters()
     {
         var fields = await FieldsFromServer();
@@ -101,6 +106,7 @@ public class RollFieldTests
     }
 
     [Fact]
+    [Trait("Category", "Process")]
     public async Task Every_ask_and_not_given_field_has_a_flag_default()
     {
         var fields = await FieldsFromServer();

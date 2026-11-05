@@ -166,6 +166,7 @@ public class SceneInterviewTests(ITestOutputHelper output)
     // ADR-011: a look the scene states, quoted, and a gender and an age from quotes, reach the confirmation
     // with their labels and the real server's brief. A scene with no word for a gender leaves it rolled.
     [Fact]
+    [Trait("Category", "Process")]
     public async Task A_look_a_gender_and_an_age_the_scene_states_reach_the_confirmation_and_the_brief()
     {
         const string scene = "The players meet a bald old baker at her shop.";
@@ -232,6 +233,7 @@ public class SceneInterviewTests(ITestOutputHelper output)
     // seed whose plain roll gives a different obstacle, so the brief can only say Cant if the
     // interview's answer got there.
     [Fact]
+    [Trait("Category", "Process")]
     public async Task A_described_trait_reaches_the_brief_from_the_real_server()
     {
         const int seed = 1;
@@ -251,6 +253,7 @@ public class SceneInterviewTests(ITestOutputHelper output)
     // Program.cs, as a process: no answer flag means the interview, and end of input stops it with
     // nothing rolled and nothing saved. Free twice over: the replay provider, and no model turn.
     [Fact]
+    [Trait("Category", "Process")]
     public async Task The_app_with_no_answer_flag_waits_for_a_scene_and_end_of_input_rolls_nothing()
     {
         var fixture = Path.Combine(ConsoleProcess.RepoRoot, "NpcForge.Tests", "Fixtures", "replay.jsonl");
@@ -284,6 +287,7 @@ public class SceneInterviewTests(ITestOutputHelper output)
     // only if stdin was decoded as UTF-8; when it was not, the replay names the line that differs.
     // Free: the replay provider.
     [Fact]
+    [Trait("Category", "Process")]
     public async Task A_piped_scene_reaches_the_interviewer_with_its_curly_apostrophe()
     {
         const string scene = "The players meet a baker at her shop. It’s her daughter’s bakery now, and she wants it back.";

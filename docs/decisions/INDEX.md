@@ -19,7 +19,7 @@ Decision, Why, Consequences.
 | Skills | `SKILL.md` files in the repo, read by the app into a system message | Works with both providers; a vendor's server-side skills would tie the app to one |
 | OpenAI endpoint | Responses, not Chat Completions | Chat Completions rejects function tools on reasoning models. [Lesson 001](../lessons/001-openai-responses-endpoint.md) |
 | Traces | stderr, one prefix per source: `[app]`, `[skill]`, `[loop]`, `[tool]`, `[server]` | Stdout is the answer, and on the server it is the transport |
-| Starting the server | `dotnet run --project <server> --no-build`, path from `AppContext.BaseDirectory`, build order from a `ProjectReference` with `ReferenceOutputAssembly="false"` | Same from the app and the tests, never stale, no shared types, no build output on the wire |
+| Starting the server | The server's own launcher, `NpcForge.Server/bin/<configuration>/net10.0/NpcForge.Server.exe`, started directly; path from `AppContext.BaseDirectory`, configuration from the console assembly, build order from a `ProjectReference` with `ReferenceOutputAssembly="false"`. The console's MCP client is on 2.3.1, the server on 2.2.0 | Same from the app and the tests, never stale, no shared types, no build output on the wire; a server closes at once and starts in 0.6 s. [ADR-012](ADR-012-server-launcher-and-mcp-client-2-3.md) |
 | Occupation | Supplied like the setting, default `"innkeeper"`. Not rolled. | [ADR-002](ADR-002-occupation-in-the-brief.md) |
 | Storage | One JSON file on the server, every run saved, brief and text together, loaded by number | [ADR-003](ADR-003-saved-character-is-brief-and-text.md) |
 | Tests | xUnit, free: fake models, the real server, no network | Anything that costs money is not a test |

@@ -53,14 +53,25 @@ namespace NpcForge
             var serverProject = Path.GetFullPath(Path.Combine(
                 AppContext.BaseDirectory, "..", "..", "..", "..", "NpcForge.Server"));
 
-            // The server runs in the configuration this console was built in. `dotnet run --no-build`
-            // with no -c falls back to Debug, so a Release console would drive a Debug server that
-            // may be stale or missing, and a Release replay would prove nothing about the Release
-            // server (lesson 008). The assembly carries the Configuration
-            // the SDK built it under, so this is what `-c` set, not a guess from a path.
+            // The server runs in the configuration this console was built in. A Release console
+            // driving the Debug server would run a build that may be stale or missing, and a Release
+            // replay would prove nothing about the Release server (lesson 008). The assembly carries
+            // the Configuration the SDK built it under, so this is what `-c` set, not a guess from
+            // a path.
             var configuration = typeof(McpToolSource).Assembly
                 .GetCustomAttribute<AssemblyConfigurationAttribute>()?.Configuration
                 ?? throw new InvalidOperationException("The console assembly carries no build configuration.");
+
+            // The server's own launcher, built beside its dll, started directly. `dotnet run` read
+            // the project before every start: a median 2.1 s to the first reply, against 0.64 s
+            // (epic 9). The launcher keeps the process named NpcForge.Server, which is how the verify
+            // skill and the debugger find it. The folder is named, not taken from this program's own
+            // folder, because the tests run copies of the console from sibling folders of net10.0.
+            var server = Path.Combine(serverProject, "bin", configuration, "net10.0",
+                OperatingSystem.IsWindows() ? "NpcForge.Server.exe" : "NpcForge.Server");
+            if (!File.Exists(server))
+                throw new InvalidOperationException(
+                    $"The {configuration} build of NpcForge.Server is missing ({server}). Run `dotnet build -c {configuration}`.");
 
             // What the server is told, through its environment. The server inherits everything this
             // process has, and a null value here does not mean "leave it": it deletes the variable.
@@ -85,12 +96,11 @@ namespace NpcForge
             var transport = new StdioClientTransport(new StdioClientTransportOptions
             {
                 Name = "NpcForge.Server",
-                Command = "dotnet",
-                Arguments = ["run", "--project", serverProject, "--no-build", "-c", configuration],
+                Command = server,
                 StandardErrorLines = line => Console.Error.WriteLine($"[server] {line}"),
 
                 // Storage.cs and the dice read these. An environment variable reaches the child
-                // process before any MCP message does, and survives the hop through dotnet run.
+                // process before any MCP message does.
                 // Inheriting is the library's default, written out because the server also needs
                 // the rest of the caller's environment, such as the proxy the tests set.
                 InheritEnvironmentVariables = true,

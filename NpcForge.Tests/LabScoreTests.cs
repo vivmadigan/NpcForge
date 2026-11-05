@@ -77,6 +77,7 @@ public class LabScoreTests : IDisposable
     // server, and the offline stop set. The only things it may do are read the folder and write
     // scored.md.
     [Fact]
+    [Trait("Category", "Process")]
     public async Task The_app_scores_with_no_key_and_no_server()
     {
         var key = BlindLab();
