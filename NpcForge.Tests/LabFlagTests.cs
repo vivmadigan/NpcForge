@@ -290,6 +290,7 @@ public class LabFlagTests
 
 // The same refusals through the whole app as a process, with both independent stops set (offline
 // and the dead proxy): the message is the parser's, not the offline stop's and not a missing key's.
+[Trait("Category", "Process")]
 public class LabRefusalProcessTests
 {
     [Theory]

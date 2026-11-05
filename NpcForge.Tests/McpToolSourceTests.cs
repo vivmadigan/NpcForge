@@ -10,6 +10,7 @@ namespace NpcForge.Tests;
 // rolls, saves and loads, and naming an app-only tool gets a refusal. Free, like the others.
 // Every test that saves uses its own temp file, never your characters.json.
 
+[Trait("Category", "Process")]
 public class McpToolSourceTests
 {
     [Fact]

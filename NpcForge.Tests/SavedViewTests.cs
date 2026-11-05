@@ -90,6 +90,7 @@ public class SavedViewTests
     // then the text. A save with every field prints no unknown line, which is the positive control: the
     // line is not simply always there. The replay provider and the dead proxy keep it free.
     [Fact]
+    [Trait("Category", "Process")]
     public async Task Load_prints_the_unknown_line_after_the_brief_line_for_an_old_save()
     {
         var old = await LoadOf(OldBrief);
@@ -134,6 +135,7 @@ public class SavedViewTests
     }
 
     [Fact]
+    [Trait("Category", "Process")]
     public async Task Load_prints_the_not_given_line_for_a_no_want_save_and_the_unknown_line_for_an_old_one_never_both()
     {
         var noWant = await LoadOf(OldBrief.Replace("\"playersWant\": \"the name of a fence\"", "\"playersWant\": null") + NewFields + LookFields, Kessa);

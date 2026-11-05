@@ -5,6 +5,7 @@ namespace NpcForge.Tests;
 // and the dead proxy, so a parser that stopped refusing would fail for free. The test asserts the
 // parser's message and not the offline one, which is what shows the parser did the stopping
 // (lesson 004).
+[Trait("Category", "Process")]
 public class FlagRefusalTests
 {
     [Theory]

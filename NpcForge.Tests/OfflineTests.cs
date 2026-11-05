@@ -58,6 +58,7 @@ public class OfflineTests
     // The same stop, through the whole app as a process, so the variable is read from the
     // environment the way a test harness or a web host would set it.
     [Theory]
+    [Trait("Category", "Process")]
     [InlineData("openai")]
     [InlineData("anthropic")]
     public async Task The_app_refuses_a_paid_provider_when_NPCFORGE_OFFLINE_is_set(string provider)
@@ -69,6 +70,7 @@ public class OfflineTests
     }
 
     [Fact]
+    [Trait("Category", "Process")]
     public async Task The_app_still_replays_when_NPCFORGE_OFFLINE_is_set()
     {
         var fixture = Path.Combine(ConsoleProcess.RepoRoot, "NpcForge.Tests", "Fixtures", "replay.jsonl");

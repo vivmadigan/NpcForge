@@ -2,6 +2,7 @@ namespace NpcForge.Tests;
 
 // Tone files (ADR-009 section 3): one per tone the server can roll, in every skill folder a run uses.
 // A gap must stop the run before anything is paid for, so these tests use no model at all.
+[Trait("Category", "Process")]
 public class ToneFileTests : IDisposable
 {
     private readonly List<string> _cleanup = [];

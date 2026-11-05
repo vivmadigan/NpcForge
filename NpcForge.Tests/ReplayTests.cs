@@ -9,6 +9,7 @@ namespace NpcForge.Tests;
 // purpose, so it still holds when the "Ready to grow" epic moves every class in the console. It
 // checks the save file, not what was printed: the save is exact, and a child process's stdout is
 // not (lesson 006).
+[Trait("Category", "Process")]
 public class ReplayTests
 {
     [Fact]

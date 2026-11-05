@@ -9,6 +9,7 @@ namespace NpcForge.Tests;
 // handed-in value replaces its die without moving the others (ADR-009). Every test here rolls on a
 // seeded server of its own. These were half of McpToolSourceTests; xUnit runs one class's tests one
 // after another, so as two classes the halves run side by side (epic 9).
+[Trait("Category", "Process")]
 public class SeededRollTests
 {
     [Fact]

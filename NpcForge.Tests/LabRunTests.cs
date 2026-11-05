@@ -15,6 +15,7 @@ public class ConsoleErrorCollection;
 // is possible: the stand-in is the only IChatClient, and NPCFORGE_OFFLINE=1 is set for the run.
 // Each test names its own temp save file and lab folder, never the owner's characters.json.
 [Collection("Console.Error")]
+[Trait("Category", "Process")]
 public class LabRunTests : IDisposable
 {
     private const int Seed = 5;

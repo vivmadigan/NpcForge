@@ -21,6 +21,7 @@ public class DiceOrderTests
     private static readonly string[] Difficulties = ["Easy", "SomeWork", "Wall"];
 
     [Fact]
+    [Trait("Category", "Process")]
     public async Task Seeds_1_to_12_roll_the_golden_briefs_at_every_difficulty()
     {
         var cases = Enumerable.Range(1, 12).SelectMany(seed => Difficulties.Select(difficulty => (seed, difficulty)));
@@ -70,6 +71,7 @@ public class DiceOrderTests
     //   new Random(seed) when this test was written). The Easy rule must read the rolled difficulty to
     //   pass. The test holds that those three still roll Easy, so the claim cannot go stale unseen.
     [Fact]
+    [Trait("Category", "Process")]
     public async Task A_missing_difficulty_is_the_thirteenth_die_and_rolls_what_handing_it_in_rolls()
     {
         var golden = WholeGolden();

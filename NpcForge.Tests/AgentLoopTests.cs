@@ -28,6 +28,7 @@ public class AgentLoopTests
     }
 
     [Fact]
+    [Trait("Category", "Process")]
     public async Task Runs_a_tool_call_through_the_real_server()
     {
         await using var tools = new McpToolSource();

@@ -6,6 +6,9 @@ namespace NpcForge.Tests;
 
 // The one way a test starts the whole app as a process. It lives here so the rules that keep a
 // test run free and honest are written once and cannot be forgotten in a fourth copy.
+// A test that starts the app, or a server through McpToolSource, carries
+// [Trait("Category", "Process")], so `dotnet test --filter Category!=Process` runs every other test
+// in seconds (epic 9). Without the trait, a slow test hides in the fast part.
 internal static class ConsoleProcess
 {
     public sealed record Result(int ExitCode, string Stdout, string Stderr);
