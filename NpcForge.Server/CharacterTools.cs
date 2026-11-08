@@ -168,10 +168,8 @@ namespace NpcForge.Server
         // throws here, and the app's CallDirectAsync turns that into a stopped run.
         private static T Pick<T>(IReadOnlyList<T> table) => table[Dice.Next(table.Count)];
 
-        // A die cast now, as Dice.NextDouble(), and read later against its table. Seeded Random
-        // computes Next(n) as (int)(NextDouble() * n), so this picks the row Pick would have picked
-        // had the table been known at the cast, and every seed keeps its brief (ADR-010). A test holds it.
-        public static T ReadCast<T>(double cast, IReadOnlyList<T> table) => table[(int)(cast * table.Count)];
+        // The cast and its read live in the core's Dice. DiceOrderTests names this entry in full.
+        public static T ReadCast<T>(double cast, IReadOnlyList<T> table) => NpcForge.Dice.ReadCast(cast, table);
 
         // With NPCFORGE_SEED set, the same seed rolls the same brief every time, because
         // RollCharacter always picks in the same order. Without it, Random.Shared, as before.

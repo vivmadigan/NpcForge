@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace NpcForge.Server
+namespace NpcForge
 {
     // The five casts the look reads, each a Dice.NextDouble() taken in RollCharacter (ADR-011). A look
     // that is not a 20 reads only the first and the colour casts it needs. The rest are cast anyway,
@@ -32,13 +32,13 @@ namespace NpcForge.Server
         // depend on what comes up, so no die added after them moves.
         public static IReadOnlyList<LookPart> Read(LookCasts casts, Age age)
         {
-            var first = CharacterTools.ReadCast(casts.Look, Tables.Looks);
+            var first = Dice.ReadCast(casts.Look, Tables.Looks);
             if (first != Tables.TwoMoreLooks)
                 return [Part(first, casts, age)];
 
             var rows = Tables.Looks.Where(row => row != Tables.TwoMoreLooks).ToArray();
-            var second = CharacterTools.ReadCast(casts.Second, rows);
-            var third = CharacterTools.ReadCast(casts.Third, rows.Where(row => row != second && !Clash(row, second)).ToArray());
+            var second = Dice.ReadCast(casts.Second, rows);
+            var third = Dice.ReadCast(casts.Third, rows.Where(row => row != second && !Clash(row, second)).ToArray());
             return [Part(second, casts, age), Part(third, casts, age)];
         }
 
@@ -51,8 +51,8 @@ namespace NpcForge.Server
         {
             var colour = row.Colour switch
             {
-                Tables.LookColour.Eye => CharacterTools.ReadCast(casts.Eye, Tables.EyeColours),
-                Tables.LookColour.Hair => CharacterTools.ReadCast(casts.Hair, HairColoursFor(age)).Text,
+                Tables.LookColour.Eye => Dice.ReadCast(casts.Eye, Tables.EyeColours),
+                Tables.LookColour.Hair => Dice.ReadCast(casts.Hair, HairColoursFor(age)).Text,
                 _ => null,
             };
             return new LookPart(row, colour);

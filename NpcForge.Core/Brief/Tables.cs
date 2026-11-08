@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace NpcForge.Server
+namespace NpcForge
 {
     public static class Tables
     {
