@@ -32,7 +32,8 @@ public class LabFlagTests
     {
         var run = RunOptions.Parse([.. Good, "--repeat", "2", "--mode", "blind", "--out", "Lab Out"]);
 
-        // The roll gets what a normal run with the same answers gets, and nothing from the lab.
+        // The roll gets what a normal run with the same answers gets, and nothing from the lab. Each lab
+        // flag here differs from its default, so one that leaked into the roll would show.
         Assert.Equal(RunOptions.Parse(["--seed", "1", "--setting", "a farm"]).RollArguments(), run.RollArguments());
         Assert.DoesNotContain("--lab", run.RecordedFlags());
         Assert.DoesNotContain("--repeat", run.RecordedFlags());
