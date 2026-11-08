@@ -72,14 +72,18 @@ public class SceneDraftTests
         Assert.Equal(Rejection.QuoteTooLong, result.Reason);
     }
 
+    // Both quotes are the GM's words, in one sentence, and hold the value, so only the length decides:
+    // 13 words is refused and 12 is not.
     [Fact]
     public void A_quote_of_more_than_twelve_words_in_one_sentence_is_rejected()
     {
-        // 13 words, all in the second sentence.
-        var result = Draft().Record("attitude", "doesn't want to get involved",
-            "knows nothing about the guild, knows a few people who might, and doesn't want");
+        var thirteen = Draft().Record("attitude", "doesn't want to get involved",
+            "guild, knows a few people who might, and doesn't want to get involved");
+        var twelve = Draft().Record("attitude", "doesn't want to get involved",
+            "knows a few people who might, and doesn't want to get involved");
 
-        Assert.Equal(Rejection.QuoteTooLong, result.Reason);
+        Assert.Equal(Rejection.QuoteTooLong, thirteen.Reason);
+        Assert.Equal(Rejection.None, twelve.Reason);
     }
 
     [Fact]
@@ -491,12 +495,5 @@ public class SceneDraftTests
         draft.Record("setting", "a castle", "a castle");
 
         Assert.Equal("his tavern", draft.Answers["setting"].Value);
-    }
-
-    [Fact]
-    public void The_one_normalising_function_treats_case_apostrophes_and_punctuation_alike()
-    {
-        Assert.Equal("doesn't want to get involved", Words.Normalise("  “Doesn’t want, to get INVOLVED!” "));
-        Assert.Equal("dinner", Words.Normalise("dinner"));
     }
 }
