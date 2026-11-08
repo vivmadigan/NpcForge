@@ -63,6 +63,20 @@ dotnet run --project NpcForge.Console -- --provider replay --recording NpcForge.
 A `--record` run also saves to a temp file, so recording the fixture does not add an entry to
 `characters.json`. Its `[app] saved as` line names the file, once you answer `save`.
 
+## The roll-again recording
+
+Epic 4 records a second run, `NpcForge.Tests/Fixtures/roll-again.jsonl`: the same flags, answered
+`again` and then `save`, so it holds two characters. The answers are typed, not flags, so line 1
+does not hold them and the run replays only with them piped in. It goes stale with the replay
+fixture, so re-record the two together. In Git Bash, after `dotnet build --no-incremental`:
+
+```text
+printf 'again\nsave\n' > answers.txt
+NPCFORGE_CHARACTERS=<scratch file> dotnet run --project NpcForge.Console -- --record NpcForge.Tests/Fixtures/roll-again.jsonl --seed 1 --provider openai --model gpt-6-luna --setting "an inn in a major city" --want "the name of a fence" --difficulty Wall --occupation innkeeper < answers.txt
+```
+
+`RollAgainTests` replays it.
+
 ## Why it is done this way
 
 **Paste, don't redirect.** A PowerShell redirect reorders the answer against the stderr trace, and
