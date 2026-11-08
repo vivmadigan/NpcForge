@@ -10,8 +10,9 @@ namespace NpcForge.Server
         {
             var all = Storage.Load(path);
 
-            // One past the highest, not Count + 1: after a hand edit that deletes an entry,
-            // Count + 1 could save over the last one.
+            // The port promises a number greater than every number held. One past the highest keeps
+            // it; Count + 1 would not, because after a hand edit that deletes an entry it could save
+            // over the last one.
             var number = all.Count == 0 ? 1 : all.Keys.Max() + 1;
 
             all[number] = character;

@@ -8,7 +8,8 @@ namespace NpcForge;
 // numbers its own rows; CharacterStoreTests holds the rule for every store.
 public interface ICharacterStore
 {
-    // Keeps the character under the next number: one past the highest this store holds, 1 when empty.
+    // Keeps the character under a number greater than every number the store holds, 1 when empty, and
+    // never under a number a save holds. A store need not give out a removed number again.
     Task<int> SaveAsync(SavedCharacter character, CancellationToken ct);
 
     // The character saved under this number, its brief exactly as saved; null when none was.

@@ -9,7 +9,8 @@ internal sealed class InMemoryCharacterStore : ICharacterStore
 
     public Task<int> SaveAsync(SavedCharacter character, CancellationToken ct)
     {
-        // One past the highest, as the file store numbers, not Count + 1.
+        // The port promises a number greater than every number held, never one a save holds. One past the
+        // highest keeps it, as in the file store; Count + 1 would not after a Remove.
         var number = _saves.Count == 0 ? 1 : _saves.Keys.Max() + 1;
         _saves[number] = character;
         return Task.FromResult(number);

@@ -51,15 +51,22 @@ public abstract class CharacterStoreTests
         Assert.Null(await Store.LoadAsync(2, Ct));
     }
 
-    // The next number is one past the highest present, so a removed highest number is saved under again.
+    // The promise is a number greater than every number held and never one a save holds. A store may or
+    // may not give a removed highest number out again, so the test does not say which.
     [Fact]
-    public async Task After_the_highest_is_removed_the_next_number_is_one_past_the_new_highest()
+    public async Task After_the_highest_is_removed_the_next_number_is_greater_than_every_number_held_and_none_is_overwritten()
     {
         await Store.SaveAsync(Saved("one"), Ct);
         await Store.SaveAsync(Saved("two"), Ct);
-        Remove(2);
+        await Store.SaveAsync(Saved("three"), Ct);
+        Remove(3);
 
-        Assert.Equal(2, await Store.SaveAsync(Saved("again"), Ct));
+        var number = await Store.SaveAsync(Saved("again"), Ct);
+
+        Assert.True(number > 2, $"saved under {number}, which a save holds or is not greater than every number held (1 and 2)");
+        Assert.Equal("one", (await Store.LoadAsync(1, Ct))!.Text);
+        Assert.Equal("two", (await Store.LoadAsync(2, Ct))!.Text);
+        Assert.Equal("again", (await Store.LoadAsync(number, Ct))!.Text);
     }
 
     [Fact]
