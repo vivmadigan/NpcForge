@@ -13,7 +13,8 @@ Console.OutputEncoding = Encoding.UTF8;
 Console.InputEncoding = Encoding.UTF8;
 
 // No host, no DI container. Everything is wired by hand, in the order it happens:
-// config, then connect, then the client, then the options, then interview, roll, name, write, save.
+// config, then connect, then the client, then the options, then interview, then CharacterRun's roll, name
+// and write, then save. CharacterRun is the one step a later change repeats.
 // --load comes straight after connect, before the client, and the model is never called.
 // With --lab, the lab takes over after the client and writes a sheet instead of a save. With no answer flag,
 // the interview reads the GM's scene, and the roll waits for the GM's yes. The roll comes
@@ -183,28 +184,14 @@ else
     rollArguments = run.RollArguments();
 }
 
-// Roll: the app calls roll_character itself. The model never sees this tool, so it cannot
-// skip the roll. The difficulty goes as text and the server turns it into the enum; a value
-// it does not know stops the run here, before the writer is called. A trait the GM described
-// goes in through the parameter roll_character already has, and only the rest is rolled.
-var briefJson = await tools.CallDirectAsync("roll_character", rollArguments, CancellationToken.None);
-
-// The dice, made visible. Every trait in the writing should trace back to a value on this line,
-// and any that does not was invented by the model.
-Console.Error.WriteLine($"[app] {provider} {model}");
-Console.Error.WriteLine($"[app] brief {briefJson}");
-
-// Shows in every run's record that the writer was given the scene. A count, not the text: the GM
-// typed it, and it is on the screen above.
-if (scene is not null)
-    Console.Error.WriteLine($"[app] scene sent ({scene.Length} chars)");
-
-// Run: the namer names the character inside its dice, then the writer writes it.
-Written written;
+// Roll, name and write are one step (CharacterRun): the app calls roll_character itself, prints the
+// dice, then the namer names the character and the writer writes it. The Ask is what the run is made
+// from; the scene is the GM's, or null for a run with answer flags.
+var ask = new Ask(rollArguments, scene, provider);
+Draft draft;
 try
 {
-    written = await ChatAgent.WriteAsync(
-        client, options, tools, new WriterInput(briefJson, scene, WriterInput.DefaultSkillDir), CancellationToken.None);
+    draft = await CharacterRun.RollAndWriteAsync(client, options, tools, ask, CancellationToken.None);
 }
 catch (NoNameException ex)
 {
@@ -213,19 +200,10 @@ catch (NoNameException ex)
     Environment.ExitCode = 1;
     return;
 }
-var answer = written.Text;
-Console.WriteLine(answer);
+Console.WriteLine(draft.Written.Text);
 
-// Save: every run is kept, the brief with the character written from it. The brief goes as a
-// JSON object, not as the text the roll returned: save_character takes a CharacterBrief.
-using var brief = JsonDocument.Parse(briefJson);
-var savedAs = await tools.CallDirectAsync("save_character", new()
-{
-    ["brief"] = brief.RootElement,
-    // As the namer split it, so the save shows the count the name was checked on.
-    ["name"] = JsonSerializer.SerializeToElement(new { syllables = written.Name.Syllables, family = written.Name.Family }),
-    ["text"] = answer,
-}, CancellationToken.None);
+// Save: every run is kept, for now. The brief with the character written from it.
+var savedAs = await CharacterRun.SaveAsync(tools, draft, CancellationToken.None);
 
 // Where, when this run chose the file, so a save in a temp file can be found.
 Console.Error.WriteLine(charactersPath is null
