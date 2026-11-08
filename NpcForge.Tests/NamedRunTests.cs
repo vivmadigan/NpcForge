@@ -99,7 +99,7 @@ public class NamedRunTests
         public Task<ConsoleProcess.Result> ReplayAsync() =>
             ConsoleProcess.RunAsync(
                 [.. Flags, "--provider", "replay", "--recording", RecordingFile],
-                offline: true, environment: new() { ["NPCFORGE_CHARACTERS"] = SaveFile });
+                offline: true, environment: new() { ["NPCFORGE_CHARACTERS"] = SaveFile }, input: "save\n");
 
         public Task<ConsoleProcess.Result> LoadAsync(int number) =>
             ConsoleProcess.RunAsync(

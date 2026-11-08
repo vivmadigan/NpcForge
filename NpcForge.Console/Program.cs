@@ -14,7 +14,8 @@ Console.InputEncoding = Encoding.UTF8;
 
 // No host, no DI container. Everything is wired by hand, in the order it happens:
 // config, then connect, then the client, then the options, then interview, then CharacterRun's roll, name
-// and write, then save. CharacterRun is the one step a later change repeats.
+// and write, then the question whether to keep it (save or leave). CharacterRun is the one step a later
+// change repeats.
 // --load comes straight after connect, before the client, and the model is never called.
 // With --lab, the lab takes over after the client and writes a sheet instead of a save. With no answer flag,
 // the interview reads the GM's scene, and the roll waits for the GM's yes. The roll comes
@@ -202,11 +203,7 @@ catch (NoNameException ex)
 }
 Console.WriteLine(draft.Written.Text);
 
-// Save: every run is kept, for now. The brief with the character written from it.
-var savedAs = await CharacterRun.SaveAsync(tools, draft, CancellationToken.None);
-
-// Where, when this run chose the file, so a save in a temp file can be found.
-Console.Error.WriteLine(charactersPath is null
-    ? $"[app] saved as {savedAs}"
-    : $"[app] saved as {savedAs} in {charactersPath}");
+// Keep: the GM chooses, in every run (ADR-013, decisions 1 and 2). Only "save" calls save_character;
+// "leave" and end of input keep nothing, and anything else asks again.
+await KeepQuestion.AskAsync(tools, draft, charactersPath, Console.In, Console.Error, CancellationToken.None);
 
