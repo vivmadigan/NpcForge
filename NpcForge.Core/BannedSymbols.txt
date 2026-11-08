@@ -1,0 +1,81 @@
+// What NpcForge.Core may not call (ADR-014, decision 7). Each line is a documentation comment ID, a
+// semicolon and the door to use instead. The compiler turns a hit into error RS0030. Overloads are listed
+// one by one because the format has no wildcard. Console.Error stays allowed: the core writes its traces there.
+
+// Files and folders. The core reads and writes no file. Saved characters go behind ICharacterStore and the
+// bundled skills go through SkillFiles, the one file allowed to suppress this rule.
+T:System.IO.File;The core reads and writes no file. Saves go through ICharacterStore and bundled skills through SkillFiles (ADR-014).
+T:System.IO.Directory;The core reads and writes no folder. Saves go through ICharacterStore and bundled skills through SkillFiles (ADR-014).
+T:System.IO.FileInfo;The core reads and writes no file. Saves go through ICharacterStore and bundled skills through SkillFiles (ADR-014).
+T:System.IO.DirectoryInfo;The core reads and writes no folder. Saves go through ICharacterStore and bundled skills through SkillFiles (ADR-014).
+T:System.IO.FileStream;The core reads and writes no file. Saves go through ICharacterStore and bundled skills through SkillFiles (ADR-014).
+
+// The path constructors only. A StreamReader or StreamWriter over a Stream or a TextReader stays allowed.
+M:System.IO.StreamReader.#ctor(System.String);A reader opened on a path is a file read. Saves go through ICharacterStore and bundled skills through SkillFiles (ADR-014).
+M:System.IO.StreamReader.#ctor(System.String,System.Boolean);A reader opened on a path is a file read. Saves go through ICharacterStore and bundled skills through SkillFiles (ADR-014).
+M:System.IO.StreamReader.#ctor(System.String,System.Text.Encoding);A reader opened on a path is a file read. Saves go through ICharacterStore and bundled skills through SkillFiles (ADR-014).
+M:System.IO.StreamReader.#ctor(System.String,System.Text.Encoding,System.Boolean);A reader opened on a path is a file read. Saves go through ICharacterStore and bundled skills through SkillFiles (ADR-014).
+M:System.IO.StreamReader.#ctor(System.String,System.Text.Encoding,System.Boolean,System.Int32);A reader opened on a path is a file read. Saves go through ICharacterStore and bundled skills through SkillFiles (ADR-014).
+M:System.IO.StreamReader.#ctor(System.String,System.IO.FileStreamOptions);A reader opened on a path is a file read. Saves go through ICharacterStore and bundled skills through SkillFiles (ADR-014).
+M:System.IO.StreamReader.#ctor(System.String,System.Text.Encoding,System.Boolean,System.IO.FileStreamOptions);A reader opened on a path is a file read. Saves go through ICharacterStore and bundled skills through SkillFiles (ADR-014).
+M:System.IO.StreamWriter.#ctor(System.String);A writer opened on a path is a file write. Saves go through ICharacterStore (ADR-014).
+M:System.IO.StreamWriter.#ctor(System.String,System.Boolean);A writer opened on a path is a file write. Saves go through ICharacterStore (ADR-014).
+M:System.IO.StreamWriter.#ctor(System.String,System.Boolean,System.Text.Encoding);A writer opened on a path is a file write. Saves go through ICharacterStore (ADR-014).
+M:System.IO.StreamWriter.#ctor(System.String,System.Boolean,System.Text.Encoding,System.Int32);A writer opened on a path is a file write. Saves go through ICharacterStore (ADR-014).
+M:System.IO.StreamWriter.#ctor(System.String,System.IO.FileStreamOptions);A writer opened on a path is a file write. Saves go through ICharacterStore (ADR-014).
+M:System.IO.StreamWriter.#ctor(System.String,System.Text.Encoding,System.IO.FileStreamOptions);A writer opened on a path is a file write. Saves go through ICharacterStore (ADR-014).
+
+// The network. The model is reached through IChatClient, which the front end builds.
+T:System.Net.Http.HttpClient;The core makes no HTTP call. The model is reached through IChatClient, which the front end builds (ADR-014).
+
+// Settings from the environment. The front end reads them and hands the core a value, as it does the dice seed.
+M:System.Environment.GetEnvironmentVariable(System.String);The core reads no environment variable. The front end reads it and passes the value in, as it does the dice seed (ADR-014).
+M:System.Environment.GetEnvironmentVariable(System.String,System.EnvironmentVariableTarget);The core reads no environment variable. The front end reads it and passes the value in, as it does the dice seed (ADR-014).
+
+// The terminal. The core never writes to stdout or reads stdin: the front end owns the screen and the GM's
+// answers. Take a TextReader or a TextWriter from the front end, and write a trace to Console.Error.
+P:System.Console.In;The core never touches stdin. Take a TextReader from the front end (ADR-014).
+P:System.Console.Out;The core never touches stdout. Take a TextWriter from the front end, and write a trace to Console.Error (ADR-014).
+M:System.Console.Read;The core never touches stdin. Take a TextReader from the front end (ADR-014).
+M:System.Console.ReadLine;The core never touches stdin. Take a TextReader from the front end (ADR-014).
+M:System.Console.ReadKey;The core never touches stdin. Take a TextReader from the front end (ADR-014).
+M:System.Console.ReadKey(System.Boolean);The core never touches stdin. Take a TextReader from the front end (ADR-014).
+M:System.Console.Write(System.Boolean);The core never touches stdout. Take a TextWriter from the front end, and write a trace to Console.Error (ADR-014).
+M:System.Console.Write(System.Char);The core never touches stdout. Take a TextWriter from the front end, and write a trace to Console.Error (ADR-014).
+M:System.Console.Write(System.Char[]);The core never touches stdout. Take a TextWriter from the front end, and write a trace to Console.Error (ADR-014).
+M:System.Console.Write(System.Char[],System.Int32,System.Int32);The core never touches stdout. Take a TextWriter from the front end, and write a trace to Console.Error (ADR-014).
+M:System.Console.Write(System.Double);The core never touches stdout. Take a TextWriter from the front end, and write a trace to Console.Error (ADR-014).
+M:System.Console.Write(System.Decimal);The core never touches stdout. Take a TextWriter from the front end, and write a trace to Console.Error (ADR-014).
+M:System.Console.Write(System.Single);The core never touches stdout. Take a TextWriter from the front end, and write a trace to Console.Error (ADR-014).
+M:System.Console.Write(System.Int32);The core never touches stdout. Take a TextWriter from the front end, and write a trace to Console.Error (ADR-014).
+M:System.Console.Write(System.UInt32);The core never touches stdout. Take a TextWriter from the front end, and write a trace to Console.Error (ADR-014).
+M:System.Console.Write(System.Int64);The core never touches stdout. Take a TextWriter from the front end, and write a trace to Console.Error (ADR-014).
+M:System.Console.Write(System.UInt64);The core never touches stdout. Take a TextWriter from the front end, and write a trace to Console.Error (ADR-014).
+M:System.Console.Write(System.Object);The core never touches stdout. Take a TextWriter from the front end, and write a trace to Console.Error (ADR-014).
+M:System.Console.Write(System.String);The core never touches stdout. Take a TextWriter from the front end, and write a trace to Console.Error (ADR-014).
+M:System.Console.Write(System.ReadOnlySpan{System.Char});The core never touches stdout. Take a TextWriter from the front end, and write a trace to Console.Error (ADR-014).
+M:System.Console.Write(System.String,System.Object);The core never touches stdout. Take a TextWriter from the front end, and write a trace to Console.Error (ADR-014).
+M:System.Console.Write(System.String,System.Object,System.Object);The core never touches stdout. Take a TextWriter from the front end, and write a trace to Console.Error (ADR-014).
+M:System.Console.Write(System.String,System.Object,System.Object,System.Object);The core never touches stdout. Take a TextWriter from the front end, and write a trace to Console.Error (ADR-014).
+M:System.Console.Write(System.String,System.Object[]);The core never touches stdout. Take a TextWriter from the front end, and write a trace to Console.Error (ADR-014).
+M:System.Console.Write(System.String,System.ReadOnlySpan{System.Object});The core never touches stdout. Take a TextWriter from the front end, and write a trace to Console.Error (ADR-014).
+M:System.Console.WriteLine;The core never touches stdout. Take a TextWriter from the front end, and write a trace to Console.Error (ADR-014).
+M:System.Console.WriteLine(System.Boolean);The core never touches stdout. Take a TextWriter from the front end, and write a trace to Console.Error (ADR-014).
+M:System.Console.WriteLine(System.Char);The core never touches stdout. Take a TextWriter from the front end, and write a trace to Console.Error (ADR-014).
+M:System.Console.WriteLine(System.Char[]);The core never touches stdout. Take a TextWriter from the front end, and write a trace to Console.Error (ADR-014).
+M:System.Console.WriteLine(System.Char[],System.Int32,System.Int32);The core never touches stdout. Take a TextWriter from the front end, and write a trace to Console.Error (ADR-014).
+M:System.Console.WriteLine(System.Decimal);The core never touches stdout. Take a TextWriter from the front end, and write a trace to Console.Error (ADR-014).
+M:System.Console.WriteLine(System.Double);The core never touches stdout. Take a TextWriter from the front end, and write a trace to Console.Error (ADR-014).
+M:System.Console.WriteLine(System.Single);The core never touches stdout. Take a TextWriter from the front end, and write a trace to Console.Error (ADR-014).
+M:System.Console.WriteLine(System.Int32);The core never touches stdout. Take a TextWriter from the front end, and write a trace to Console.Error (ADR-014).
+M:System.Console.WriteLine(System.UInt32);The core never touches stdout. Take a TextWriter from the front end, and write a trace to Console.Error (ADR-014).
+M:System.Console.WriteLine(System.Int64);The core never touches stdout. Take a TextWriter from the front end, and write a trace to Console.Error (ADR-014).
+M:System.Console.WriteLine(System.UInt64);The core never touches stdout. Take a TextWriter from the front end, and write a trace to Console.Error (ADR-014).
+M:System.Console.WriteLine(System.Object);The core never touches stdout. Take a TextWriter from the front end, and write a trace to Console.Error (ADR-014).
+M:System.Console.WriteLine(System.String);The core never touches stdout. Take a TextWriter from the front end, and write a trace to Console.Error (ADR-014).
+M:System.Console.WriteLine(System.ReadOnlySpan{System.Char});The core never touches stdout. Take a TextWriter from the front end, and write a trace to Console.Error (ADR-014).
+M:System.Console.WriteLine(System.String,System.Object);The core never touches stdout. Take a TextWriter from the front end, and write a trace to Console.Error (ADR-014).
+M:System.Console.WriteLine(System.String,System.Object,System.Object);The core never touches stdout. Take a TextWriter from the front end, and write a trace to Console.Error (ADR-014).
+M:System.Console.WriteLine(System.String,System.Object,System.Object,System.Object);The core never touches stdout. Take a TextWriter from the front end, and write a trace to Console.Error (ADR-014).
+M:System.Console.WriteLine(System.String,System.Object[]);The core never touches stdout. Take a TextWriter from the front end, and write a trace to Console.Error (ADR-014).
+M:System.Console.WriteLine(System.String,System.ReadOnlySpan{System.Object});The core never touches stdout. Take a TextWriter from the front end, and write a trace to Console.Error (ADR-014).
