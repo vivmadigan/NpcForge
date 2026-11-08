@@ -19,4 +19,10 @@
     <PackageReference Include="ModelContextProtocol" Version="2.2.0" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- The brief, the tables and the dice live in the core (ADR-014). This project is their MCP
+         adapter until the console calls the core in-process. -->
+    <ProjectReference Include="..\NpcForge.Core\NpcForge.Core.csproj" />
+  </ItemGroup>
+
 </Project>
