@@ -331,9 +331,11 @@ trace.
 
 The server's own launcher, `NpcForge.Server/bin/<configuration>/net10.0/NpcForge.Server.exe`
 (`NpcForge.Server` off Windows), started directly, with the project path built from
-`AppContext.BaseDirectory` (four folders up), so the app and the tests find it the same way. The
-framework folder is named outright, because tests run copies of the console from sibling folders of
-`net10.0`. No build at launch, because build output on stdout would corrupt the wire; the
+`AppContext.BaseDirectory` (four folders up, `McpToolSource.RepoRoot`), so the app and the tests
+find it the same way. In a folder long enough, the host hands that folder back as a `\\?\` path,
+which `cmd.exe` (the MCP library starts the server through it) and MSBuild cannot use, so the prefix
+comes off first (lesson 015). The framework folder is named outright, because tests run copies of
+the console from sibling folders of `net10.0`. No build at launch, because build output on stdout would corrupt the wire; the
 `ProjectReference` keeps the server from going stale, and a missing launcher stops the start with
 the build to run. Settings reach it as environment variables (`NPCFORGE_CHARACTERS`,
 `NPCFORGE_SEED`), which arrive before any MCP message. Until epic 9 it was `dotnet run --no-build`,

@@ -45,13 +45,25 @@ namespace NpcForge
             _seed = seed;
         }
 
+        // The repo, four folders up from this program's bin folder, whatever folder it was started
+        // from. The tests find the repo here too. Once a program's dll path reaches 260 characters,
+        // the host hands back AppContext.BaseDirectory as a \\?\ path (LongFolderTests). The
+        // one-argument GetFullPath leaves ".." in such a path as it is, and neither cmd.exe, which the
+        // MCP library starts the server through, nor MSBuild can use one. So the prefix comes off
+        // first (lesson 015).
+        public static string RepoRoot { get; } = Path.GetFullPath(Path.Combine(
+            WithoutDevicePrefix(AppContext.BaseDirectory), "..", "..", "..", ".."));
+
+        // \\?\C:\x is C:\x, and \\?\UNC\server\share\x is \\server\share\x.
+        private static string WithoutDevicePrefix(string path) =>
+            path.StartsWith(@"\\?\UNC\", StringComparison.Ordinal) ? @"\\" + path[8..]
+            : path.StartsWith(@"\\?\", StringComparison.Ordinal) ? path[4..]
+            : path;
+
         // Start the server, shake hands, ask what tools it has.
         public async Task ConnectAsync(CancellationToken ct)
         {
-            // Start from this program's bin folder and go up four levels to the repo root. Works for
-            // both the app and the tests, whatever folder they were started from.
-            var serverProject = Path.GetFullPath(Path.Combine(
-                AppContext.BaseDirectory, "..", "..", "..", "..", "NpcForge.Server"));
+            var serverProject = Path.Combine(RepoRoot, "NpcForge.Server");
 
             // The server runs in the configuration this console was built in. A Release console
             // driving the Debug server would run a build that may be stale or missing, and a Release
