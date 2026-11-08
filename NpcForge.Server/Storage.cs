@@ -24,10 +24,15 @@ namespace NpcForge.Server
     {
         // Always absolute: a relative path depends on where the app was started (step 7). Tests
         // set NPCFORGE_CHARACTERS to a temp file; otherwise it sits in the server's project
-        // folder, three up from bin\Debug\net10.0, where you can find it.
+        // folder, three up from bin\Debug\net10.0, where you can find it. The two-argument
+        // GetFullPath, because a server run as `dotnet NpcForge.Server.dll` from a path of 260
+        // characters or more gets AppContext.BaseDirectory as a \\?\ path, and the one-argument form
+        // leaves ".." in such a path as it is (lesson 015). The console never meets this: Windows will
+        // not start the server's exe from a path that long. The file APIs take a \\?\ path, so the
+        // prefix can stay.
         private static string FilePath =>
             Environment.GetEnvironmentVariable("NPCFORGE_CHARACTERS")
-            ?? Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "characters.json"));
+            ?? Path.GetFullPath(Path.Combine("..", "..", "..", "characters.json"), AppContext.BaseDirectory);
 
 
         // Same camelCase names as the [app] brief line, indented so you can read the file, and
