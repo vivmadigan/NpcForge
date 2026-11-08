@@ -24,7 +24,10 @@ public static class KeepQuestion
             if (answer is null)
                 return Keep.EndOfInput;
 
-            switch (answer.Trim().ToLowerInvariant())
+            // A byte order mark is not whitespace, so Trim leaves it. A pipe that writes one puts it
+            // before the first answer, and "again" would then be refused and the next "save" would save
+            // the wrong character.
+            switch (answer.Trim().TrimStart('﻿').ToLowerInvariant())
             {
                 case "save":
                     return Keep.Save;

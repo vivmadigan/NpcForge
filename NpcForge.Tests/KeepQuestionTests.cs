@@ -133,6 +133,8 @@ public class KeepAnswerTests
     [InlineData(" AGAIN \n", Keep.Again)]
     [InlineData("leave\n", Keep.Leave)]
     [InlineData("", Keep.EndOfInput)]
+    // A pipe that writes a UTF-8 byte order mark puts it before the first answer, and Trim leaves it.
+    [InlineData("﻿again\n", Keep.Again)]
     public async Task Each_word_is_its_own_choice_and_end_of_input_is_its_own(string input, Keep expected)
     {
         Assert.Equal(expected, (await AskAsync(input)).Choice);
