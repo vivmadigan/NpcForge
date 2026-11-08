@@ -1,16 +1,17 @@
 namespace NpcForge.Tests;
 
-// The refusal in RunOptions.Parse, through the whole app as a process: a typo'd flag next to the
-// default paid provider must stop at the parser. Both independent stops are set, NPCFORGE_OFFLINE=1
-// and the dead proxy, so a parser that stopped refusing would fail for free. The test asserts the
-// parser's message and not the offline one, which is what shows the parser did the stopping
-// (lesson 004).
+// The refusal in RunOptions.Parse, through the whole app as a process: a typo'd flag, or a bad lab,
+// next to the default paid provider must stop at the parser. Both independent stops are set,
+// NPCFORGE_OFFLINE=1 and the dead proxy, so a parser that stopped refusing would fail for free. The
+// test asserts the parser's message and not the offline one, which is what shows the parser did the
+// stopping (lesson 004). RunOptionsTests and LabFlagTests hold every refusal's message in process.
 [Trait("Category", "Process")]
 public class FlagRefusalTests
 {
     [Theory]
     [InlineData(new[] { "--provider", "openai", "--setings", "farm" }, "Unknown flag --setings.")]
     [InlineData(new[] { "--provider", "openai", "--setting" }, "--setting needs a value after it.")]
+    [InlineData(new[] { "--provider", "openai", "--lab", "skill=a,b", "--setting", "a farm" }, "--lab needs --seed")]
     public async Task The_app_stops_at_the_parser_before_any_client_is_built(string[] flags, string message)
     {
         var run = await ConsoleProcess.RunAsync(flags, offline: true);

@@ -32,7 +32,8 @@ public class LabFlagTests
     {
         var run = RunOptions.Parse([.. Good, "--repeat", "2", "--mode", "blind", "--out", "Lab Out"]);
 
-        Assert.Equal(4, run.RollArguments().Count);
+        // The roll gets what a normal run with the same answers gets, and nothing from the lab.
+        Assert.Equal(RunOptions.Parse(["--seed", "1", "--setting", "a farm"]).RollArguments(), run.RollArguments());
         Assert.DoesNotContain("--lab", run.RecordedFlags());
         Assert.DoesNotContain("--repeat", run.RecordedFlags());
         // Folders are read as typed, not lower-cased.
@@ -169,8 +170,9 @@ public class LabFlagTests
             Refusal("--lab", "temperature=0.2,hot", "--seed", "1", "--setting", "a farm"));
     }
 
-    // With no values the lab takes every tone the schema has, which the parser has not seen, so the
-    // plan holds none yet; with values, it holds those, typed as they were.
+    // A bare tone axis is every tone, so it is a comparison already, and tone names are one too. Which
+    // tones, in what order and how spelled, the lab settles from the schema once the server is up,
+    // and the two tone-lab tests in LabRunTests hold that.
     [Fact]
     public void The_tone_axis_parses_with_no_values_or_with_names()
     {
@@ -178,9 +180,7 @@ public class LabFlagTests
         var some = RunOptions.Parse(["--lab", "tone=Comic,Serious", "--seed", "1", "--setting", "a farm"]);
 
         Assert.Equal("tone", all.Lab!.Axis);
-        Assert.Empty(all.Lab.Variants);
-        Assert.Equal(["Comic", "Serious"], some.Lab!.Variants.Select(v => v.Tone));
-        Assert.Equal(["Comic", "Serious"], some.Lab.Variants.Select(v => v.Label));
+        Assert.Equal("tone", some.Lab!.Axis);
     }
 
     [Fact]
@@ -285,26 +285,5 @@ public class LabFlagTests
     public void A_file_the_caller_named_wins_for_a_lab_too()
     {
         Assert.Equal(@"C:\mine\saves.json", RunOptions.Parse(Good).CharactersPath(@"C:\mine\saves.json"));
-    }
-}
-
-// The same refusals through the whole app as a process, with both independent stops set (offline
-// and the dead proxy): the message is the parser's, not the offline stop's and not a missing key's.
-[Trait("Category", "Process")]
-public class LabRefusalProcessTests
-{
-    [Theory]
-    [InlineData(new[] { "--lab", "skill=a,b", "--setting", "a farm" }, "--lab needs --seed")]
-    [InlineData(new[] { "--lab", "skill=a,b", "--seed", "1" }, "--lab needs the answers as flags")]
-    [InlineData(new[] { "--lab", "tone", "--tone", "Comic", "--seed", "1", "--setting", "a farm" }, "--lab tone cannot go with --tone")]
-    public async Task The_app_stops_a_bad_lab_at_the_parser_before_any_client_is_built(string[] flags, string message)
-    {
-        var run = await ConsoleProcess.RunAsync(["--provider", "openai", .. flags], offline: true);
-
-        Assert.NotEqual(0, run.ExitCode);
-        Assert.Contains(message, run.Stderr);
-        Assert.DoesNotContain("NPCFORGE_OFFLINE=1 is set", run.Stderr);
-        Assert.DoesNotContain("Missing user secret", run.Stderr);
-        Assert.DoesNotContain("[loop]", run.Stderr);
     }
 }
