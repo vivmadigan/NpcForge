@@ -1,4 +1,5 @@
 using Microsoft.Extensions.AI;
+using System.Text.Json;                 // JsonDocument
 
 namespace NpcForge;
 
@@ -38,5 +39,20 @@ public static class CharacterRun
         var written = await ChatAgent.WriteAsync(
             client, options, tools, new WriterInput(briefJson, ask.Scene, WriterInput.DefaultSkillDir), ct);
         return new Draft(briefJson, written);
+    }
+
+    // Save: the brief with the character written from it. The brief goes as a JSON object, not as
+    // the text the roll returned: save_character takes a CharacterBrief. Returns the new number.
+    public static async Task<int> SaveAsync(McpToolSource tools, Draft draft, CancellationToken ct)
+    {
+        using var brief = JsonDocument.Parse(draft.BriefJson);
+        var savedAs = await tools.CallDirectAsync("save_character", new()
+        {
+            ["brief"] = brief.RootElement,
+            // As the namer split it, so the save shows the count the name was checked on.
+            ["name"] = JsonSerializer.SerializeToElement(new { syllables = draft.Written.Name.Syllables, family = draft.Written.Name.Family }),
+            ["text"] = draft.Written.Text,
+        }, ct);
+        return int.Parse(savedAs);
     }
 }

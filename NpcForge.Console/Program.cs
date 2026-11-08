@@ -13,7 +13,8 @@ Console.OutputEncoding = Encoding.UTF8;
 Console.InputEncoding = Encoding.UTF8;
 
 // No host, no DI container. Everything is wired by hand, in the order it happens:
-// config, then connect, then the client, then the options, then interview, roll, name, write, save.
+// config, then connect, then the client, then the options, then interview, then CharacterRun's roll, name
+// and write, then save. CharacterRun is the one step a later change repeats.
 // --load comes straight after connect, before the client, and the model is never called.
 // With --lab, the lab takes over after the client and writes a sheet instead of a save. With no answer flag,
 // the interview reads the GM's scene, and the roll waits for the GM's yes. The roll comes
@@ -199,21 +200,10 @@ catch (NoNameException ex)
     Environment.ExitCode = 1;
     return;
 }
-var briefJson = draft.BriefJson;
-var written = draft.Written;
-var answer = written.Text;
-Console.WriteLine(answer);
+Console.WriteLine(draft.Written.Text);
 
-// Save: every run is kept, the brief with the character written from it. The brief goes as a
-// JSON object, not as the text the roll returned: save_character takes a CharacterBrief.
-using var brief = JsonDocument.Parse(briefJson);
-var savedAs = await tools.CallDirectAsync("save_character", new()
-{
-    ["brief"] = brief.RootElement,
-    // As the namer split it, so the save shows the count the name was checked on.
-    ["name"] = JsonSerializer.SerializeToElement(new { syllables = written.Name.Syllables, family = written.Name.Family }),
-    ["text"] = answer,
-}, CancellationToken.None);
+// Save: every run is kept, for now. The brief with the character written from it.
+var savedAs = await CharacterRun.SaveAsync(tools, draft, CancellationToken.None);
 
 // Where, when this run chose the file, so a save in a temp file can be found.
 Console.Error.WriteLine(charactersPath is null
