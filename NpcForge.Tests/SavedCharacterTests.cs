@@ -39,7 +39,11 @@ public class SavedCharacterTests
         Assert.Equal("Heartfelt", saved.Brief.GetProperty("tone").GetString());
         Assert.Equal("2", saved.Brief.GetProperty("nameSyllables").GetString());
         Assert.Equal("MiddleAged", saved.Brief.GetProperty("age").GetString());
-        Assert.Equal(19, saved.Brief.EnumerateObject().Count());
+        // Every public property of the brief is kept, and nothing else. The rule is the set, not how many
+        // fields there are today, so a new brief field does not break it.
+        Assert.Equal(
+            typeof(CharacterBrief).GetProperties().Select(property => System.Text.Json.JsonNamingPolicy.CamelCase.ConvertName(property.Name)).Order(StringComparer.Ordinal),
+            saved.Brief.EnumerateObject().Select(property => property.Name).Order(StringComparer.Ordinal));
         Assert.Equal("Brook", saved.Name!.Family);
         Assert.Equal("Text.", saved.Text);
     }
