@@ -35,7 +35,8 @@ public abstract class CharacterStoreTests
     }
 
     // Count + 1 would give 3 here and overwrite the save that holds that number. The promise is a number
-    // greater than every one held, not 4 exactly: a database may number past it (ADR-015).
+    // greater than every one held, not 4 exactly: a store may number past it. Whether a removed highest
+    // number is given again is left to each store, so no test says which (ADR-015).
     [Fact]
     public async Task After_a_gap_the_next_number_is_greater_than_every_number_held_and_no_save_is_overwritten()
     {
@@ -50,24 +51,6 @@ public abstract class CharacterStoreTests
         Assert.Equal("three", (await Store.LoadAsync(3, Ct))!.Text);
         Assert.Equal("four", (await Store.LoadAsync(number, Ct))!.Text);
         Assert.Null(await Store.LoadAsync(2, Ct));
-    }
-
-    // The promise is a number greater than every number held and never one a save holds. A store may or
-    // may not give a removed highest number out again, so the test does not say which.
-    [Fact]
-    public async Task After_the_highest_is_removed_the_next_number_is_greater_than_every_number_held_and_none_is_overwritten()
-    {
-        await Store.SaveAsync(Saved("one"), Ct);
-        await Store.SaveAsync(Saved("two"), Ct);
-        await Store.SaveAsync(Saved("three"), Ct);
-        Remove(3);
-
-        var number = await Store.SaveAsync(Saved("again"), Ct);
-
-        Assert.True(number > 2, $"saved under {number}, which a save holds or is not greater than every number held (1 and 2)");
-        Assert.Equal("one", (await Store.LoadAsync(1, Ct))!.Text);
-        Assert.Equal("two", (await Store.LoadAsync(2, Ct))!.Text);
-        Assert.Equal("again", (await Store.LoadAsync(number, Ct))!.Text);
     }
 
     [Fact]

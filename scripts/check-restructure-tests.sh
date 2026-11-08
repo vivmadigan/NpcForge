@@ -13,7 +13,8 @@
 #     `NpcForge.CharacterTools.ReadCast` is the same call after the move). Removed and added lines are paired
 #     one to one, per hunk and in order, so two lines swapped or a line added in a hunk fails;
 #   - no existing test file is deleted.
-# A new file is allowed, since it changes no existing test, and is listed for review.
+# A new file is allowed and listed for review: it changes no existing line, but it can still change how an
+# existing test resolves a name (a new type in NpcForge.Tests shadows one in NpcForge), so read it.
 #
 # `--allow-changed <path>` (repeatable) names an existing test file the owner has agreed to change in this PR.
 # Its changes are not checked: they are printed under ALLOWED BY OWNER with a diff stat, so the reviewer reads
@@ -32,10 +33,6 @@ while [ $# -gt 0 ]; do
             [ $# -ge 2 ] || { echo "check-restructure-tests: --allow-changed needs a path" >&2; exit 2; }
             allowed+=("$(printf '%s' "$2" | tr '\\' '/' | sed 's|^\./||')")
             shift 2
-            ;;
-        --allow-changed=*)
-            allowed+=("$(printf '%s' "${1#--allow-changed=}" | tr '\\' '/' | sed 's|^\./||')")
-            shift
             ;;
         -*)
             echo "check-restructure-tests: unknown option $1" >&2
@@ -138,7 +135,7 @@ while IFS=$'\t' read -r status path; do
     [ "$skip" -eq 1 ] && continue
     case "$status" in
         A)
-            echo "ok   $path: a new test file. Allowed, since it changes no existing test. Listed so you review what it asserts."
+            echo "ok   $path: a new test file. Allowed, and listed for review: a new type here can change how existing tests resolve a name."
             ;;
         M)
             result=$(git diff -U0 --no-renames --no-color "$mb" HEAD -- "$path" | tr -d '\r' | awk "$pair_lines")

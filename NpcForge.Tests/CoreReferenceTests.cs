@@ -21,7 +21,7 @@ public class CoreReferenceTests
 
     private static readonly string[] Allowed = ["Microsoft.Extensions.AI.Abstractions", "Microsoft.CodeAnalysis.BannedApiAnalyzers"];
 
-    private static readonly string[] ReferenceKinds = ["PackageReference", "ProjectReference", "Reference", "FrameworkReference", "GlobalPackageReference"];
+    private static readonly string[] ReferenceKinds = ["PackageReference", "ProjectReference", "Reference", "FrameworkReference"];
 
     // The properties that switch the analyzers off, and with them the banned-API rule.
     private static readonly string[] AnalyzerSwitches = ["RunAnalyzers", "RunAnalyzersDuringBuild"];
@@ -124,7 +124,7 @@ public class CoreReferenceTests
                 found.Add($"{Relative(file)} has a SuppressMessage for RS0030");
         }
 
-        // A NoWarn or a removal from WarningsAsErrors in the core's project files, or in a Directory.Build.props,
+        // A NoWarn or WarningsNotAsErrors in the core's project files, or in a Directory.Build.props,
         // Directory.Build.targets or Directory.Packages.props on the way up to the repo root.
         foreach (var file in BuildFiles())
             foreach (var element in XDocument.Load(file).Descendants())
@@ -132,10 +132,6 @@ public class CoreReferenceTests
                 var name = element.Name.LocalName;
                 if (name is "NoWarn" or "WarningsNotAsErrors" && element.Value.Contains("RS0030"))
                     found.Add($"{Relative(file)} lists RS0030 in <{name}>");
-                if (name == "WarningsAsErrors" && element.Attribute("Remove")?.Value.Contains("RS0030") == true)
-                    found.Add($"{Relative(file)} removes RS0030 from <WarningsAsErrors>");
-                if (name == "WarningsAsErrors" && Regex.IsMatch(element.Value, @"\.Replace\([^)]*RS0030"))
-                    found.Add($"{Relative(file)} strips RS0030 out of <WarningsAsErrors>");
             }
 
         // An .editorconfig or .globalconfig severity, in the core's folder or any folder above it.

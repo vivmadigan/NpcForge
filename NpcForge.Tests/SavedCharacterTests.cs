@@ -1,7 +1,7 @@
 namespace NpcForge.Tests;
 
 // A new save keeps its brief as the JSON a typed brief writes: camelCase names, the enums by name, and a
-// null want written as null (ADR-009, ADR-010). StorageTests holds the bytes of the file this ends up in.
+// null want written as null (ADR-009, ADR-010). SaveFileGuardTests holds the bytes of the file this ends up in.
 public class SavedCharacterTests
 {
     [Fact]

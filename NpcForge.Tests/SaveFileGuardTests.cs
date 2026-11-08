@@ -25,11 +25,11 @@ public class SaveFileGuardTests
             File.Copy(RealSaves, copy);
             var before = File.ReadAllText(copy);
             var store = new FileCharacterStore(copy);
-            var oldCount = (await store.ListAsync(Ct)).Count;
 
-            var number = await store.SaveAsync(NewCharacter("A new character."), Ct);
+            // No check on the number it gets: the bytes are the guard, and a hand edit that deleted an
+            // entry would move the number with nothing wrong (ADR-015).
+            await store.SaveAsync(NewCharacter("A new character."), Ct);
 
-            Assert.Equal(oldCount + 1, number);
             // The old file ends "  }", a line break, "}". The new one is that text with the closing
             // brace moved past the new entry, so everything before it must be unchanged. The break
             // is the writer's own, "\r\n" on Windows, so the test cuts at the brace, not at "\n".
