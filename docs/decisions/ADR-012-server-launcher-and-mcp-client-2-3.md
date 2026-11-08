@@ -1,6 +1,6 @@
 # ADR-012: The console starts the server's launcher, on an MCP client that closes stdin first
 
-- **Status:** accepted
+- **Status:** accepted; superseded by ADR-014 from epic 5's behavior PR, when the server retires
 - **Date:** 2026-11-05
 - **Supersedes:** the "Starting the server" line of `INDEX.md`, which had no record: `dotnet run
   --project <server> --no-build`. The rest of that line (the path from `AppContext.BaseDirectory`,

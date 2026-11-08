@@ -81,8 +81,13 @@ implementation and `haiku` for cheap checks. pstack's defaults name Fable; the m
   in the first message. The same goes for `save_character` and `load_character`. A tool the model
   can see is a tool it can skip. (`McpToolSource.AppOnly`)
 - **The server never writes to stdout.** Stdout is the MCP transport. Logs and traces go to stderr.
-- **Two processes, no shared contracts project.** JSON over the wire is the contract. The console
-  has no `CharacterBrief` type.
+- **One core, called in-process.** `NpcForge.Core` holds every rule the front ends share: the dice,
+  the brief, the namer, the writer, the interview and the save rules. The console calls it
+  in-process, and so will the website's API. The core references only .NET and
+  `Microsoft.Extensions.AI.Abstractions`: no front end, no model vendor, no MCP, and it reads no file
+  but the bundled skills, through `SkillFiles`. `CoreReferenceTests` and the core's
+  `BannedSymbols.txt` hold this. Widening either needs an ADR. (ADR-014. Epic 5 builds it; until its
+  behavior PR the console still starts the server, which calls the core.)
 - **The model never guesses. It is either told or it rolls.** Variety comes from the server's dice,
   never from asking the model to invent.
 - **Never parse the model's prose.** Its markup differs by model. Code checks only structured data:
@@ -96,12 +101,19 @@ implementation and `haiku` for cheap checks. pstack's defaults name Fable; the m
 
 - Plain over clever. Readable in six months by someone who did not write it.
 - Modern C# where it names things, not where it only compresses.
-- No abstraction until there are two things to abstract.
-- No Clean Architecture layering. Two interfaces earn their place: `IChatClient`
-  (Microsoft.Extensions.AI) and `IToolSource`. The "Ready to grow" epic brings layers,
-  Clean Architecture by preference, with an ADR first.
+- No abstraction until there are two things to abstract, with one exception: a port, an interface
+  the core declares because what is behind it lives outside the process. There are two,
+  `IChatClient` (the model) and `ICharacterStore` (one person's saves), and each new one needs an ADR
+  and a second implementation that passes the same tests. Dice, the clock, traces and skill text are
+  not ports. `IToolSource` is the loop's seam, not a port.
+- One core, front ends around it, no further layers. A rule both front ends need goes in
+  `NpcForge.Core`; anything that touches the outside world goes in the front end that uses it
+  (`NpcForge.Console`, later `NpcForge.Api`). No Domain and Application split, no use-case handlers,
+  no mediator. Inside the core, folders follow the domain: `Brief`, `Interview`, `Writing`, `Loop`,
+  `Saves`. (ADR-014)
 - No host or DI container in the console. `Program.cs` wires things by hand so the order of events
-  stays readable: connect, roll, run, ask, save. The same ADR may change this.
+  stays readable: connect, roll, run, ask, save. ADR-014 keeps this; only the website's API gets DI,
+  in epic 6.
 - Why-comments, not what-comments: a comment says which rule a line keeps. Keep them: never run
   pstack's `/no-comments` or its `comment-sicko` agent here
   (`.agents/playbooks/npcforge-keep-why-comments.md`). Comments that mention "step N" mean the build
