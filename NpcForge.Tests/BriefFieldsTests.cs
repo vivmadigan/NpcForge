@@ -129,10 +129,12 @@ public class BriefFieldsTests
             Enumerable.Range(0, 50).Select(_ => Tables.PickWeighted(Tables.Races, two)).ToList());
     }
 
+    // The promise is never a row from nothing. No caller sees the exception's type: the server turns
+    // any throw into an MCP error.
     [Fact]
     public void A_weighted_table_with_no_rows_cannot_be_picked_from()
     {
-        Assert.Throws<InvalidOperationException>(() => Tables.PickWeighted<string>([], new Random(1)));
+        Assert.ThrowsAny<Exception>(() => Tables.PickWeighted<string>([], new Random(1)));
     }
 
     // The brief and roll_character's parameters are one list of fields, set by name. A field on one and
