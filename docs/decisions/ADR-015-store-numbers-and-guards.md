@@ -2,7 +2,7 @@
 
 - **Status:** accepted
 - **Date:** 2026-11-08
-- **Supersedes:** three lines of ADR-014. Decision 2's "one past the highest this store holds" as the
+- **Amends:** three lines of ADR-014. Decision 2's "one past the highest this store holds" as the
   promise `ICharacterStore` makes; decision 7's account of what `CoreReferenceTests` checks; and
   decision 9.4's silence on `Storage.cs` and `StorageTests`. The rest of ADR-014 stands.
 
@@ -30,18 +30,16 @@ design got wrong or left open. Each was shown by a run, not argued:
 ## Decision
 
 1. **A store keeps a new save under a number greater than every number it holds, 1 when empty, and
-   never under a number a save holds.** Each store counts on its own, so a database store numbers each
-   friend's saves from 1, with a unique key on owner and number. The file store does what it does
-   today (one past the highest), which keeps the promise. A store that later gains a delete must not
-   give a deleted number out again; that is the store's job, not the core's. `CharacterStoreTests`
-   tests the promise, not the reuse.
+   never under a number a save holds.** A number a removed save once held may be given again; a store
+   that gains a delete must not let it. Each store counts on its own, so a database store can number
+   each friend's saves from 1, with a unique key on owner and number. The file store does what it does
+   today (one past the highest), which keeps the promise. `CharacterStoreTests` tests the promise, and
+   no test says whether a removed number comes round again.
 
-2. **`CoreReferenceTests` checks the build, not only the project file.** It fails when the core's SDK
-   is anything but `Microsoft.NET.Sdk`; when `BannedSymbols.txt` is not an `AdditionalFiles` item; when
-   analyzers are turned off; and when a reference or an `RS0030` suppression appears in any MSBuild or
-   analyzer-config file that applies to the core (its project file, and any `Directory.Build.props`,
-   `Directory.Build.targets`, `Directory.Packages.props`, `.editorconfig` or `.globalconfig` from its
-   folder up to the repo root). It stays a fast test that reads files.
+2. **`CoreReferenceTests` reads every build and analyzer-config file that applies to the core**, not
+   only its project file. It fails when the core's SDK is anything but `Microsoft.NET.Sdk`, when
+   `BannedSymbols.txt` is not an `AdditionalFiles` item, when analyzers are turned off, and when a
+   reference or an `RS0030` suppression appears in any of those files.
 
 3. **The script pairs lines in order, and the owner's exceptions are listed out loud.** A removed and
    an added line count as a qualifier change only inside one hunk and in order, once `NpcForge.Server.`
@@ -65,9 +63,11 @@ design got wrong or left open. Each was shown by a run, not argued:
 
 ## Why
 
-- **The promise a database can keep.** The rule exists so a number always means one character. Stated
-  as "greater than every number held, never a held one", it is what the file does today and what a
-  database does on its own (principle-model-the-domain: the number is the save's identity).
+- **The weakest promise every store can keep.** The rule exists so a number always means one character
+  while it is saved. "Greater than every number held, never a held one" is what the file does today,
+  and both a per-friend counter and a database sequence that never reuses a number keep it
+  (principle-model-the-domain: the number is the save's identity). Never reusing a removed number is
+  the stronger promise, and it belongs to the store that adds a delete.
 - **A guard that checks what it claims.** An allow-list that one line in a side file defeats is not the
   compiler enforcing a boundary (principle-boundary-discipline).
 - **A script that sees order.** A test whose lines were swapped checks something else; a check that
