@@ -9,6 +9,7 @@ public sealed class RunOptions
     // message below. A flag silently left at its default would be a paid run that is not the one
     // the GM asked for (or one that records nothing).
     // Recorded: written to line 1 of a recording. The order of this table is the order on that line.
+    // Switch: a flag that takes no value, such as --list. Given means on.
     // RollParameter: the roll_character parameter this answer fills, null for a flag that is not
     // an answer. The order of this table is the order of the arguments.
     private sealed record Flag(
@@ -17,7 +18,8 @@ public sealed class RunOptions
         Func<string, string> Read,
         bool Recorded = false,
         string? MissingValue = null,
-        string? RollParameter = null);
+        string? RollParameter = null,
+        bool Switch = false);
 
     private static string AsIs(string value) => value;
     private static string Lower(string value) => value.ToLower();
@@ -63,6 +65,8 @@ public sealed class RunOptions
             MissingValue: "--out needs a folder, for example --out lab-1."),
         new("--score", null, AsIs,
             MissingValue: "--score needs the folder of a blind lab, for example --score lab-1."),
+        // --list prints the saved characters (ADR-013). The first flag with no value after it.
+        new("--list", null, AsIs, Switch: true),
     ];
 
     private readonly Dictionary<string, string> _values;
@@ -97,6 +101,7 @@ public sealed class RunOptions
     public string Mode => _values["--mode"];
     public string? Out => _values.GetValueOrDefault("--out");
     public string? Score => _values.GetValueOrDefault("--score");
+    public bool List => _given.Contains("--list");
 
     private int? Int(string name) => _values.TryGetValue(name, out var value) ? int.Parse(value) : null;
 
@@ -123,6 +128,14 @@ public sealed class RunOptions
 
             var flag = Array.Find(Table, f => f.Name == args[i])
                 ?? throw new ArgumentException($"Unknown flag {args[i]}. {KnownFlags()}");
+
+            // A switch has no value, so the next argument is its own flag, not a missing value.
+            if (flag.Switch)
+            {
+                values[flag.Name] = "true";
+                given.Add(flag.Name);
+                continue;
+            }
 
             // The next argument being a flag means this one was given no value, not that the value
             // is called "--something".
@@ -171,15 +184,21 @@ public sealed class RunOptions
     // a model client is built, so a lab that cannot run costs nothing.
     private void RequireLabFlagsThatGoTogether()
     {
-        // --score reads a finished folder. Any other flag beside it would be silently ignored, and a
-        // score that ignores a flag is a run the GM did not ask for.
-        if (_given.Contains("--score"))
+        // --score reads a finished folder and --list reads the saves. Any other flag beside either
+        // would be silently ignored, and a run that ignores a flag is not the run the GM asked for.
+        foreach (var (alone, reason) in new[]
         {
-            var others = _given.Where(name => name != "--score").ToList();
+            ("--score", "it reads a finished blind lab and calls no model."),
+            ("--list", "it lists the saved characters and calls no model."),
+        })
+        {
+            if (!_given.Contains(alone))
+                continue;
+
+            var others = _given.Where(name => name != alone).ToList();
             if (others.Count > 0)
                 throw new ArgumentException(
-                    $"--score takes no other flag, and {string.Join(", ", others)} was given: " +
-                    "it reads a finished blind lab and calls no model.");
+                    $"{alone} takes no other flag, and {string.Join(", ", others)} was given: {reason}");
             return;
         }
 

@@ -53,6 +53,19 @@ var charactersPath = run.CharactersPath(Environment.GetEnvironmentVariable("NPCF
 await using var tools = new McpToolSource(charactersPath, seed);
 await tools.ConnectAsync(CancellationToken.None);
 
+// List: one row per save, from the server, which reads only each save's name and brief. No model, so
+// it comes before ModelClients.Create and needs no API key (ADR-013, decision 5). Rows go to stdout;
+// the empty message goes to stderr with the other [app] lines, and an empty file is not a failure.
+if (run.List)
+{
+    var listed = SaveList.Rows(await tools.CallDirectAsync("list_characters", new(), CancellationToken.None));
+    if (listed.Count == 0)
+        Console.Error.WriteLine("[app] nothing saved yet");
+    foreach (var row in listed)
+        Console.WriteLine(row);
+    return;
+}
+
 // Load: a saved character comes back exactly as it was written. No roll and no model, so it
 // costs nothing, and it comes before ModelClients.Create so it needs no API key (ADR-013,
 // decision 5). A number that was never saved stops the run here with the server's reason, and
