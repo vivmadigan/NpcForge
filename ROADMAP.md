@@ -35,26 +35,86 @@ Two rules for every epic, now that the Safety net exists:
 
 | # | Epic | In one line |
 | --- | --- | --- |
-| 4 | Keep and edit | Choose what to keep, and change it later |
+| 4 | Keep a character | Mark the characters worth keeping, and open them by name |
+| 11 | Change a kept character | Change a kept character without starting over |
 | 5 | Ready to grow | A structure that can sit behind a website and a database |
 | 6 | Friends can use it | A website with logins and a database, deployed |
 
-Epics 4 to 6 are drafts: sharpen each one before it starts.
+Epic 4 is ready to start. Epics 11, 5 and 6 are drafts: sharpen each one before it starts.
 
-## 4. Keep and edit (draft)
+## 4. Keep a character
 
-**Goal.** I choose which characters are worth keeping, find them by a name I give them, and change
-a kept character later without starting over, including follow-ups like "make him warier"
-(moved here from "Talk to it"). A kept character may be marked recurring, and the open question
-moves with it: what extra does a recurring character get? (moved here from "Better characters").
-A kept character can have a fixed name, including one the GM gives in a scene ("an innkeeper called
-Bram") or by a flag. Until then the name dice apply and the namer's name wins (ADR-009).
+**Goal.** I mark the characters worth keeping, see them in a list, open one by its name instead of
+remembering its number, and take one off the list if I kept it by mistake. Today every run is saved
+and numbered, and my file holds 16. Saves 9 to 16 are eight innkeepers in the same city inn, and the
+goblin baker I liked is save 8. The only way back to him is to remember the 8.
 
-**Constraints.** Saving and loading stay app-only: the model never touches the saved file. Saves made
-before this epic still load.
+This is the first piece of what was "Keep and edit". Changing a kept character is epic 11.
 
-**Done when.** I can list my kept characters, open one by its name, change part of it, and see the
-change saved. Runs I didn't keep don't clutter the list.
+**Constraints.**
+- Here "keep" means marking a save as worth keeping. Every run is still saved and numbered, as now
+  (ADR-003), and keeping does not copy a save. The code says "keep" for "save" today
+  (`save_character`'s description, the save comment in `Program.cs`), so the ADR rewords those.
+- A kept character is found by its own name, the one the namer gave it and the write-up opens
+  with. A save from before the namer (1 to 8 in my file) has no name, so I give it one when I keep
+  it. A save that has a name keeps it, so a second save with a name already on the list cannot be
+  kept until epic 11 adds renaming.
+- Keeping takes a save's number, the one a run prints as `saved as N`. Opening and taking off the
+  list take a kept name. `--load` still opens by number.
+- Making a character does not change. A run prints and saves exactly what it does today, so the
+  replay test passes unchanged and is never re-recorded.
+- A save that is not kept stays byte for byte as it is, and every save from before this epic still
+  loads with `--load`. Taking a character off the list puts its save back byte for byte, so a name
+  I gave it is forgotten.
+- No model call, so nothing here costs money. The new tools are app-only, like `save_character`.
+- It stays in the JSON file on the server. No database and no users. Those are epics 5 and 6.
+- It changes the save format and the server's tool list, so an ADR comes first.
+
+**Done when.**
+- Free tests, the ones for the new commands run with `NPCFORGE_OFFLINE=1` so none can call a model:
+  - Keeping a save that has a name puts it on the list under that name. A save that is not kept
+    never appears.
+  - A keep changes the kept entry only by its mark, and every other entry in the file stays byte
+    for byte as it was.
+  - With two or more characters on the list, opening one by the name the list shows, typed in a
+    different case, prints the same character that `--load` prints for its number.
+  - A save with no name can be kept only when a name is given, and then opens by that name.
+  - Keeping under a name already on the list, typed in a different case, is refused with the
+    reason, and the list is unchanged.
+  - A name that is not on the list, or a number that was never saved, stops with the reason and
+    exit code 1. So does `--load` with a number that was never saved.
+  - Taking a character off the list removes it from the list and puts its save back byte for byte.
+    It still loads by number.
+  - A new run's save holds exactly `brief`, `name` and `text`, as today.
+  - The replay test passes and is not re-recorded.
+- On my own file I keep the witch (save 7) and the baker (save 8) under names I give them and one
+  innkeeper under its own name, list them, open each by name and take one off. I do this myself,
+  free (*needs my eyes*).
+- The command names, and what the list shows for each character (*needs my eyes*).
+
+**Tasks.**
+- ADR: what a kept character is in the save, the new app-only tools, how a typed name is matched to
+  a kept one, and the rewording of "keep".
+- Keep, take off the list, list and open by name, on the server and in the console.
+- Define "keep" in AGENTS.md's Vocabulary.
+
+**Not in this epic.** Changing a kept character, a name the GM gives in a scene, and recurring
+characters (epic 11). A database and logins (epics 5 and 6).
+
+## 11. Change a kept character (draft)
+
+**Goal.** I change a kept character later without starting over, including follow-ups like "make
+him warier" (moved here from "Talk to it"). A kept character can have a fixed name, including one
+the GM gives in a scene ("an innkeeper called Bram") or by a flag. Until then the name dice apply
+and the namer's name wins (ADR-009). A kept character may be marked recurring, and the open
+question moves with it: what extra does a recurring character get? (moved here from "Better
+characters").
+
+**Constraints.** Saving and loading stay app-only: the model never touches the saved file. A change
+that rewrites the character calls the model, so its checks are paid.
+
+**Done when.** I can open a kept character by its name, change part of it, and see the change
+saved.
 
 ## 5. Ready to grow (draft)
 
