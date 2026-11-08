@@ -137,7 +137,7 @@ The words the question accepts:
 ## Why
 
 The owner judges a character by reading it, so the choice comes after the text is on the screen.
-Code cannot make that choice, and a default would make it for him. Asking again on an unknown
+Code cannot make that choice, and a default would make it for the owner. Asking again on an unknown
 answer is the owner's rule. A paid character costs more than one more prompt, and only end of input
 means the GM has gone.
 

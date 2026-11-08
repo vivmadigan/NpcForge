@@ -43,7 +43,7 @@ Decision, Why, Consequences.
 - [ADR-009 Tone, race and name dice join the brief, a namer names the character, and a lab compares writers](ADR-009-tone-race-and-name-dice.md) — accepted 2026-10-25; its dice gain a thirteenth from ADR-010, and seven look casts and the namer's gender from ADR-011
 - [ADR-010 A scene's gaps are asked for, marked not given, or rolled, as `roll_character` says](ADR-010-scene-gaps-asked-not-given-or-rolled.md) — accepted 2026-10-30; its die is no longer cast last, from ADR-011
 - [ADR-011 Look dice join the brief, and the writer opens with a passage read to the table](ADR-011-look-dice-and-a-passage-read-to-the-table.md) — accepted 2026-11-02
-- [ADR-013 Saving is the GM's choice, a run can roll again, and an app-only tool lists the saves](ADR-013-saving-is-a-choice.md), accepted 2026-11-08
+- [ADR-013 Saving is the GM's choice, a run can roll again, and an app-only tool lists the saves](ADR-013-saving-is-a-choice.md) — accepted 2026-11-08
 
 ADR-004 was reserved for the server layers by a plan that no longer exists, and was never written.
 Older records mention plan versions and `PLAN.md`; those are in git at commit `cd20b60`.
