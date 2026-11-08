@@ -52,7 +52,9 @@ public class ToneFileTests : IDisposable
         Assert.Contains("no 'tone' choice list", error.Message);
     }
 
-    // The app as a process, on a copy of its own build with one tone file deleted.
+    // Program.cs could move the tone check after the greeting or the writer, and a gap would then show
+    // only after the GM typed a scene or a paid call. So the app runs as a process, on a copy of its
+    // own build with one tone file deleted, as an interview run that must stop before the greeting.
     [Fact]
     public async Task A_run_with_a_tone_file_missing_stops_before_the_interview_and_names_the_file()
     {
