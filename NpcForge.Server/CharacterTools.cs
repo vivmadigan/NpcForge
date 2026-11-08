@@ -1,4 +1,5 @@
 ﻿using ModelContextProtocol;
+using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
 using System;
 using System.Collections.Generic;
@@ -207,17 +208,26 @@ namespace NpcForge.Server
         }
 
         // App-only. --load calls this instead of rolling and instead of the model. An unknown
-        // number throws McpException, so the run stops with a reason, not with an empty brief.
+        // number returns an error result, not a throw: the SDK logs a thrown tool exception at error
+        // level with its stack trace, and a mistyped number is the GM's slip, not a crash (ADR-013,
+        // decision 6). The console stops the run with the text. The found save is serialized with the
+        // SDK's own options, so the console reads the same JSON a plain return value gave it.
         [McpServerTool(Name = "load_character"), Description("Load a kept character by its number.")]
-        public static SavedCharacter LoadCharacter(int number)
+        public static CallToolResult LoadCharacter(int number)
         {
             var all = Storage.Load();
 
             if (!all.TryGetValue(number, out var saved))
-                throw new McpException($"No character saved as {number}.");
+                return new CallToolResult
+                {
+                    IsError = true,
+                    Content = [new TextContentBlock { Text = $"No character saved as {number}." }],
+                };
 
-            return saved;
-
+            return new CallToolResult
+            {
+                Content = [new TextContentBlock { Text = JsonSerializer.Serialize(saved, McpJsonUtilities.DefaultOptions) }],
+            };
         }
 
         // App-only (ADR-013, decision 4). --list calls this to find a save again. Only the name, the

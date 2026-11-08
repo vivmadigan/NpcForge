@@ -118,7 +118,7 @@ public class McpToolSourceTests
             await tools.ConnectAsync(CancellationToken.None);
 
             // The app's door throws, so --load stops instead of handing the model an empty brief.
-            // The reason is asserted, not just the throw: only the server's McpException says it.
+            // The reason is asserted, not just the throw: only the server's error result says it, and the message is its plain text.
             var ex = await Assert.ThrowsAnyAsync<InvalidOperationException>(() =>
                 tools.CallDirectAsync("load_character", new() { ["number"] = 99 }, CancellationToken.None));
 

@@ -1,3 +1,5 @@
+﻿using System.Text.RegularExpressions;
+
 namespace NpcForge.Tests;
 
 // ADR-013, decisions 5 and 6, the load half, through the whole app as a process. Every run sets NPCFORGE_OFFLINE=1
@@ -6,9 +8,13 @@ namespace NpcForge.Tests;
 // built a client. That shows --load needs no API key without removing a key from the
 // owner's user secrets. Each run points NPCFORGE_CHARACTERS at a temp file, never at the owner's saves.
 [Trait("Category", "Process")]
-public class LoadTests
+public partial class LoadTests
 {
     private const string OfflineMessage = "NPCFORGE_OFFLINE=1 is set";
+
+    // A stack frame, with or without the [server] prefix the console puts on the server's stderr.
+    [GeneratedRegex(@"^(\[server\])?\s*at \S")]
+    private static partial Regex StackFrame();
 
     private static Dictionary<string, string?> Saves(string file) => new() { ["NPCFORGE_CHARACTERS"] = file };
 
@@ -24,10 +30,10 @@ public class LoadTests
             Assert.Contains("[app] not loaded: ", run.Stderr);
             Assert.Contains("No character saved as 99", run.Stderr);
 
-            // The server logs its own failure with a stack trace, every line prefixed [server]. That is the
-            // server's log. The console's own lines carry no trace and no unhandled exception.
-            var appLines = run.Stderr.Split('\n').Where(line => !line.StartsWith("[server]")).ToList();
-            Assert.DoesNotContain(appLines, line => line.Contains("Unhandled exception") || line.TrimStart().StartsWith("at "));
+            // The whole of stderr, the [server] lines included: the server must not log a thrown tool
+            // exception for a mistyped number (ADR-013, decision 6).
+            Assert.DoesNotContain("threw an unhandled exception", run.Stderr);
+            Assert.DoesNotContain(run.Stderr.Split('\n'), line => StackFrame().IsMatch(line));
             Assert.DoesNotContain("Unhandled exception", run.Stdout);
             Assert.DoesNotContain(OfflineMessage, run.Stderr);
         }
