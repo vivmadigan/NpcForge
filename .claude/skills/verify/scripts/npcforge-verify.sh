@@ -5,9 +5,9 @@
 #   npcforge-verify.sh start
 #   npcforge-verify.sh dir
 #   npcforge-verify.sh doctor
-#   npcforge-verify.sh replay  [--split] [--save FILE|--temp-save] NAME [-- extra console flags]
+#   npcforge-verify.sh replay  [--split] [--save FILE|--temp-save] [--answer TEXT] NAME [-- extra console flags]
 #   npcforge-verify.sh load    [--save FILE] N
-#   npcforge-verify.sh run     [--split] [--save FILE|--temp-save] NAME -- console flags
+#   npcforge-verify.sh run     [--split] [--save FILE|--temp-save] [--answer TEXT] NAME -- console flags
 #   npcforge-verify.sh test    [FILTER]
 #   npcforge-verify.sh fixture-flags
 #   npcforge-verify.sh cleanup
@@ -151,17 +151,19 @@ cmd_doctor() {
 }
 
 cmd_run() {
-  local split=0 save=save.json name code temp=0
+  local split=0 save=save.json name code temp=0 answer=
   while [ $# -gt 0 ]; do
     case $1 in
       --split) split=1; shift ;;
       --save)  save=${2:?--save needs a file name}; shift 2 ;;
       # Names no save file, as a replay run by hand does: the app picks its own temp file.
       --temp-save) temp=1; shift ;;
+      # What the GM types after the character, as printf %b text such as 'save\n'. None is end of input.
+      --answer) answer=${2?--answer needs text}; shift 2 ;;
       *) break ;;
     esac
   done
-  [ $# -ge 2 ] && [ "$2" = -- ] || die "usage: run [--split] [--save FILE|--temp-save] NAME -- console flags"
+  [ $# -ge 2 ] && [ "$2" = -- ] || die "usage: run [--split] [--save FILE|--temp-save] [--answer TEXT] NAME -- console flags"
   name=$1; shift 2
 
   local dir savepath
@@ -188,18 +190,21 @@ cmd_run() {
     child=(timeout --kill-after=5 "${NPCFORGE_VERIFY_TIMEOUT:-180}" "${child[@]}")
   fi
 
-  { printf '%q ' "${child[@]}"; printf '\n'; } > "$dir/$name.cmd"
+  # The console reads a file, never the caller's terminal, so the question after the character gets
+  # its answer, or end of input, and not a wait for the watchdog.
+  printf '%b' "$answer" > "$dir/$name.in"
+  { printf '%q ' "${child[@]}"; printf '< %q\n' "$dir/$name.in"; } > "$dir/$name.cmd"
   printf '[verify] %s: dotnet run ... --' "$name"; printf " '%s'" "$@"; printf '\n'
 
   if [ $split -eq 1 ]; then
-    "${child[@]}" >"$dir/$name.stdout" 2>"$dir/$name.stderr"; code=$?
+    "${child[@]}" <"$dir/$name.in" >"$dir/$name.stdout" 2>"$dir/$name.stderr"; code=$?
     grep -E '^(\[app\]|Unhandled exception)' "$dir/$name.stderr" | cut -c1-300
     printf '[verify] stdout %s bytes, stderr %s bytes\n' \
       "$(wc -c < "$dir/$name.stdout")" "$(wc -c < "$dir/$name.stderr")"
   else
     # stdout and stderr share one pipe, so the order they were written in survives. The exit code
     # is the first stage of the pipe, not tee's.
-    "${child[@]}" 2>&1 | tee "$dir/$name.txt"; code=${PIPESTATUS[0]}
+    "${child[@]}" <"$dir/$name.in" 2>&1 | tee "$dir/$name.txt"; code=${PIPESTATUS[0]}
   fi
 
   printf '%s\n' "$code" > "$dir/$name.exit"
@@ -219,16 +224,19 @@ cmd_run() {
 }
 
 cmd_replay() {
-  local pre=() flags=() line text
+  # A replay answers save, as a GM would to keep the character. A later --answer replaces it, and
+  # --answer '' is end of input (ADR-013, decision 2).
+  local pre=(--answer 'save\n') flags=() line text
   while [ $# -gt 0 ]; do
     case $1 in
       --split) pre+=("$1"); shift ;;
       --save)  pre+=("$1" "${2:?--save needs a file name}"); shift 2 ;;
       --temp-save) pre+=("$1"); shift ;;
+      --answer) pre+=("$1" "${2?--answer needs text}"); shift 2 ;;
       *) break ;;
     esac
   done
-  [ $# -ge 1 ] || die "usage: replay [--split] [--save FILE|--temp-save] NAME [-- extra console flags]"
+  [ $# -ge 1 ] || die "usage: replay [--split] [--save FILE|--temp-save] [--answer TEXT] NAME [-- extra console flags]"
   local name=$1; shift
   [ $# -eq 0 ] || { [ "$1" = -- ] || die "extra flags go after --"; shift; }
   # Read into a variable first. A die inside a process substitution would leave flags empty and

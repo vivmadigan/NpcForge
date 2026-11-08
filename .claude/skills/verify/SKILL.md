@@ -45,9 +45,9 @@ Every Bash call is a fresh shell, so begin each with `V=.claude/skills/verify/sc
 
 | Command | Does |
 | --- | --- |
-| `$V replay [--split] [--save F\|--temp-save] NAME [-- flags]` | Replays the recorded run with line 1 of the fixture as the answers. Flags after `--` override them. `--temp-save` names no save file, so the app picks a temp one and the helper reads its path from the `[app] saved as` line. |
+| `$V replay [--split] [--save F\|--temp-save] [--answer T] NAME [-- flags]` | Replays the recorded run with line 1 of the fixture as the answers. Flags after `--` override them. `--temp-save` names no save file, so the app picks a temp one and the helper reads its path from the `[app] saved as` line. `--answer T` is what the GM types after the character, as `printf %b` text. A replay answers `save\n` unless told otherwise, and `--answer ''` is end of input. |
 | `$V load N` | `--load N` against `save.json`, split into `.stdout` and `.stderr`. |
-| `$V run [--split] [--save F\|--temp-save] NAME -- flags` | Any console flags, behind the three fences. |
+| `$V run [--split] [--save F\|--temp-save] [--answer T] NAME -- flags` | Any console flags, behind the three fences. Its stdin is a file holding the `--answer` text, empty by default, so a run never waits on the caller's terminal. |
 | `$V test [FILTER]` | `dotnet test --no-build`, optionally `--filter "FullyQualifiedName~FILTER"`. The whole suite takes about a minute. `dotnet test --no-build --filter "Category!=Process"` runs the tests that start no process in about 5 s (`features/test-suite.md`). |
 | `$V fixture-flags` | Prints line 1 of the fixture, one flag per line. |
 
