@@ -21,7 +21,7 @@ Decision, Why, Consequences.
 | Traces | stderr, one prefix per source: `[app]`, `[skill]`, `[loop]`, `[tool]`, `[server]` | Stdout is the answer, and on the server it is the transport |
 | Starting the server | The server's own launcher, `NpcForge.Server/bin/<configuration>/net10.0/NpcForge.Server.exe`, started directly; path from `AppContext.BaseDirectory`, configuration from the console assembly, build order from a `ProjectReference` with `ReferenceOutputAssembly="false"`. The console's MCP client is on 2.3.1, the server on 2.2.0 | Same from the app and the tests, never stale, no shared types, no build output on the wire; a server closes at once and starts in 0.6 s. [ADR-012](ADR-012-server-launcher-and-mcp-client-2-3.md) |
 | Occupation | Supplied like the setting, default `"innkeeper"`. Not rolled. | [ADR-002](ADR-002-occupation-in-the-brief.md) |
-| Storage | One JSON file on the server, every run saved, brief and text together, loaded by number | [ADR-003](ADR-003-saved-character-is-brief-and-text.md) |
+| Storage | One JSON file on the server, brief and text together, loaded by number. A run saves only when the GM answers `save` to the question after each character; `again` rerolls the dice for the same scene on the same server, and end of input saves nothing. The app-only `list_characters` returns each save's number, name, `occupation` and `setting`, never its text, and `--list` prints it | [ADR-003](ADR-003-saved-character-is-brief-and-text.md), its "every run saved" superseded by [ADR-013](ADR-013-saving-is-a-choice.md) |
 | Tests | xUnit, free: fake models, the real server, no network | Anything that costs money is not a test |
 | Recording paid runs | One file per run in `docs/runs/`, pasted from the console; commit first; the `[skill]` line carries a fingerprint | [docs/runs/README.md](../runs/README.md) |
 | Replay | Seeded dice through `NPCFORGE_SEED`, set only from `--seed`; `--record`; a `replay` provider; and a free test of the whole app against `NpcForge.Tests/Fixtures/replay.jsonl`. The replay compares every message, the model's own included, every `ChatOptions` field the library serialises, and each tool. Re-recorded only after a behavior change, never for a restructure. | [ADR-005](ADR-005-replay-a-recorded-run.md), amended twice: the model's own messages, and every `ChatOptions` field rather than two. The recording command lives in docs/runs/README.md. |
@@ -35,7 +35,7 @@ Decision, Why, Consequences.
 
 - [ADR-001 A crew of specialist agents, with versioned decisions and curated lessons](ADR-001-crew-and-living-memory.md) — superseded by ADR-006
 - [ADR-002 Occupation joins the character brief, supplied rather than rolled](ADR-002-occupation-in-the-brief.md) — accepted 2026-09-19
-- [ADR-003 A saved character is the brief and the written text together, loaded by number](ADR-003-saved-character-is-brief-and-text.md) — accepted 2026-09-22
+- [ADR-003 A saved character is the brief and the written text together, loaded by number](ADR-003-saved-character-is-brief-and-text.md) — accepted 2026-09-22; its "every run saved" superseded by ADR-013
 - [ADR-005 Whole runs are regression-tested by replaying a recorded model](ADR-005-replay-a-recorded-run.md) — accepted 2026-10-01
 - [ADR-006 Agents write the code; the user sets the task, the constraints and what done means](ADR-006-agents-write-the-code.md) — accepted 2026-10-24
 - [ADR-007 The scene interview records the GM's own words, and only a choice may be inferred](ADR-007-scene-interview-labels.md) — accepted 2026-10-25; one line superseded by ADR-008, and its default rule for interviews by ADR-010
@@ -43,6 +43,7 @@ Decision, Why, Consequences.
 - [ADR-009 Tone, race and name dice join the brief, a namer names the character, and a lab compares writers](ADR-009-tone-race-and-name-dice.md) — accepted 2026-10-25; its dice gain a thirteenth from ADR-010, and seven look casts and the namer's gender from ADR-011
 - [ADR-010 A scene's gaps are asked for, marked not given, or rolled, as `roll_character` says](ADR-010-scene-gaps-asked-not-given-or-rolled.md) — accepted 2026-10-30; its die is no longer cast last, from ADR-011
 - [ADR-011 Look dice join the brief, and the writer opens with a passage read to the table](ADR-011-look-dice-and-a-passage-read-to-the-table.md) — accepted 2026-11-02
+- [ADR-013 Saving is the GM's choice, a run can roll again, and an app-only tool lists the saves](ADR-013-saving-is-a-choice.md) — accepted 2026-11-08
 
 ADR-004 was reserved for the server layers by a plan that no longer exists, and was never written.
 Older records mention plan versions and `PLAN.md`; those are in git at commit `cd20b60`.
