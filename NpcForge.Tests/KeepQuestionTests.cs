@@ -4,6 +4,7 @@ using System.Text.Json.Nodes;           // JsonObject, JsonNode
 namespace NpcForge.Tests;
 
 // ADR-013, decisions 1 and 2: after the character is shown the app asks, and only "save" saves.
+// "again" is RollAgainTests' part.
 // Each test runs the whole app as a process against the recorded run, free, and reads the save file,
 // which is exact; the printed lines are checked as text the GM reads (lesson 006). The run is a flag
 // run, the only one the replay fixture can write. An interview run reaches the same question, since
@@ -68,7 +69,7 @@ public class KeepQuestionTests : IDisposable
         var run = await RunAsync("sve\nsave\n");
 
         Assert.True(run.ExitCode == 0, run.Stderr);
-        Assert.Contains("[app] \"sve\" is not save or leave.", run.Stderr);
+        Assert.Contains("[app] \"sve\" is not save, again or leave.", run.Stderr);
         Assert.Equal(2, run.Stderr.Split(KeepQuestion.Prompt).Length - 1);
         Assert.Single(Saves());
         Assert.Contains("[app] saved as 1", run.Stderr);
@@ -80,14 +81,14 @@ public class KeepQuestionTests : IDisposable
     [InlineData("")]
     [InlineData("s")]
     [InlineData("l")]
-    [InlineData("again")]
+    [InlineData("a")]
     [InlineData("yes")]
-    public async Task Only_save_and_leave_are_answers_a_blank_line_or_a_first_letter_is_not(string answer)
+    public async Task Only_the_three_words_are_answers_a_blank_line_or_a_first_letter_is_not(string answer)
     {
         var run = await RunAsync($"{answer}\nleave\n");
 
         Assert.True(run.ExitCode == 0, run.Stderr);
-        Assert.Contains($"[app] \"{answer}\" is not save or leave.", run.Stderr);
+        Assert.Contains($"[app] \"{answer}\" is not save, again or leave.", run.Stderr);
         Assert.Contains("[app] not saved", run.Stderr);
         Assert.False(File.Exists(_saveFile));
     }
@@ -112,5 +113,38 @@ public class KeepQuestionTests : IDisposable
         Assert.True(run.ExitCode == 0, run.Stderr);
         Assert.Contains("[app] not saved", run.Stderr);
         Assert.False(File.Exists(_saveFile));
+    }
+}
+
+// The question alone, in process: what each answer is read as. No server and no app, so these are in
+// the fast part; the tests above prove the app acts on the answer.
+public class KeepAnswerTests
+{
+    private static async Task<(Keep Choice, string Dialogue)> AskAsync(string input)
+    {
+        var dialogue = new StringWriter();
+        var choice = await KeepQuestion.AskAsync(new StringReader(input), dialogue, CancellationToken.None);
+        return (choice, dialogue.ToString());
+    }
+
+    [Theory]
+    [InlineData("save\n", Keep.Save)]
+    [InlineData("again\n", Keep.Again)]
+    [InlineData(" AGAIN \n", Keep.Again)]
+    [InlineData("leave\n", Keep.Leave)]
+    [InlineData("", Keep.EndOfInput)]
+    public async Task Each_word_is_its_own_choice_and_end_of_input_is_its_own(string input, Keep expected)
+    {
+        Assert.Equal(expected, (await AskAsync(input)).Choice);
+    }
+
+    [Fact]
+    public async Task A_first_letter_of_again_is_not_again_and_the_question_is_asked_again()
+    {
+        var (choice, dialogue) = await AskAsync("a\nleave\n");
+
+        Assert.Equal(Keep.Leave, choice);
+        Assert.Contains("[app] \"a\" is not save, again or leave.", dialogue);
+        Assert.Equal(2, dialogue.Split(KeepQuestion.Prompt).Length - 1);
     }
 }

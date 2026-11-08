@@ -127,8 +127,9 @@ dotnet run --project NpcForge.Console -- --provider anthropic --model claude-opu
 - `--seed <n>` fixes the dice. `--record <file>`, which needs `--seed`, also writes a paid run to a
   file, and `--provider replay --recording <file>` answers from that file for free.
   `docs/runs/README.md` has both commands for the replay fixture.
-- A run that writes a character asks `Keep this character? Type save or leave.` after showing it, and
-  only `save` writes to the save file. Piped input answers it: a test or a script ends its input with
+- A run that writes a character asks `Keep this character? Type save, again (new dice, same scene) or
+  leave.` after showing it. Only `save` writes to the save file, and `again` rolls a new character for
+  the same answers on the same server. Piped input answers it: a test or a script ends its input with
   `save`, and an input that ends first saves nothing (`[app] not saved: end of input`).
 - API keys are user-secrets on the console project: `OpenAI:ApiKey` and `Anthropic:ApiKey`.
 - A build fails while the app is running or paused in the debugger: it locks `NpcForge.Console.dll`.
