@@ -170,7 +170,9 @@ needed.
   replay that answers `again` stops at the namer's first call. A copy of the fixture with its
   recorded usage raised to the cap does cover the cap case for free. The second brief prints, and
   then the cap refuses the namer. A test that writes two characters needs a second recording, which is a
-  paid run, or a fake model that the console process can start.
+  paid run, or a fake model that the console process can start. The owner chose the paid run: one
+  seeded `--record` that rolls again once and then saves, made in the PR that adds roll again, after
+  that behavior settles, and asked for first with its command.
 - Saves 1, 2 and 3 look the same in the list. Only `--load` tells them apart.
 - Revisit if: the owner wants to delete a save (that needs the file to remember the highest number
   ever used), several characters from one scene are saved in one run, or a database replaces the
