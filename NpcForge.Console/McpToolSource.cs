@@ -9,6 +9,15 @@ using System.Text.Json;
 
 namespace NpcForge
 {
+    // An app-only tool answered with an error. Still an InvalidOperationException, so every caller that
+    // stopped on one before stops the same way. Reason is the server's own text, for the one caller that
+    // shows it as it is: --load of a number never saved (ADR-013, decision 6).
+    public sealed class ToolRefusedException(string tool, string reason)
+        : InvalidOperationException($"{tool} failed: {reason}")
+    {
+        public string Reason { get; } = reason;
+    }
+
     // The real tool source. Starts NpcForge.Server as a child process and talks MCP to it over
     // the server's stdin and stdout. The loop cannot tell this from FakeToolSource: same two
     // methods, same contract. That is what step 5 sets out to prove.
@@ -195,7 +204,7 @@ namespace NpcForge
             // No model has been asked anything yet. A failed roll handed on as "the settled brief"
             // would have the model invent the character, so stop the run here.
             if (result.IsError is true)
-                throw new InvalidOperationException($"{name} failed: {text}");
+                throw new ToolRefusedException(name, text);
 
             return text;
         }

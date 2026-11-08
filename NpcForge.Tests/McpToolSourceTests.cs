@@ -119,7 +119,7 @@ public class McpToolSourceTests
 
             // The app's door throws, so --load stops instead of handing the model an empty brief.
             // The reason is asserted, not just the throw: only the server's McpException says it.
-            var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            var ex = await Assert.ThrowsAnyAsync<InvalidOperationException>(() =>
                 tools.CallDirectAsync("load_character", new() { ["number"] = 99 }, CancellationToken.None));
 
             Assert.Contains("No character saved as 99", ex.Message);
@@ -205,7 +205,7 @@ public class McpToolSourceTests
         var args = RollArgs();
         args[parameter] = value;
 
-        var error = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var error = await Assert.ThrowsAnyAsync<InvalidOperationException>(() =>
             tools.CallDirectAsync("roll_character", args, CancellationToken.None));
 
         // The reason, not just a failure (lesson 004): the server's own words, naming the field.
@@ -222,7 +222,7 @@ public class McpToolSourceTests
 
         foreach (var blank in new[] { "", "   " })
         {
-            var error = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            var error = await Assert.ThrowsAnyAsync<InvalidOperationException>(() =>
                 tools.CallDirectAsync("roll_character", RollArgs("look", blank), CancellationToken.None));
             Assert.Contains("look is blank", error.Message);
         }
@@ -251,7 +251,7 @@ public class McpToolSourceTests
             var lacking = new Dictionary<string, JsonElement>(full);
             Assert.True(lacking.Remove("nameLetter"));
 
-            var refused = await Assert.ThrowsAsync<InvalidOperationException>(() => tools.CallDirectAsync("save_character", new()
+            var refused = await Assert.ThrowsAnyAsync<InvalidOperationException>(() => tools.CallDirectAsync("save_character", new()
             {
                 ["brief"] = JsonSerializer.SerializeToElement(lacking),
                 ["name"] = KessaVale,
@@ -306,7 +306,7 @@ public class McpToolSourceTests
         var nulled = RollArgs();
         nulled["playersWant"] = null;
 
-        var refused = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var refused = await Assert.ThrowsAnyAsync<InvalidOperationException>(() =>
             tools.CallDirectAsync("roll_character", omitted, CancellationToken.None));
         var rolled = await tools.CallDirectAsync("roll_character", nulled, CancellationToken.None);
 
@@ -325,7 +325,7 @@ public class McpToolSourceTests
         var args = RollArgs();
         args["playersWant"] = blank;
 
-        var error = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var error = await Assert.ThrowsAnyAsync<InvalidOperationException>(() =>
             tools.CallDirectAsync("roll_character", args, CancellationToken.None));
 
         Assert.Contains("playersWant is blank", error.Message);
@@ -348,7 +348,7 @@ public class McpToolSourceTests
             var lacking = new Dictionary<string, JsonElement>(full);
             Assert.True(lacking.Remove("playersWant"));
 
-            var refused = await Assert.ThrowsAsync<InvalidOperationException>(() => tools.CallDirectAsync("save_character", new()
+            var refused = await Assert.ThrowsAnyAsync<InvalidOperationException>(() => tools.CallDirectAsync("save_character", new()
             {
                 ["brief"] = JsonSerializer.SerializeToElement(lacking),
                 ["name"] = KessaVale,

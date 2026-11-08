@@ -13,9 +13,9 @@ Console.OutputEncoding = Encoding.UTF8;
 Console.InputEncoding = Encoding.UTF8;
 
 // No host, no DI container. Everything is wired by hand, in the order it happens:
-// config, then the client, then the options, then connect, interview, roll, name, write, save. With
-// --lab, the lab takes over after connect and writes a sheet instead of a save. With --load,
-// the load comes straight after connect and the model is never called. With no answer flag,
+// config, then connect, then the client, then the options, then interview, roll, name, write, save.
+// --load comes straight after connect, before the client, and the model is never called.
+// With --lab, the lab takes over after the client and writes a sheet instead of a save. With no answer flag,
 // the interview reads the GM's scene, and the roll waits for the GM's yes. The roll comes
 // before the writer's first turn, which is why the order has to stay visible.
 
@@ -45,27 +45,7 @@ if (run.Score is not null)
 if (recordTo is not null)
     Console.Error.WriteLine($"[app] recording to {Path.GetFullPath(recordTo)}");
 
-// The only line that knows which vendor is behind the model. Everything after it sees IChatClient.
-IChatClient client = ModelClients.Create(provider, model, config, run.Recording);
-
-// --record wraps the real client, and everything after this still sees one IChatClient. Line 1
-// of the file is this run's answers as flags, from the same table the parser reads.
-if (recordTo is not null)
-    client = new RecordingChatClient(client, recordTo, run.RecordedFlags());
-
-// Outermost, so every model call this session makes, interview and writer alike, counts against
-// one allowance, and a refused call is never recorded or sent.
-client = new SpendingCap(client, SpendingCap.TokensPerSession);
-
-// Shared by every request. Step 4 fills in Tools from the tool source before the first turn.
-var options = new ChatOptions
-{
-    ModelId = model,
-    // No Temperature: claude-opus-5 and claude-sonnet-5 reject it with a 400.
-    MaxOutputTokens = 5000,
-};
-
-// Connect: start the server, before the model's first turn. Disposed when the run ends,
+// Connect: start the server, before any model client is built. Disposed when the run ends,
 // which stops the server on purpose.
 // A replay or a recording run saves to a temp file unless NPCFORGE_CHARACTERS says otherwise, so
 // it never writes over the characters.json you keep (docs/architecture.md "Storage").
@@ -73,26 +53,26 @@ var charactersPath = run.CharactersPath(Environment.GetEnvironmentVariable("NPCF
 await using var tools = new McpToolSource(charactersPath, seed);
 await tools.ConnectAsync(CancellationToken.None);
 
-// The lab is one visible branch: it rolls once and writes every variant through the same
-// ChatAgent.WriteAsync a normal run uses. It saves nothing, and asks before any model call.
-if (run.Lab is not null)
-{
-    var ended = await Lab.RunAsync(client, options, tools, run, Console.In, CancellationToken.None);
-
-    // As a normal run does when no name follows the dice: the lab has said why, and it is a failure.
-    if (ended.NoName)
-        Environment.ExitCode = 1;
-    return;
-}
-
 // Load: a saved character comes back exactly as it was written. No roll and no model, so it
-// costs nothing. A number that was never saved stops the run here, with the server's reason.
+// costs nothing, and it comes before ModelClients.Create so it needs no API key (ADR-013,
+// decision 5). A number that was never saved stops the run here with the server's reason, and
+// exit code 1, not a stack trace (decision 6).
 if (load is not null)
 {
-    var savedJson = await tools.CallDirectAsync("load_character", new()
+    string savedJson;
+    try
     {
-        ["number"] = load,
-    }, CancellationToken.None);
+        savedJson = await tools.CallDirectAsync("load_character", new()
+        {
+            ["number"] = load,
+        }, CancellationToken.None);
+    }
+    catch (ToolRefusedException ex)
+    {
+        Console.Error.WriteLine($"[app] not loaded: {ex.Reason}");
+        Environment.ExitCode = 1;
+        return;
+    }
 
     using var saved = JsonDocument.Parse(savedJson);
     Console.Error.WriteLine($"[app] loaded {load}");
@@ -113,6 +93,38 @@ if (load is not null)
         Console.Error.WriteLine($"[app] not given in save {load}: {string.Join(", ", notGiven)}");
 
     Console.WriteLine(saved.RootElement.GetProperty("text").GetString());
+    return;
+}
+
+// The only line that knows which vendor is behind the model. Everything after it sees IChatClient.
+IChatClient client = ModelClients.Create(provider, model, config, run.Recording);
+
+// --record wraps the real client, and everything after this still sees one IChatClient. Line 1
+// of the file is this run's answers as flags, from the same table the parser reads.
+if (recordTo is not null)
+    client = new RecordingChatClient(client, recordTo, run.RecordedFlags());
+
+// Outermost, so every model call this session makes, interview and writer alike, counts against
+// one allowance, and a refused call is never recorded or sent.
+client = new SpendingCap(client, SpendingCap.TokensPerSession);
+
+// Shared by every request. Step 4 fills in Tools from the tool source before the first turn.
+var options = new ChatOptions
+{
+    ModelId = model,
+    // No Temperature: claude-opus-5 and claude-sonnet-5 reject it with a 400.
+    MaxOutputTokens = 5000,
+};
+
+// The lab is one visible branch: it rolls once and writes every variant through the same
+// ChatAgent.WriteAsync a normal run uses. It saves nothing, and asks before any model call.
+if (run.Lab is not null)
+{
+    var ended = await Lab.RunAsync(client, options, tools, run, Console.In, CancellationToken.None);
+
+    // As a normal run does when no name follows the dice: the lab has said why, and it is a failure.
+    if (ended.NoName)
+        Environment.ExitCode = 1;
     return;
 }
 
