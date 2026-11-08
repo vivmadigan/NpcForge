@@ -15,7 +15,7 @@ namespace NpcForge.Server
         // leaves ".." in such a path as it is (lesson 015). The console never meets this: Windows will
         // not start the server's exe from a path that long. The file APIs take a \\?\ path, so the
         // prefix can stay.
-        private static string FilePath =>
+        internal static string FilePath =>
             Environment.GetEnvironmentVariable("NPCFORGE_CHARACTERS")
             ?? Path.GetFullPath(Path.Combine("..", "..", "..", "characters.json"), AppContext.BaseDirectory);
 
@@ -28,32 +28,38 @@ namespace NpcForge.Server
             Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
         };
 
+        // The file at FilePath, which reads the environment on every call. FileCharacterStore takes a
+        // path of its own, so a test can use a store without setting the variable.
+        public static Dictionary<int, SavedCharacter> Load() => Load(FilePath);
+
+        public static void Save(Dictionary<int, SavedCharacter> all) => Save(FilePath, all);
+
         // All saved characters by number; empty if nothing is saved yet. If the file will not
         // parse, throw McpException with the path, so the app is told why.
-        public static Dictionary<int, SavedCharacter> Load()
+        public static Dictionary<int, SavedCharacter> Load(string path)
         {
-            if (!File.Exists(FilePath))
+            if (!File.Exists(path))
                 return new();
 
             try
             {
-                var json = File.ReadAllText(FilePath);
+                var json = File.ReadAllText(path);
                 return JsonSerializer.Deserialize<Dictionary<int, SavedCharacter>>(json, Options) ?? new();
             }
             catch (JsonException ex)
             {
-                throw new McpException($"Could not read {FilePath}: {ex.Message}");
+                throw new McpException($"Could not read {path}: {ex.Message}");
             }
         }
 
 
         // Writes them all back. The folder does not exist before the first save.
-        public static void Save(Dictionary<int, SavedCharacter> all)
+        public static void Save(string path, Dictionary<int, SavedCharacter> all)
         {
-            Directory.CreateDirectory(Path.GetDirectoryName(FilePath)!);
+            Directory.CreateDirectory(Path.GetDirectoryName(path)!);
 
             var json = JsonSerializer.Serialize(all, Options);
-            File.WriteAllText(FilePath, json);
+            File.WriteAllText(path, json);
         }
     }
 }

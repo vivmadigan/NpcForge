@@ -111,19 +111,8 @@ namespace NpcForge.Server
         // text, it fails with no reason given. It binds through CharacterBrief, so a brief missing
         // any field, its name dice included, is refused. Every new save has a name (ADR-009).
         [McpServerTool(Name = "save_character"), Description("Keep a written character, its name, and the brief it was written from.")]
-        public static int SaveCharacter(CharacterBrief brief, CharacterName name, string text)
-        {
-            var all = Storage.Load();
-
-            // One past the highest, not Count + 1: after a hand edit that deletes an entry,
-            // Count + 1 could save over the last one.
-            var number = all.Count == 0 ? 1 : all.Keys.Max() + 1;
-
-            all[number] = SavedCharacter.Of(brief, name, text);
-            Storage.Save(all);
-            return number;
-
-        }
+        public static int SaveCharacter(CharacterBrief brief, CharacterName name, string text) =>
+            Await(Store().SaveAsync(SavedCharacter.Of(brief, name, text), CancellationToken.None));
 
         // App-only. --load calls this instead of rolling and instead of the model. An unknown
         // number returns an error result, not a throw: the SDK logs a thrown tool exception at error
@@ -133,9 +122,9 @@ namespace NpcForge.Server
         [McpServerTool(Name = "load_character"), Description("Load a kept character by its number.")]
         public static CallToolResult LoadCharacter(int number)
         {
-            var all = Storage.Load();
+            var saved = Await(Store().LoadAsync(number, CancellationToken.None));
 
-            if (!all.TryGetValue(number, out var saved))
+            if (saved is null)
                 return new CallToolResult
                 {
                     IsError = true,
@@ -153,7 +142,15 @@ namespace NpcForge.Server
         // read here, and the rest of the brief stays in the file. ListedCharacter.Of reads them.
         [McpServerTool(Name = "list_characters"), Description("List every kept character: its number, name, occupation and setting.")]
         public static List<ListedCharacter> ListCharacters() =>
-            [.. Storage.Load().OrderBy(entry => entry.Key).Select(entry => ListedCharacter.Of(entry.Key, entry.Value))];
+            [.. Await(Store().ListAsync(CancellationToken.None))];
 
+        // Save, load and list are one call each into the store (ADR-014, decision 9). Storage reads
+        // NPCFORGE_CHARACTERS on every call, so a store is built per call on its path.
+        private static FileCharacterStore Store() => new(Storage.FilePath);
+
+        // These tools are sync and the SDK calls them as they are, so each blocks on the store's Task.
+        // A file store's Task is complete when it comes back, so nothing can deadlock. The server
+        // retires in the behavior PR and the console then awaits the store itself (ADR-014).
+        private static T Await<T>(Task<T> task) => task.GetAwaiter().GetResult();
     }
 }
