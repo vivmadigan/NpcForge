@@ -118,7 +118,8 @@ implementation and `haiku` for cheap checks. pstack's defaults name Fable; the m
 dotnet build
 dotnet test                                        # free: no network, no model calls; about a minute
 dotnet test --filter "Category!=Process"           # the fast part: no console or server, about 5 s
-dotnet run --project NpcForge.Console -- --load 3  # no model call; still needs an API key set
+dotnet run --project NpcForge.Console -- --load 3  # no model call, no API key needed
+dotnet run --project NpcForge.Console -- --list    # no model call: every save, one row each
 dotnet run --project NpcForge.Console              # paid: OpenAI, default model
 dotnet run --project NpcForge.Console -- --provider anthropic --model claude-opus-5   # paid
 ```
