@@ -46,7 +46,8 @@ Decision, Why, Consequences.
 - [ADR-011 Look dice join the brief, and the writer opens with a passage read to the table](ADR-011-look-dice-and-a-passage-read-to-the-table.md) — accepted 2026-11-02
 - [ADR-012 The console starts the server's launcher, on an MCP client that closes stdin first](ADR-012-server-launcher-and-mcp-client-2-3.md) — accepted 2026-11-05; superseded by ADR-014 from epic 5's behavior PR
 - [ADR-013 Saving is the GM's choice, a run can roll again, and an app-only tool lists the saves](ADR-013-saving-is-a-choice.md) — accepted 2026-11-08
-- [ADR-014 One core, called in-process, with saves behind a port; the MCP server retires](ADR-014-one-core-called-in-process.md) — accepted 2026-11-08; supersedes ADR-012
+- [ADR-014 One core, called in-process, with saves behind a port; the MCP server retires](ADR-014-one-core-called-in-process.md) — accepted 2026-11-08; supersedes ADR-012; three lines amended by ADR-015
+- [ADR-015 A store never gives a save a number one already holds, and the guards outlive the server](ADR-015-store-numbers-and-guards.md) — accepted 2026-11-08
 
 ADR-004 was reserved for the server layers by a plan that no longer exists, and was never written.
 Older records mention plan versions and `PLAN.md`; those are in git at commit `cd20b60`.

@@ -111,19 +111,8 @@ namespace NpcForge.Server
         // text, it fails with no reason given. It binds through CharacterBrief, so a brief missing
         // any field, its name dice included, is refused. Every new save has a name (ADR-009).
         [McpServerTool(Name = "save_character"), Description("Keep a written character, its name, and the brief it was written from.")]
-        public static int SaveCharacter(CharacterBrief brief, CharacterName name, string text)
-        {
-            var all = Storage.Load();
-
-            // One past the highest, not Count + 1: after a hand edit that deletes an entry,
-            // Count + 1 could save over the last one.
-            var number = all.Count == 0 ? 1 : all.Keys.Max() + 1;
-
-            all[number] = new SavedCharacter(Storage.ToJson(brief), name, text);
-            Storage.Save(all);
-            return number;
-
-        }
+        public static int SaveCharacter(CharacterBrief brief, CharacterName name, string text) =>
+            Await(Store().SaveAsync(SavedCharacter.Of(brief, name, text), CancellationToken.None));
 
         // App-only. --load calls this instead of rolling and instead of the model. An unknown
         // number returns an error result, not a throw: the SDK logs a thrown tool exception at error
@@ -133,9 +122,9 @@ namespace NpcForge.Server
         [McpServerTool(Name = "load_character"), Description("Load a kept character by its number.")]
         public static CallToolResult LoadCharacter(int number)
         {
-            var all = Storage.Load();
+            var saved = Await(Store().LoadAsync(number, CancellationToken.None));
 
-            if (!all.TryGetValue(number, out var saved))
+            if (saved is null)
                 return new CallToolResult
                 {
                     IsError = true,
@@ -150,28 +139,18 @@ namespace NpcForge.Server
 
         // App-only (ADR-013, decision 4). --list calls this to find a save again. Only the name, the
         // occupation and the setting leave the server: the text is the model's prose and is never
-        // read here, and the rest of the brief stays in the file. A brief without one of the two
-        // keys gives null for it, so the 16 saves from before the namer list as they are.
+        // read here, and the rest of the brief stays in the file. ListedCharacter.Of reads them.
         [McpServerTool(Name = "list_characters"), Description("List every kept character: its number, name, occupation and setting.")]
         public static List<ListedCharacter> ListCharacters() =>
-            [.. Storage.Load().OrderBy(entry => entry.Key).Select(entry => new ListedCharacter(
-                entry.Key,
-                entry.Value.Name,
-                BriefText(entry.Value.Brief, "occupation"),
-                BriefText(entry.Value.Brief, "setting")))];
+            [.. Await(Store().ListAsync(CancellationToken.None))];
 
-        // The brief is the JSON it was saved as, so a key is read by its saved name, not through
-        // CharacterBrief (ADR-009).
-        private static string? BriefText(JsonElement brief, string key) =>
-            brief.ValueKind == JsonValueKind.Object
-            && brief.TryGetProperty(key, out var value)
-            && value.ValueKind == JsonValueKind.String
-                ? value.GetString()
-                : null;
+        // Save, load and list are one call each into the store (ADR-014, decision 9). Storage reads
+        // NPCFORGE_CHARACTERS on every call, so a store is built per call on its path.
+        private static FileCharacterStore Store() => new(Storage.FilePath);
 
+        // These tools are sync and the SDK calls them as they are, so each blocks on the store's Task.
+        // A file store's Task is complete when it comes back, so nothing can deadlock. The server
+        // retires in the behavior PR and the console then awaits the store itself (ADR-014).
+        private static T Await<T>(Task<T> task) => task.GetAwaiter().GetResult();
     }
-
-    // One row of the list. The name keeps the shape the save holds, so the console reads it as it
-    // reads a loaded save's. The fields keep the brief's own names (ADR-013).
-    public sealed record ListedCharacter(int Number, CharacterName? Name, string? Occupation, string? Setting);
 }

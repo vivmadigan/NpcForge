@@ -1,24 +1,9 @@
 ﻿using ModelContextProtocol;            // McpException
 using System.Text.Encodings.Web;       // JavaScriptEncoder
 using System.Text.Json;
-using System.Text.Json.Serialization;  // JsonIgnore
 
 namespace NpcForge.Server
 {
-    // One saved run. The model writes differently each time, so the name the namer gave and the
-    // text are saved beside the brief. The brief stays the JSON it was saved as: an old entry is never passed
-    // through CharacterBrief, so a field added to the brief later cannot appear in it (ADR-009).
-    // An old save has no name. Null is left out of the file, so an old entry keeps its bytes when
-    // the file is written back.
-    public sealed record SavedCharacter(
-        JsonElement Brief,
-        [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] CharacterName? Name,
-        string Text);
-
-    // The name the namer gave and the console accepted, split as the namer split it, so the count it
-    // was checked on stays readable in the save.
-    public sealed record CharacterName(IReadOnlyList<string> Syllables, string Family);
-
     // All saved characters in one JSON file, numbered from 1. Only the server touches the file.
     public static class Storage
     {
@@ -30,7 +15,7 @@ namespace NpcForge.Server
         // leaves ".." in such a path as it is (lesson 015). The console never meets this: Windows will
         // not start the server's exe from a path that long. The file APIs take a \\?\ path, so the
         // prefix can stay.
-        private static string FilePath =>
+        internal static string FilePath =>
             Environment.GetEnvironmentVariable("NPCFORGE_CHARACTERS")
             ?? Path.GetFullPath(Path.Combine("..", "..", "..", "characters.json"), AppContext.BaseDirectory);
 
@@ -43,36 +28,38 @@ namespace NpcForge.Server
             Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
         };
 
-        // A new brief as the JSON the file holds, written with the same options as the file.
-        public static JsonElement ToJson(CharacterBrief brief) =>
-            JsonSerializer.SerializeToElement(brief, Options);
+        // The file at FilePath, which reads the environment on every call. FileCharacterStore takes a
+        // path of its own, so a test can use a store without setting the variable.
+        public static Dictionary<int, SavedCharacter> Load() => Load(FilePath);
+
+        public static void Save(Dictionary<int, SavedCharacter> all) => Save(FilePath, all);
 
         // All saved characters by number; empty if nothing is saved yet. If the file will not
         // parse, throw McpException with the path, so the app is told why.
-        public static Dictionary<int, SavedCharacter> Load()
+        public static Dictionary<int, SavedCharacter> Load(string path)
         {
-            if (!File.Exists(FilePath))
+            if (!File.Exists(path))
                 return new();
 
             try
             {
-                var json = File.ReadAllText(FilePath);
+                var json = File.ReadAllText(path);
                 return JsonSerializer.Deserialize<Dictionary<int, SavedCharacter>>(json, Options) ?? new();
             }
             catch (JsonException ex)
             {
-                throw new McpException($"Could not read {FilePath}: {ex.Message}");
+                throw new McpException($"Could not read {path}: {ex.Message}");
             }
         }
 
 
         // Writes them all back. The folder does not exist before the first save.
-        public static void Save(Dictionary<int, SavedCharacter> all)
+        public static void Save(string path, Dictionary<int, SavedCharacter> all)
         {
-            Directory.CreateDirectory(Path.GetDirectoryName(FilePath)!);
+            Directory.CreateDirectory(Path.GetDirectoryName(path)!);
 
             var json = JsonSerializer.Serialize(all, Options);
-            File.WriteAllText(FilePath, json);
+            File.WriteAllText(path, json);
         }
     }
 }
