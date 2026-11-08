@@ -33,10 +33,24 @@ you ──► Program.cs
           │       the first user message holds the GM's scene (interview runs
           │       only), the name and the brief
           │       AgentLoop ◄──► model, which may call lookup_archetype ◄──► server
-          │ 5. save: save_character(brief, name, text) ────► characters.json
+          │ 5. show the character, then ask: save, again or leave
+          │       save: save_character(brief, name, text) ──► characters.json
+          │       again: back to 2, same answers, scene, server and client
+          │       leave, or end of input: nothing saved
           ▼
-     the character on stdout, the trace on stderr
+     each character on stdout, the trace on stderr
 ```
+
+Steps 2 to 4 are one step, `CharacterRun.RollAndWriteAsync`, and `Program.cs` loops over it
+(ADR-013). The answers and the scene are one `Ask`, built once, so a roll again rolls only what was
+rolled. Every roll uses the run's one server, so under `--seed` the next roll takes the next dice from
+the server's one `Random`, and a run with roll agains gives the same characters every time. The
+question (`KeepQuestion`) goes to stderr and reads `Console.In`, the reader the interview uses. It
+accepts `save`, `again` and `leave`, trimmed, in any case, and a UTF-8 byte order mark before the
+first answer is ignored. Anything else, a blank line or a first letter included, prints
+`[app] "<answer>" is not save, again or leave.` and asks again. Only the character on the screen
+when the GM types `save` is saved, and a run ends with `[app] saved as N`, `[app] not saved` or
+`[app] not saved: end of input`, each with exit code 0.
 
 Step 1a runs only when no answer flag and no `--load` is given ("The scene interview"). Its
 answers go to the same `roll_character` call the flags fill. A yes also hands back the scene as the
@@ -45,8 +59,10 @@ GM typed it, and the writer is sent it word for word, between `<scene>` tags, be
 Vale.`, then the brief, which stays last. Code never reads the scene, and it is not saved.
 `[app] scene sent (<n> chars)` on stderr shows it went. Steps 3 and 4 are both
 `ChatAgent.WriteAsync` ("The namer"). `--load <number>` replaces steps 2 to 5
-with `load_character`: no roll, no model, no cost. The server connects before the model client is
-built, so `--load` and `--list` need no API key. A number never saved stops with
+with `load_character`, and `--list` with `list_characters`: no roll, no model, no cost. The order
+at start-up is config, flags, connect, then `--list` or `--load` if given, then the model client.
+So the server connects before the model client is built, `--load` and `--list` need no API key, and
+a missing key is reported after the server starts. A number never saved stops with
 `[app] not loaded: <reason>` and exit code 1. `--seed`, `--record` and `--provider replay`
 are under "Replay".
 
@@ -130,7 +146,8 @@ the sheets, which are pure.
 | `lookup_archetype` | the model | Says how a kind of person usually behaves |
 | `roll_character` | the app only | Rolls the brief. Any rolled trait can be passed in instead. Each parameter has a `[Description]`, which the interview reads |
 | `save_character` | the app only | Saves a brief, its name and its text, returns the new number. Binds the brief through `CharacterBrief`, so a brief missing a field is refused |
-| `load_character` | the app only | Returns a saved brief, name (when it has one) and text by number |
+| `load_character` | the app only | Returns a saved brief, name (when it has one) and text by number. A number never saved is refused with the reason |
+| `list_characters` | the app only | Returns every save in number order: its number, its name (or null) and the brief's `occupation` and `setting`. Reads no text |
 
 `McpToolSource` has two doors:
 - **The model's door**, `ListAsync` and `InvokeAsync`, sees only the tools not in `AppOnly`. Every
@@ -271,6 +288,11 @@ once the total reaches the cap, before the model is asked; one call may overshoo
 streaming, which the app never uses and which it could not count. Below the cap it passes every call
 through, so the replay sees nothing new.
 
+Every roll again draws on the same allowance. `Program.cs` catches `SpendingCapReachedException`
+once, around the interview and the roll again loop, prints `[app] stopped: <the cap's message>
+Nothing was saved.` and exits with code 1, with no stack trace (ADR-013, decision 7). A refused call
+always comes before the question, so nothing is saved. The lab catches it on its own.
+
 ## Writing guidance
 
 `NpcForge.Console/skills/scene-interviewer/SKILL.md` is the interviewer's: quote the GM exactly, at
@@ -322,7 +344,7 @@ trace.
 
 | Prefix | From | Says |
 | --- | --- | --- |
-| `[app]` | `Program.cs`, `Namer.cs` | `recording to <path>`, the provider and model, the rolled brief, `name Kessa Vale (K, 2, V)` (the accepted name and its dice), `not written: no name followed the dice (K, 2, V)`, `saved as N`, `loaded N`, and on a load `name Kessa Vale` |
+| `[app]` | `Program.cs`, `CharacterRun.cs`, `KeepQuestion.cs`, `Namer.cs` | `recording to <path>`, the provider and model and the rolled brief (once per roll), `name Kessa Vale (K, 2, V)` (the accepted name and its dice), `not written: no name followed the dice (K, 2, V)`, an answer that is not save, again or leave, `saved as N`, `not saved`, `not saved: end of input`, `stopped: <the cap's message> Nothing was saved.`, `loaded N`, `not loaded: <reason>`, on a load `name Kessa Vale`, and `nothing saved yet` for an empty `--list` |
 | `[skill]` | `ChatAgent.cs`, `Namer.cs`, `SceneInterview.cs` | Which `SKILL.md` and tone file, their combined length and fingerprint (the interviewer's with its field list) |
 | `[loop]` | `AgentLoop.cs` | One line per model turn: tool calls, history size, tokens |
 | `[tool]` | `McpToolSource`, `ConsoleTool` | Each call the model made, and for `record_answer` and `give_name` what it got back. The app's own calls have none |
@@ -351,8 +373,9 @@ Debug server that may be stale or missing. `McpToolSource` reads the console ass
 
 ## Storage
 
-One JSON file, `NpcForge.Server/characters.json`: every run, numbered from 1, the brief, the name
-and the text together (ADR-003, ADR-009). An entry is `{ "brief": {...}, "name": { "syllables":
+One JSON file, `NpcForge.Server/characters.json`: every character the GM chose to save, numbered
+from 1, the brief, the name and the text together (ADR-003, ADR-009, ADR-013). A new save takes one
+past the highest number. An entry is `{ "brief": {...}, "name": { "syllables":
 ["Kes", "sa"], "family": "Vale" }, "text": "..." }`; a save from before the namer has no `name`,
 which `SavedCharacter` leaves out when null so the entry keeps its bytes, and `--load` lists it as
 unknown. A missing brief key is unknown too; a key saved as null is not given, and `--load` prints
@@ -398,7 +421,14 @@ One real run is recorded once, and the whole app replays against it for free (AD
   because a dropped model turn only shows on a later call. The child's HTTP proxy is a dead port, so
   a replay that ever lost `--provider replay` fails instead of paying. A second test runs it with
   `NPCFORGE_CHARACTERS` removed and checks the tracked `characters.json` is byte-identical afterwards
-  (putting it back if not) and the save is at the path the app printed.
+  (putting it back if not) and the save is at the path the app printed. Both answer `save`.
+- **A second recording: roll again.** `NpcForge.Tests/Fixtures/roll-again.jsonl` is the replay
+  fixture's flags at `--seed 1`, answered `again` and then `save`: two characters in eight calls. The
+  answers are typed, not flags, so it replays only with the same answers piped in. `RollAgainTests`
+  replays it and checks both briefs, both names, and that the save is the second character. A replay
+  stops a run that makes one call too many, but not one that leaves calls unused, so the test also
+  counts the `[loop]` lines against the recorded calls. A second test replays it twice and gets the
+  same two characters, which a roll again on a new server would not.
 - **Offline.** `NPCFORGE_OFFLINE=1` makes `ModelClients.Create` refuse `openai` and `anthropic` before
   it builds a client or reads a key, so a free run cannot reach a model whatever order `Program.cs` runs
   in. `replay` still works. It is a second stop, independent of the dead proxy. `OfflineTests` runs both
@@ -408,8 +438,8 @@ One real run is recorded once, and the whole app replays against it for free (AD
   brief: an entry in `Tables.cs`, the order of the picks, a .NET major version that changes
   `new Random(seed)`. And an upgrade of the AI, OpenAI or MCP libraries, because the recording is
   their JSON. Re-record after a deliberate behavior change or such an upgrade only, never for a
-  restructure. A re-record with no tool call fails the test; ask the owner before paying again. The
-  command and the rules are in `docs/runs/README.md`.
+  restructure. A re-record with no tool call fails the test; ask the owner before paying again. Both
+  recordings go stale together. The commands and the rules are in `docs/runs/README.md`.
 - **By hand, free.** `docs/runs/README.md` has the replay command. Its save goes to a temp file,
   named on the `[app] saved as` line.
 - **Build configuration.** A test that starts the app passes `-c <the configuration it was built in>`
@@ -420,7 +450,7 @@ One real run is recorded once, and the whole app replays against it for free (AD
 
 `dotnet test` is free: no network and no model. The whole suite takes about a minute on a quiet
 16-core machine. A test that starts the console or a server carries `[Trait("Category", "Process")]`,
-so `dotnet test --filter "Category!=Process"` runs the 304 tests that start none in about 5 s.
+so `dotnet test --filter "Category!=Process"` runs the 315 tests that start none in about 5 s.
 xUnit runs one class's tests one after another and classes side by side, so the slowest chains are
 the classes that start many servers: `McpToolSourceTests`, `SeededRollTests`, and `LabRunTests`,
 which runs alone at the end because the lab swaps the process-wide `Console.Error`.
@@ -434,6 +464,18 @@ which runs alone at the end because the lab swaps the process-wide `Console.Erro
   others, and a handed-in look, gender or age moves no die on the next roll. Split from
   `McpToolSourceTests` so the two run side by side.
 - `ReplayTests`: the whole app against the recorded run, as above, and the temp-file save.
+- `KeepQuestionTests` and `KeepAnswerTests`: through the app, `save` saves and prints its number,
+  `leave` and end of input save nothing and say so, an unknown answer asks again and a later `save`
+  saves once, a blank line or a first letter is not an answer, and the words are read trimmed and in
+  any case. `KeepAnswerTests` reads each answer in process, a byte order mark included.
+- `RollAgainTests`: `roll-again.jsonl` replayed with `again` then `save` (two characters, the second
+  saved, every recorded call made); the same recording twice giving the same two characters; and a
+  copy of the replay fixture with its usage at the cap, where `again` stops with `[app] stopped`,
+  exit 1, no stack trace and nothing saved.
+- `ListTests` and `LoadTests`: `--list` shows every save with its number, name or `(no name)`,
+  occupation and setting, and an empty or missing file says so and exits 0; `--load` of a number never
+  saved says why and exits 1 with no stack trace, and a load needs no model client. All run with
+  `NPCFORGE_OFFLINE=1`.
 - `ReplaySensitivityTests`: the replay fails on a changed system prompt, an emptied tool list, a
   changed model option and a dropped writer turn, each on the fixture and on a copy with a namer
   call in front, so the writer's calls are found by their system message.
@@ -557,3 +599,4 @@ agents and named, not numbered.
 | Fill the gaps in a scene (epic 8) | A missing place or role is asked for, a missing want is not given and written for goodwill, a missing difficulty is rolled; the bakery scene passed on three seeds of three | |
 | Read it to the table (epic 10) | A rolled gender, age and look join the brief with no older die moved; every sheet opens with the name and a passage to read aloud, which passed on seven runs of seven across the bakery and control scenes | |
 | Faster tests (epic 9) | The free suite went from 12 m 19 s to about a minute with all 455 tests kept: a server closes at once on MCP 2.3.1, starts from its launcher, and the fast part runs on its own in 5 s | |
+| Save what I like (epic 4) | Saving is the GM's choice after each character; `again` rolls new dice for the same scene on the same server, so a seeded run repeats; `--list` finds a save and `--load` opens it; the cap stops a run cleanly. The bakery scene rolled again twice and saved the third | |

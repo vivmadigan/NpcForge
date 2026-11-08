@@ -35,92 +35,12 @@ Two rules for every epic, now that the Safety net exists:
 
 | # | Epic | In one line |
 | --- | --- | --- |
-| 4 | Save what I like | Choose which characters to save, roll again, and list every save |
 | 5 | Ready to grow | A structure that can sit behind a website and a database |
 | 6 | Friends can use it | A website with logins and a database, deployed |
 | 11 | Change a saved character | Change a saved character without starting over. For later |
 
-Epic 4 is ready to start. Epics 5, 6 and 11 are drafts: sharpen each one before it starts. Epic 11
-waits until after the website.
-
-## 4. Save what I like
-
-**Goal.** I choose which characters are worth saving. Once a run has written a character, the app
-asks what to do with it: save it, roll a new one for the same scene, or leave it unsaved. A roll
-again rolls every die again, keeps what I or my scene said, and has the model write a new character
-from the new dice. I can also list every character I have saved, to find one I had forgotten, and
-open it.
-
-Today every run is saved and numbered, and my file holds 16. Saves 9 to 16 are eight innkeepers in
-the same city inn, and the goblin baker I liked is save 8. Without a list, the only way back to him
-is to remember the 8.
-
-This replaces an earlier plan to mark saves as kept and open them by name. Changing a saved
-character is epic 11.
-
-**Constraints.**
-- Saving becomes my choice in every run, flag runs included. That replaces ADR-003's "every run
-  saved", so an ADR comes first.
-- The question comes after the character is shown. Save saves it and ends the run. Leave ends the
-  run with nothing saved. Anything else, end of input included, saves nothing, the way the
-  interview's "yes" works today.
-- A roll again rolls only what was rolled. What I said in the interview or by a flag stays, the
-  writer is sent the scene again, and the namer names the new character from its new dice. It runs
-  on the same server and the same model client as the first character.
-- Each roll again calls the model, so it costs money. The session's spending cap counts every roll
-  again, and when the cap stops a run, the run says so and exits with code 1. Today `Program.cs`
-  does not catch the cap's exception at all; only the lab does (`Lab.cs`).
-- Under `--seed`, a roll again takes the next dice from the same seed (the server makes one `Random`
-  per run, in `CharacterTools.cs`), so a run with roll agains is still repeatable.
-- The list shows every save, the 16 from before this epic included. For each, it shows the number,
-  the name when the save has one, and enough from the brief to tell them apart. It reads only the
-  save's name and brief, never the text: saves 1 to 8 have no name, and code never parses the
-  model's prose. A save is opened by its number, with `--load` as today.
-- Listing is a new app-only tool, like `save_character`. The model never sees it.
-- This is a behavior change, but the model is sent the same messages, so the replay fixture is not
-  re-recorded. The tests and the verify skill's replay close the input at once today
-  (`ConsoleProcess.cs`), so they change only to answer save.
-- Roll, name and write become one step the run can repeat, in a restructure PR of its own before
-  the question, with the replay test unchanged (the rule at the top of this file).
-- It stays in the JSON file on the server. No database and no users. Those are epics 5 and 6.
-
-**Done when.**
-- Free tests, through the console as a process, with a recorded or fake model:
-  - Answering save saves the character, prints its number and ends the run. Answering leave, or
-    ending the input, saves nothing and says so. Both hold in a flag run too.
-  - A roll again rolls new dice, keeps every answer I gave, calls the namer and the writer again,
-    and asks again about the new character. Only the character I save is saved.
-  - A run under a seed rolls again: the second character's dice differ from the first, and the run
-    gives the same two characters every time. This goes through the app, so a roll again that
-    started a new server would fail it.
-  - When the spending cap stops a roll again, the run says so, exits with code 1 without a stack
-    trace, and saves nothing.
-  - The list shows every save in the file with its number, its name when it has one, and its role
-    and place, an old save with no name included. Its tests run with `NPCFORGE_OFFLINE=1`, so none
-    can call a model.
-  - `--load` with a number that was never saved stops with the reason and exit code 1.
-  - The replay test passes, changed only to answer save, and the fixture is not re-recorded.
-- The bakery scene, as ADR-010 quotes it: I roll again twice, save the third character, find it in
-  the list and open it (*needs my eyes*, paid).
-- The question's wording, the command names, and what the list shows for each character (*needs my
-  eyes*).
-
-**Tasks.**
-- ADR: saving becomes a choice (supersedes part of ADR-003), the question at the end of a run, roll
-  again, and the list tool.
-- The list. It needs no model, so it can come first.
-- A restructure: roll, name and write as one step the run can repeat. The replay passes unchanged.
-- The question at the end of a run, with save and leave, and the tests answering save.
-- Roll again.
-
-**Not in this epic.**
-- Deleting a save. A new save takes one past the highest number (`CharacterTools.cs`), so deleting
-  the highest would hand its number to the next save, and `docs/runs/` refers to saves by number.
-  Delete needs the file to remember the highest number ever used, which is a change to the save
-  format.
-- Saving several characters from one scene in one run.
-- Changing a saved character, a name the GM gives in a scene, and recurring characters (epic 11).
-- A database and logins (epics 5 and 6).
+Epics 5, 6 and 11 are drafts: sharpen the next one before it starts. Epic 11 waits until after the
+website.
 
 ## 5. Ready to grow (draft)
 
@@ -212,3 +132,10 @@ that rewrites the character calls the model, so its checks are paid.
   unchanged, and each run's stderr now ends with the server's own shutdown lines.
   `dotnet test --filter "Category!=Process"` runs the 331 tests that start no process in about 5 s.
   See lesson 014.
+- **Save what I like** (epic 4, 2026-11-08). After each character the app asks `save`, `again` or
+  `leave`, in flag runs too, and only `save` saves. `again` rolls new dice for the same answers and
+  scene on the same server, so a seeded run gives the same characters every time. `--list` shows
+  every save by number, name, role and place from an app-only `list_characters` tool, `--load` of a
+  number never saved stops with the reason, and the spending cap stops a run with `[app] stopped`
+  and exit 1. The bakery scene rolled again twice and saved the third, found by `--list` and opened
+  by `--load`. See ADR-013 and `docs/runs/2026-11-08-01-epic4-checks.md`.

@@ -42,7 +42,10 @@ writing. The dice give the variety.
    - **Levers.** Two or three things that would move them, each with a line of dialogue.
    - **Anti-levers.** Two or three things that would harden them, each with a line.
    - **Afterwards.** What they do if the players got what they wanted, did not, or made an enemy.
-4. Every run is saved, brief and text together, and numbered. `--load <number>` prints one back.
+4. You choose what to keep. After each character the app asks: `save` keeps it, brief and text
+   together, under the next number; `again` rolls new dice for the same scene and writes a new
+   character; `leave` ends the run with nothing saved. `--list` shows every save, and
+   `--load <number>` prints one back.
 
 **Levers come from the brief.** Left alone, a model offers bribe, persuade and intimidate in every
 scene. Tied to the brief, they get specific: a man who will not talk because he is afraid of being
@@ -70,12 +73,13 @@ dotnet build
 dotnet test
 dotnet run --project NpcForge.Console
 dotnet run --project NpcForge.Console -- --setting "an isolated farm on a dangerous border" --occupation farmer --want "passage" --difficulty SomeWork
+dotnet run --project NpcForge.Console -- --list
 dotnet run --project NpcForge.Console -- --load 1
 ```
 
 Flags: `--provider openai|anthropic`, `--model <id>`, `--setting`, `--want`,
-`--difficulty Easy|SomeWork|Wall`, `--occupation`, `--load <number>`, and for the free replay
-`--seed`, `--record`, `--recording` and `--provider replay`.
+`--difficulty Easy|SomeWork|Wall`, `--occupation`, `--list`, `--load <number>`, and for the free
+replay `--seed`, `--record`, `--recording` and `--provider replay`.
 
 With no answer flag (`--setting`, `--want`, `--difficulty`, `--occupation`) and no `--load`, the app
 greets you and waits for the scene, typed in one go and ended with Enter. A model reads it and
@@ -84,8 +88,9 @@ typed), *inferred* (a difficulty or obstacle read from your words, shown beside 
 dice pick it) or *default* (a required field you did not mention). Nothing is rolled until you type
 `yes`; anything else stops the run. Any answer flag skips the interview, and each answer flag has a
 default. A flag the app does not know, or one with no value, stops the run before anything is paid for.
-A run calls a real model and costs money, capped at 200,000 tokens per session; `dotnet test` and
-`--load` do not. `NPCFORGE_OFFLINE=1`
+A run calls a real model and costs money, capped at 200,000 tokens per session, roll agains
+included; at the cap the run stops with `[app] stopped` and saves nothing. `dotnet test`, `--list`
+and `--load` call no model and need no key. `NPCFORGE_OFFLINE=1`
 makes the app refuse OpenAI and Anthropic outright. A replay or a recording run saves to a temp file,
 named on its `[app] saved as` line, so it never touches `characters.json`.
 
@@ -112,10 +117,11 @@ blind for you to guess and `--score`. A blind tone check scored 5 of 6. A scene'
 honestly: the interview asks you for a missing place or role, marks a missing want as not given and
 writes the character to be won over, with a hook from your scene, and rolls a missing difficulty.
 Every character now opens with a passage you can read straight to your players, from a rolled
-gender, age and look, and the name fits the gender. The free tests run in about a minute, and the
-part that starts no process in about 5 s.
-Next: keeping and editing characters, and in time a website with logins and a
-database so friends can use it. See
+gender, age and look, and the name fits the gender. Saving is your choice: after each character
+you save it, roll again for the same scene, or leave, and `--list` finds any save by number and
+name. The free tests run in about a minute, and the part that starts no process in about 5 s.
+Next: a structure ready for a website, then the website with logins and a database so friends can
+use it, and later editing a saved character. See
 [ROADMAP.md](ROADMAP.md).
 
 ## Out of scope, for now
