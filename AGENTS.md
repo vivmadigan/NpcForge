@@ -101,7 +101,7 @@ implementation and `haiku` for cheap checks. pstack's defaults name Fable; the m
   (Microsoft.Extensions.AI) and `IToolSource`. The "Ready to grow" epic brings layers,
   Clean Architecture by preference, with an ADR first.
 - No host or DI container in the console. `Program.cs` wires things by hand so the order of events
-  stays readable: connect, roll, run, save. The same ADR may change this.
+  stays readable: connect, roll, run, ask, save. The same ADR may change this.
 - Why-comments, not what-comments: a comment says which rule a line keeps. Keep them: never run
   pstack's `/no-comments` or its `comment-sicko` agent here
   (`.agents/playbooks/npcforge-keep-why-comments.md`). Comments that mention "step N" mean the build
@@ -127,6 +127,9 @@ dotnet run --project NpcForge.Console -- --provider anthropic --model claude-opu
 - `--seed <n>` fixes the dice. `--record <file>`, which needs `--seed`, also writes a paid run to a
   file, and `--provider replay --recording <file>` answers from that file for free.
   `docs/runs/README.md` has both commands for the replay fixture.
+- A run that writes a character asks `Keep this character? Type save or leave.` after showing it, and
+  only `save` writes to the save file. Piped input answers it: a test or a script ends its input with
+  `save`, and an input that ends first saves nothing (`[app] not saved: end of input`).
 - API keys are user-secrets on the console project: `OpenAI:ApiKey` and `Anthropic:ApiKey`.
 - A build fails while the app is running or paused in the debugger: it locks `NpcForge.Console.dll`.
 - The full suite takes about a minute on a quiet 16-core machine (63 to 88 s over three runs), and

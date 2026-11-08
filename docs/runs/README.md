@@ -52,15 +52,16 @@ test refuses that recording, because a dropped model turn only shows on a later 
 before a second paid attempt, and never weaken the check to let a recording pass.
 
 To replay it by hand, for free, in PowerShell. The flags are line 1 of the fixture. A replay saves
-to a fresh temp file and never to the tracked `characters.json`; the `[app] saved as` line at the end
-says which file. Set `NPCFORGE_CHARACTERS` first only to choose the file yourself.
+to a fresh temp file and never to the tracked `characters.json`, once you type `save` at the question
+after the character; the `[app] saved as` line says which file.
+Set `NPCFORGE_CHARACTERS` first only to choose the file yourself.
 
 ```text
 dotnet run --project NpcForge.Console -- --provider replay --recording NpcForge.Tests/Fixtures/replay.jsonl --seed 1 --model gpt-6-luna --setting "an inn in a major city" --want "the name of a fence" --difficulty Wall --occupation innkeeper
 ```
 
 A `--record` run also saves to a temp file, so recording the fixture does not add an entry to
-`characters.json`. Its `[app] saved as` line names the file.
+`characters.json`. Its `[app] saved as` line names the file, once you answer `save`.
 
 ## Why it is done this way
 

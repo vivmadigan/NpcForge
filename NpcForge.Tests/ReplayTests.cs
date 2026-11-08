@@ -34,6 +34,7 @@ public class ReplayTests
             // The console never names a save file, so the server inherits this one from it.
             var run = await ConsoleProcess.RunAsync(
                 [.. flags, "--provider", "replay", "--recording", fixture],
+                input: "save\n",
                 environment: new() { ["NPCFORGE_CHARACTERS"] = saveFile });
 
             // On failure, the app's own trace is the message: the replay names the line that differs.
@@ -82,6 +83,7 @@ public class ReplayTests
         {
             var run = await ConsoleProcess.RunAsync(
                 [.. flags, "--provider", "replay", "--recording", fixture],
+                input: "save\n",
                 environment: new() { ["NPCFORGE_CHARACTERS"] = null });
             Assert.True(run.ExitCode == 0, run.Stderr);
 

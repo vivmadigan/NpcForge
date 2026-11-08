@@ -1,10 +1,10 @@
 # Roll and write a character, replayed
 
-A run rolls a character brief with seeded dice on the server, hands it to the model, lets the model call `lookup_archetype`, saves what the model writes as number 1, and prints it. The model here is the recorded run, so the whole app runs for free. This is the free stand-in for the paid main path.
+A run rolls a character brief with seeded dice on the server, hands it to the model, lets the model call `lookup_archetype`, prints it, asks whether to keep it, and saves it as number 1 when the answer is `save`. The model here is the recorded run, so the whole app runs for free. This is the free stand-in for the paid main path.
 
 ## Sub-features
 
-- `replay-run` rolls the seeded brief, makes two model turns with one tool call between them, and saves as 1.
+- `replay-run` rolls the seeded brief, makes two model turns with one tool call between them, and saves as 1 on `save`.
 - `replay-order` writes the trace in the order the app ran: brief, tool call, second turn, save.
 - `replay-streams` keeps the answer on stdout and every trace line on stderr.
 - `replay-save` writes the brief and the text to the temp save file and leaves the tracked `characters.json` alone.
@@ -35,6 +35,9 @@ Preconditions:
 - **Check the temp save.** Run `$V replay --temp-save replay-temp`. This is the one run where the helper does not set `NPCFORGE_CHARACTERS`, and removes it, so the app chooses the file. Exit code `0`. The helper reads the path from the app's `[app] saved as 1 in <path>` line and prints `temp save <path>: present`, a path in the OS temp folder named `npcforge-replay-<guid>.json`. Run `git status --short -- NpcForge.Server/characters.json` and expect no output. `index.tsv` has a `replay-temp` line reading `present`, and the path is not under `$D`.
 - **Check the seed.** Run `cmp "$D/save.json" "$D/order.json"` and expect no output. Two runs with one seed saved identical files.
 - **Check the drift stop.** Run `$V replay --save drift.json drift -- --seed 2`. The helper exits non-zero by design. Run `grep -c 'differs from the recording at line' "$D/drift.txt"` and expect `1`. Run `grep -c '^\[app\] brief' "$D/drift.txt"` and expect `1`, which shows the roll ran and the stop came at the model call. Run `ls "$D/drift.json"` and expect that it does not exist.
+- **Check leave.** Run `$V replay --save leave.json --answer 'leave\n' replay-leave`. Exit code `0`. Run `grep -c '^\[app\] not saved$' "$D/replay-leave.txt"` and expect `1`, and `grep -c 'saved as' "$D/replay-leave.txt"` and expect `0`. The positive control is the `[app] brief` line and the character text above the question: the run got as far as saving. `index.tsv` has a `replay-leave` line reading `leave.json absent`.
+- **Check a typo.** Run `$V replay --save typo.json --answer 'sve\nsave\n' replay-typo`. Exit code `0`. Run `grep -c '^\[app\] "sve" is not save or leave\.$' "$D/replay-typo.txt"` and expect `1`, and `grep -c '^\[app\] saved as 1' "$D/replay-typo.txt"` and expect `1`. Run `grep -c '^  "[0-9]*": {' "$D/typo.json"` and expect `1`.
+- **Check end of input.** Run `$V replay --save eof.json --answer '' replay-eof`. Exit code `0`. Run `grep -c '^\[app\] not saved: end of input$' "$D/replay-eof.txt"` and expect `1`. `index.tsv` has a `replay-eof` line reading `eof.json absent`.
 - **Proof.** `$D` holds `replay.cmd`, `replay.stdout`, `replay.stderr`, `replay-ordered.txt`, `drift.txt`, `save.json`, `order.json` and `index.tsv`. The `index.tsv` lines for `replay` and `replay-ordered` read `save.json present` and `order.json present`, and the one for `drift` reads `drift.json absent`.
 
 ## Gotchas
