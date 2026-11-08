@@ -6,8 +6,8 @@ namespace NpcForge.Tests;
 // so each test names the message, not just a failure (lesson 004).
 public class RunOptionsTests
 {
-    private static readonly string Fixture = Path.GetFullPath(Path.Combine(
-        AppContext.BaseDirectory, "..", "..", "..", "..", "NpcForge.Tests", "Fixtures", "replay.jsonl"));
+    private static readonly string Fixture =
+        Path.Combine(ConsoleProcess.RepoRoot, "NpcForge.Tests", "Fixtures", "replay.jsonl");
 
     [Fact]
     public void No_args_gives_the_defaults()

@@ -13,9 +13,9 @@ internal static class ConsoleProcess
 {
     public sealed record Result(int ExitCode, string Stdout, string Stderr);
 
-    // Four folders up from a test's bin is the repo, as McpToolSource finds the server.
-    public static string RepoRoot { get; } =
-        Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", ".."));
+    // Four folders up from a test's bin is the repo. McpToolSource finds it the same way and finds
+    // the server there, so a long folder's \\?\ path is handled in one place.
+    public static string RepoRoot => McpToolSource.RepoRoot;
 
     // The SDK stamps the test assembly with the Configuration it was built under, so this is what
     // `dotnet test -c Release` set, not a guess from a path. The console is a project reference, so
