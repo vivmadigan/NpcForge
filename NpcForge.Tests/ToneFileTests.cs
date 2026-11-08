@@ -52,16 +52,14 @@ public class ToneFileTests : IDisposable
         Assert.Contains("no 'tone' choice list", error.Message);
     }
 
-    // The app as a process, on a copy of its own build with one tone file deleted. The replay
-    // provider and the dead proxy make it free; no answer flag makes it an interview run, which
-    // would print the greeting first if the check came after it.
+    // The app as a process, on a copy of its own build with one tone file deleted.
     [Fact]
     public async Task A_run_with_a_tone_file_missing_stops_before_the_interview_and_names_the_file()
     {
-        var copy = CopyOfConsoleBuild();
+        var copy = ConsoleBuildCopy.Make("tonetest", _cleanup);
         File.Delete(Path.Combine(copy, "skills", "npc-writer", "tones", "Heartfelt.md"));
 
-        var run = await RunCopy(copy);
+        var run = await ConsoleBuildCopy.RunAsync(copy);
 
         Assert.NotEqual(0, run.ExitCode);
         Assert.Contains(Path.Combine(copy, "skills", "npc-writer", "tones", "Heartfelt.md"), run.Stderr);
@@ -69,57 +67,23 @@ public class ToneFileTests : IDisposable
         Assert.DoesNotContain("[loop]", run.Stderr);
     }
 
-    // The positive control: the same copy with every file in place does reach the interview, so the
-    // test above stops at the tone check and not somewhere earlier.
+    // The positive control: an intact copy reaches the interview, so the test above, and
+    // NotGivenFileTests' run with a not-given file missing, stop at their check and not somewhere
+    // earlier. Both copy through ConsoleBuildCopy, as this does.
     [Fact]
     public async Task A_copy_with_every_tone_file_reaches_the_interview()
     {
-        var run = await RunCopy(CopyOfConsoleBuild());
+        var run = await ConsoleBuildCopy.RunAsync(ConsoleBuildCopy.Make("tonetest", _cleanup));
 
         Assert.Equal(0, run.ExitCode);
         Assert.Contains(SceneInterview.Greeting, run.Stderr);
-    }
-
-    private static async Task<ConsoleProcess.Result> RunCopy(string copy)
-    {
-        var fixture = Path.Combine(ConsoleProcess.RepoRoot, "NpcForge.Tests", "Fixtures", "replay.jsonl");
-        var save = Path.Combine(Path.GetTempPath(), $"npcforge-tonecopy-{Guid.NewGuid():N}.json");
-        try
-        {
-            return await ConsoleProcess.RunAsync(
-                ["--provider", "replay", "--recording", fixture],
-                offline: true,
-                environment: new() { ["NPCFORGE_CHARACTERS"] = save },
-                consoleDll: Path.Combine(copy, "NpcForge.Console.dll"));
-        }
-        finally { File.Delete(save); }
-    }
-
-    // A sibling of the console's own bin folder, so the copy still finds the server four folders up
-    // from itself, as McpToolSource looks. bin\ is ignored by git and by the build's staleness check.
-    private string CopyOfConsoleBuild()
-    {
-        var bin = Path.Combine(ConsoleProcess.RepoRoot, "NpcForge.Console", "bin", ConsoleProcess.BuildConfiguration);
-        var copy = Path.Combine(bin, $"net10.0-tonetest-{Guid.NewGuid():N}");
-        _cleanup.Add(copy);
-        CopyDirectory(Path.Combine(bin, "net10.0"), copy);
-        return copy;
     }
 
     private string CopyOfDefaultSkill()
     {
         var copy = Path.Combine(Path.GetTempPath(), $"npcforge-skillcopy-{Guid.NewGuid():N}");
         _cleanup.Add(copy);
-        CopyDirectory(WriterInput.DefaultSkillDir, copy);
+        ConsoleBuildCopy.CopyDirectory(WriterInput.DefaultSkillDir, copy);
         return copy;
-    }
-
-    private static void CopyDirectory(string from, string to)
-    {
-        Directory.CreateDirectory(to);
-        foreach (var file in Directory.EnumerateFiles(from))
-            File.Copy(file, Path.Combine(to, Path.GetFileName(file)));
-        foreach (var dir in Directory.EnumerateDirectories(from))
-            CopyDirectory(dir, Path.Combine(to, Path.GetFileName(dir)));
     }
 }
