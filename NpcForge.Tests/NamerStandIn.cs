@@ -33,8 +33,11 @@ internal sealed class NamerStandIn : IChatClient
 
     // Names the character after the dice in the namer's first message, then replies: the namer of a
     // run whose dice the test does not fix. Reads the console's own message, never a model's.
-    public static NamerStandIn FollowsTheDice() => new(request =>
-        request.Messages[^1].Role == ChatRole.Tool ? new Turn() : new Turn(NameFor(request.FirstUser)));
+    public static NamerStandIn FollowsTheDice(string writerText = "A character.") => new(request =>
+        request.Messages[^1].Role == ChatRole.Tool ? new Turn() : new Turn(NameFor(request.FirstUser)))
+    {
+        WriterText = writerText,
+    };
 
     public static (string[] Syllables, string Family) NameFor(string namerMessage)
     {
