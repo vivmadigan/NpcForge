@@ -34,9 +34,10 @@ public abstract class CharacterStoreTests
         Assert.Equal(3, await Store.SaveAsync(Saved("three"), Ct));
     }
 
-    // Count + 1 would give 3 here and overwrite the save that holds that number.
+    // Count + 1 would give 3 here and overwrite the save that holds that number. The promise is a number
+    // greater than every one held, not 4 exactly: a database may number past it (ADR-015).
     [Fact]
-    public async Task After_a_gap_the_next_number_is_one_past_the_highest_and_no_save_is_overwritten()
+    public async Task After_a_gap_the_next_number_is_greater_than_every_number_held_and_no_save_is_overwritten()
     {
         await Store.SaveAsync(Saved("one"), Ct);
         await Store.SaveAsync(Saved("two"), Ct);
@@ -45,9 +46,9 @@ public abstract class CharacterStoreTests
 
         var number = await Store.SaveAsync(Saved("four"), Ct);
 
-        Assert.Equal(4, number);
+        Assert.True(number > 3, $"saved under {number}, which is not greater than every number held (1 and 3)");
         Assert.Equal("three", (await Store.LoadAsync(3, Ct))!.Text);
-        Assert.Equal("four", (await Store.LoadAsync(4, Ct))!.Text);
+        Assert.Equal("four", (await Store.LoadAsync(number, Ct))!.Text);
         Assert.Null(await Store.LoadAsync(2, Ct));
     }
 
