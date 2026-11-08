@@ -35,86 +35,92 @@ Two rules for every epic, now that the Safety net exists:
 
 | # | Epic | In one line |
 | --- | --- | --- |
-| 4 | Keep a character | Mark the characters worth keeping, and open them by name |
-| 11 | Change a kept character | Change a kept character without starting over |
+| 4 | Save what I like | Choose which characters to save, roll again, and list every save |
 | 5 | Ready to grow | A structure that can sit behind a website and a database |
 | 6 | Friends can use it | A website with logins and a database, deployed |
+| 11 | Change a saved character | Change a saved character without starting over. For later |
 
-Epic 4 is ready to start. Epics 11, 5 and 6 are drafts: sharpen each one before it starts.
+Epic 4 is ready to start. Epics 5, 6 and 11 are drafts: sharpen each one before it starts. Epic 11
+waits until after the website.
 
-## 4. Keep a character
+## 4. Save what I like
 
-**Goal.** I mark the characters worth keeping, see them in a list, open one by its name instead of
-remembering its number, and take one off the list if I kept it by mistake. Today every run is saved
-and numbered, and my file holds 16. Saves 9 to 16 are eight innkeepers in the same city inn, and the
-goblin baker I liked is save 8. The only way back to him is to remember the 8.
+**Goal.** I choose which characters are worth saving. Once a run has written a character, the app
+asks what to do with it: save it, roll a new one for the same scene, or leave it unsaved. A roll
+again rolls every die again, keeps what I or my scene said, and has the model write a new character
+from the new dice. I can also list every character I have saved, to find one I had forgotten, and
+open it.
 
-This is the first piece of what was "Keep and edit". Changing a kept character is epic 11.
+Today every run is saved and numbered, and my file holds 16. Saves 9 to 16 are eight innkeepers in
+the same city inn, and the goblin baker I liked is save 8. Without a list, the only way back to him
+is to remember the 8.
+
+This replaces an earlier plan to mark saves as kept and open them by name. Changing a saved
+character is epic 11.
 
 **Constraints.**
-- Here "keep" means marking a save as worth keeping. Every run is still saved and numbered, as now
-  (ADR-003), and keeping does not copy a save. The code says "keep" for "save" today
-  (`save_character`'s description, the save comment in `Program.cs`), so the ADR rewords those.
-- A kept character is found by its own name, the one the namer gave it and the write-up opens
-  with. A save from before the namer (1 to 8 in my file) has no name, so I give it one when I keep
-  it. A save that has a name keeps it, so a second save with a name already on the list cannot be
-  kept until epic 11 adds renaming.
-- Keeping takes a save's number, the one a run prints as `saved as N`. Opening and taking off the
-  list take a kept name. `--load` still opens by number.
-- Making a character does not change. A run prints and saves exactly what it does today, so the
-  replay test passes unchanged and is never re-recorded.
-- A save that is not kept stays byte for byte as it is, and every save from before this epic still
-  loads with `--load`. Taking a character off the list puts its save back byte for byte, so a name
-  I gave it is forgotten.
-- No model call, so nothing here costs money. The new tools are app-only, like `save_character`.
+- Saving becomes my choice in every run, flag runs included. That replaces ADR-003's "every run
+  saved", so an ADR comes first.
+- The question comes after the character is shown. Save saves it and ends the run. Leave ends the
+  run with nothing saved. Anything else, end of input included, saves nothing, the way the
+  interview's "yes" works today.
+- A roll again rolls only what was rolled. What I said in the interview or by a flag stays, the
+  writer is sent the scene again, and the namer names the new character from its new dice. It runs
+  on the same server and the same model client as the first character.
+- Each roll again calls the model, so it costs money. The session's spending cap counts every roll
+  again, and when the cap stops a run, the run says so and exits with code 1. Today `Program.cs`
+  does not catch the cap's exception at all; only the lab does (`Lab.cs`).
+- Under `--seed`, a roll again takes the next dice from the same seed (the server makes one `Random`
+  per run, in `CharacterTools.cs`), so a run with roll agains is still repeatable.
+- The list shows every save, the 16 from before this epic included. For each, it shows the number,
+  the name when the save has one, and enough from the brief to tell them apart. It reads only the
+  save's name and brief, never the text: saves 1 to 8 have no name, and code never parses the
+  model's prose. A save is opened by its number, with `--load` as today.
+- Listing is a new app-only tool, like `save_character`. The model never sees it.
+- This is a behavior change, but the model is sent the same messages, so the replay fixture is not
+  re-recorded. The tests and the verify skill's replay close the input at once today
+  (`ConsoleProcess.cs`), so they change only to answer save.
+- Roll, name and write become one step the run can repeat, in a restructure PR of its own before
+  the question, with the replay test unchanged (the rule at the top of this file).
 - It stays in the JSON file on the server. No database and no users. Those are epics 5 and 6.
-- It changes the save format and the server's tool list, so an ADR comes first.
 
 **Done when.**
-- Free tests, the ones for the new commands run with `NPCFORGE_OFFLINE=1` so none can call a model:
-  - Keeping a save that has a name puts it on the list under that name. A save that is not kept
-    never appears.
-  - A keep changes the kept entry only by its mark, and every other entry in the file stays byte
-    for byte as it was.
-  - With two or more characters on the list, opening one by the name the list shows, typed in a
-    different case, prints the same character that `--load` prints for its number.
-  - A save with no name can be kept only when a name is given, and then opens by that name.
-  - Keeping under a name already on the list, typed in a different case, is refused with the
-    reason, and the list is unchanged.
-  - A name that is not on the list, or a number that was never saved, stops with the reason and
-    exit code 1. So does `--load` with a number that was never saved.
-  - Taking a character off the list removes it from the list and puts its save back byte for byte.
-    It still loads by number.
-  - A new run's save holds exactly `brief`, `name` and `text`, as today.
-  - The replay test passes and is not re-recorded.
-- On my own file I keep the witch (save 7) and the baker (save 8) under names I give them and one
-  innkeeper under its own name, list them, open each by name and take one off. I do this myself,
-  free (*needs my eyes*).
-- The command names, and what the list shows for each character (*needs my eyes*).
+- Free tests, through the console as a process, with a recorded or fake model:
+  - Answering save saves the character, prints its number and ends the run. Answering leave, or
+    ending the input, saves nothing and says so. Both hold in a flag run too.
+  - A roll again rolls new dice, keeps every answer I gave, calls the namer and the writer again,
+    and asks again about the new character. Only the character I save is saved.
+  - A run under a seed rolls again: the second character's dice differ from the first, and the run
+    gives the same two characters every time. This goes through the app, so a roll again that
+    started a new server would fail it.
+  - When the spending cap stops a roll again, the run says so, exits with code 1 without a stack
+    trace, and saves nothing.
+  - The list shows every save in the file with its number, its name when it has one, and its role
+    and place, an old save with no name included. Its tests run with `NPCFORGE_OFFLINE=1`, so none
+    can call a model.
+  - `--load` with a number that was never saved stops with the reason and exit code 1.
+  - The replay test passes, changed only to answer save, and the fixture is not re-recorded.
+- The bakery scene, as ADR-010 quotes it: I roll again twice, save the third character, find it in
+  the list and open it (*needs my eyes*, paid).
+- The question's wording, the command names, and what the list shows for each character (*needs my
+  eyes*).
 
 **Tasks.**
-- ADR: what a kept character is in the save, the new app-only tools, how a typed name is matched to
-  a kept one, and the rewording of "keep".
-- Keep, take off the list, list and open by name, on the server and in the console.
-- Define "keep" in AGENTS.md's Vocabulary.
+- ADR: saving becomes a choice (supersedes part of ADR-003), the question at the end of a run, roll
+  again, and the list tool.
+- The list. It needs no model, so it can come first.
+- A restructure: roll, name and write as one step the run can repeat. The replay passes unchanged.
+- The question at the end of a run, with save and leave, and the tests answering save.
+- Roll again.
 
-**Not in this epic.** Changing a kept character, a name the GM gives in a scene, and recurring
-characters (epic 11). A database and logins (epics 5 and 6).
-
-## 11. Change a kept character (draft)
-
-**Goal.** I change a kept character later without starting over, including follow-ups like "make
-him warier" (moved here from "Talk to it"). A kept character can have a fixed name, including one
-the GM gives in a scene ("an innkeeper called Bram") or by a flag. Until then the name dice apply
-and the namer's name wins (ADR-009). A kept character may be marked recurring, and the open
-question moves with it: what extra does a recurring character get? (moved here from "Better
-characters").
-
-**Constraints.** Saving and loading stay app-only: the model never touches the saved file. A change
-that rewrites the character calls the model, so its checks are paid.
-
-**Done when.** I can open a kept character by its name, change part of it, and see the change
-saved.
+**Not in this epic.**
+- Deleting a save. A new save takes one past the highest number (`CharacterTools.cs`), so deleting
+  the highest would hand its number to the next save, and `docs/runs/` refers to saves by number.
+  Delete needs the file to remember the highest number ever used, which is a change to the save
+  format.
+- Saving several characters from one scene in one run.
+- Changing a saved character, a name the GM gives in a scene, and recurring characters (epic 11).
+- A database and logins (epics 5 and 6).
 
 ## 5. Ready to grow (draft)
 
@@ -141,6 +147,20 @@ spending is capped, because every friend's run costs me money.
 
 **Done when.** A friend can log in on the deployed site, make a character, log out and back in, and
 find it there.
+
+## 11. Change a saved character (draft, for later)
+
+**Goal.** I change a saved character later without starting over, including follow-ups like "make
+him warier" (moved here from "Talk to it"). A saved character can have a fixed name, including one
+the GM gives in a scene ("an innkeeper called Bram") or by a flag. Until then the name dice apply
+and the namer's name wins (ADR-009). A saved character may be marked recurring, and the open
+question moves with it: what extra does a recurring character get? (moved here from "Better
+characters").
+
+**Constraints.** Saving and loading stay app-only: the model never touches the saved file. A change
+that rewrites the character calls the model, so its checks are paid.
+
+**Done when.** I can open a saved character, change part of it, and see the change saved.
 
 ## Done
 
