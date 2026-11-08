@@ -105,6 +105,7 @@ namespace NpcForge.Server
 
             return new Dice(seed is null ? null : int.Parse(seed));
         }
+
         // App-only. The app saves every run once the model has written. Returns the new number.
         // The brief must arrive as a JSON object, not as the text the roll returned: sent as
         // text, it fails with no reason given. It binds through CharacterBrief, so a brief missing
