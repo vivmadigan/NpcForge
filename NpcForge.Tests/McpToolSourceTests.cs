@@ -118,8 +118,8 @@ public class McpToolSourceTests
             await tools.ConnectAsync(CancellationToken.None);
 
             // The app's door throws, so --load stops instead of handing the model an empty brief.
-            // The reason is asserted, not just the throw: only the server's McpException says it.
-            var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            // The reason is asserted, not just the throw: only the server's error result says it, and the message is its plain text.
+            var ex = await Assert.ThrowsAnyAsync<InvalidOperationException>(() =>
                 tools.CallDirectAsync("load_character", new() { ["number"] = 99 }, CancellationToken.None));
 
             Assert.Contains("No character saved as 99", ex.Message);
@@ -205,7 +205,7 @@ public class McpToolSourceTests
         var args = RollArgs();
         args[parameter] = value;
 
-        var error = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var error = await Assert.ThrowsAnyAsync<InvalidOperationException>(() =>
             tools.CallDirectAsync("roll_character", args, CancellationToken.None));
 
         // The reason, not just a failure (lesson 004): the server's own words, naming the field.
@@ -222,7 +222,7 @@ public class McpToolSourceTests
 
         foreach (var blank in new[] { "", "   " })
         {
-            var error = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            var error = await Assert.ThrowsAnyAsync<InvalidOperationException>(() =>
                 tools.CallDirectAsync("roll_character", RollArgs("look", blank), CancellationToken.None));
             Assert.Contains("look is blank", error.Message);
         }
@@ -251,7 +251,7 @@ public class McpToolSourceTests
             var lacking = new Dictionary<string, JsonElement>(full);
             Assert.True(lacking.Remove("nameLetter"));
 
-            var refused = await Assert.ThrowsAsync<InvalidOperationException>(() => tools.CallDirectAsync("save_character", new()
+            var refused = await Assert.ThrowsAnyAsync<InvalidOperationException>(() => tools.CallDirectAsync("save_character", new()
             {
                 ["brief"] = JsonSerializer.SerializeToElement(lacking),
                 ["name"] = KessaVale,
@@ -306,7 +306,7 @@ public class McpToolSourceTests
         var nulled = RollArgs();
         nulled["playersWant"] = null;
 
-        var refused = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var refused = await Assert.ThrowsAnyAsync<InvalidOperationException>(() =>
             tools.CallDirectAsync("roll_character", omitted, CancellationToken.None));
         var rolled = await tools.CallDirectAsync("roll_character", nulled, CancellationToken.None);
 
@@ -325,7 +325,7 @@ public class McpToolSourceTests
         var args = RollArgs();
         args["playersWant"] = blank;
 
-        var error = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var error = await Assert.ThrowsAnyAsync<InvalidOperationException>(() =>
             tools.CallDirectAsync("roll_character", args, CancellationToken.None));
 
         Assert.Contains("playersWant is blank", error.Message);
@@ -348,7 +348,7 @@ public class McpToolSourceTests
             var lacking = new Dictionary<string, JsonElement>(full);
             Assert.True(lacking.Remove("playersWant"));
 
-            var refused = await Assert.ThrowsAsync<InvalidOperationException>(() => tools.CallDirectAsync("save_character", new()
+            var refused = await Assert.ThrowsAnyAsync<InvalidOperationException>(() => tools.CallDirectAsync("save_character", new()
             {
                 ["brief"] = JsonSerializer.SerializeToElement(lacking),
                 ["name"] = KessaVale,
@@ -370,6 +370,71 @@ public class McpToolSourceTests
             var brief = saved.RootElement.GetProperty("1").GetProperty("brief");
             Assert.True(brief.TryGetProperty("playersWant", out var want), "the saved brief has no playersWant key");
             Assert.Equal(JsonValueKind.Null, want.ValueKind);
+        }
+        finally
+        {
+            File.Delete(file);
+        }
+    }
+
+    // ADR-013, decision 4. The server answers with each save's number, name, occupation and setting in
+    // number order, and nothing else of the save. The file is out of order and holds an old save with no
+    // name and a brief with no occupation, so a sort by text, a required name or a required key fails.
+    [Fact]
+    public async Task Lists_every_save_in_number_order_without_reading_the_text()
+    {
+        var file = SavedFile.WriteTemp();
+        try
+        {
+            await using var tools = new McpToolSource(file);
+            await tools.ConnectAsync(CancellationToken.None);
+
+            var listed = await tools.CallDirectAsync("list_characters", new(), CancellationToken.None);
+
+            Assert.DoesNotContain(SavedFile.TextMarker, listed);
+            var rows = JsonDocument.Parse(listed).RootElement.EnumerateArray().ToList();
+            Assert.Equal([8, 9, 10], rows.Select(row => row.GetProperty("number").GetInt32()));
+
+            var bakery = rows[0];
+            Assert.Equal("goblin baker", bakery.GetProperty("occupation").GetString());
+            Assert.Equal("tiny bakery", bakery.GetProperty("setting").GetString());
+            Assert.True(!bakery.TryGetProperty("name", out var none) || none.ValueKind == JsonValueKind.Null);
+
+            // The name keeps the shape the save holds, so the console reads it like a loaded save's.
+            var inn = rows[1].GetProperty("name");
+            Assert.Equal(["Har", "grim"], inn.GetProperty("syllables").EnumerateArray().Select(s => s.GetString()));
+            Assert.Equal("Rockhammer", inn.GetProperty("family").GetString());
+
+            var barge = rows[2];
+            Assert.True(!barge.TryGetProperty("occupation", out var noJob) || noJob.ValueKind == JsonValueKind.Null);
+            Assert.Equal("a river barge", barge.GetProperty("setting").GetString());
+        }
+        finally
+        {
+            File.Delete(file);
+        }
+    }
+
+    // ADR-013, decision 4: list_characters is app-only, so the model's list lacks it and a model that
+    // names it anyway is refused. The save file holds real saves, so without the AppOnly entry the
+    // calls succeed and the asserts fail on the filter alone (lesson 004).
+    [Fact]
+    public async Task Keeps_list_characters_from_the_model()
+    {
+        var file = SavedFile.WriteTemp();
+        try
+        {
+            await using var tools = new McpToolSource(file);
+            await tools.ConnectAsync(CancellationToken.None);
+
+            var modelSees = await tools.ListAsync(CancellationToken.None);
+            var result = await tools.InvokeAsync(
+                new FunctionCallContent("call-1", "list_characters", new Dictionary<string, object?>()), CancellationToken.None);
+
+            Assert.DoesNotContain(modelSees, t => t.Name == "list_characters");
+            Assert.StartsWith("Tool failed:", result);
+            Assert.Contains("list_characters", result);
+            Assert.DoesNotContain("goblin baker", result);
         }
         finally
         {

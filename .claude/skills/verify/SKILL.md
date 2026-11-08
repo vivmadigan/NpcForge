@@ -109,7 +109,7 @@ Two sessions can drive at once. Each run has its own server on stdio and its own
 ## Gotchas
 
 - An unhandled exception exits `-532462766` in PowerShell and `127` in Git Bash. The helper's own refusals exit `64`, and its watchdog `124`.
-- Plain `--load N` builds the real client first, so it needs `OpenAI:ApiKey` in user secrets and fails without it. The helper's `load` passes `--provider replay` and needs no key.
+- Plain `--load N` and `--list` connect to the server before any client is built, so they need no key (ADR-013). The helper's `load` still passes `--provider replay`.
 - The replay stops at the first line that differs from the recording. After an edit to the npc-writer `SKILL.md`, a tool description or schema, a `ChatOptions` field or `Tables.cs`, that is the signal to re-record. The re-record is paid. Report the drift. Do not re-record to get green.
 - A run with no answer flag and no `--load` waits for the GM to type a scene. Give it `< /dev/null` (`features/scene-interview.md`), or it waits until the watchdog ends it.
 - Not covered. A paid run, an interview with a real scene and model, `--record` for real, and driving the MCP server's stdio directly. Whether a character reads well is *needs my eyes*.

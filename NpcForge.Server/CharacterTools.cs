@@ -1,9 +1,12 @@
 ﻿using ModelContextProtocol;
+using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Linq;
 using System.Text;
+using System.Text.Json;
 
 namespace NpcForge.Server
 {
@@ -205,18 +208,52 @@ namespace NpcForge.Server
         }
 
         // App-only. --load calls this instead of rolling and instead of the model. An unknown
-        // number throws McpException, so the run stops with a reason, not with an empty brief.
+        // number returns an error result, not a throw: the SDK logs a thrown tool exception at error
+        // level with its stack trace, and a mistyped number is the GM's slip, not a crash (ADR-013,
+        // decision 6). The console stops the run with the text. The found save is serialized with the
+        // SDK's own options, so the console reads the same JSON a plain return value gave it.
         [McpServerTool(Name = "load_character"), Description("Load a kept character by its number.")]
-        public static SavedCharacter LoadCharacter(int number)
+        public static CallToolResult LoadCharacter(int number)
         {
             var all = Storage.Load();
 
             if (!all.TryGetValue(number, out var saved))
-                throw new McpException($"No character saved as {number}.");
+                return new CallToolResult
+                {
+                    IsError = true,
+                    Content = [new TextContentBlock { Text = $"No character saved as {number}." }],
+                };
 
-            return saved;
-
+            return new CallToolResult
+            {
+                Content = [new TextContentBlock { Text = JsonSerializer.Serialize(saved, McpJsonUtilities.DefaultOptions) }],
+            };
         }
 
+        // App-only (ADR-013, decision 4). --list calls this to find a save again. Only the name, the
+        // occupation and the setting leave the server: the text is the model's prose and is never
+        // read here, and the rest of the brief stays in the file. A brief without one of the two
+        // keys gives null for it, so the 16 saves from before the namer list as they are.
+        [McpServerTool(Name = "list_characters"), Description("List every kept character: its number, name, occupation and setting.")]
+        public static List<ListedCharacter> ListCharacters() =>
+            [.. Storage.Load().OrderBy(entry => entry.Key).Select(entry => new ListedCharacter(
+                entry.Key,
+                entry.Value.Name,
+                BriefText(entry.Value.Brief, "occupation"),
+                BriefText(entry.Value.Brief, "setting")))];
+
+        // The brief is the JSON it was saved as, so a key is read by its saved name, not through
+        // CharacterBrief (ADR-009).
+        private static string? BriefText(JsonElement brief, string key) =>
+            brief.ValueKind == JsonValueKind.Object
+            && brief.TryGetProperty(key, out var value)
+            && value.ValueKind == JsonValueKind.String
+                ? value.GetString()
+                : null;
+
     }
+
+    // One row of the list. The name keeps the shape the save holds, so the console reads it as it
+    // reads a loaded save's. The fields keep the brief's own names (ADR-013).
+    public sealed record ListedCharacter(int Number, CharacterName? Name, string? Occupation, string? Setting);
 }

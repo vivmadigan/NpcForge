@@ -45,8 +45,9 @@ GM typed it, and the writer is sent it word for word, between `<scene>` tags, be
 Vale.`, then the brief, which stays last. Code never reads the scene, and it is not saved.
 `[app] scene sent (<n> chars)` on stderr shows it went. Steps 3 and 4 are both
 `ChatAgent.WriteAsync` ("The namer"). `--load <number>` replaces steps 2 to 5
-with `load_character`: no roll, no model, no cost. It still
-builds the model client, so it still needs an API key. `--seed`, `--record` and `--provider replay`
+with `load_character`: no roll, no model, no cost. The server connects before the model client is
+built, so `--load` and `--list` need no API key. A number never saved stops with
+`[app] not loaded: <reason>` and exit code 1. `--seed`, `--record` and `--provider replay`
 are under "Replay".
 
 ## Run options
@@ -63,6 +64,7 @@ flag cannot be parsed and left off the recording. The same table names the `roll
 | `--setting`, `--want`, `--difficulty`, `--occupation` | an inn in a major city, the name of a fence, `Wall`, `innkeeper` | The GM's answers, sent to `roll_character`. Any one of them skips the interview |
 | `--seed <n>` | none | Fixes the dice (see "Replay") |
 | `--load <n>` | none | Prints saved character n instead of making one |
+| `--list` | off | A switch, alone like `--score`. Prints one row per save (number, name or `(no name)`, occupation, setting) from the app-only `list_characters` tool. An empty file says `[app] nothing saved yet` on stderr |
 | `--record <file>` | none | Also writes every model call to a file. Needs `--seed` |
 | `--recording <file>` | none | The file `--provider replay` answers from |
 | `--lab skill=<dir>,<dir>`, `--lab temperature=<t>,<t>` or `--lab tone[=<tone>,<tone>]` | none | The writers' lab (see "The lab") |

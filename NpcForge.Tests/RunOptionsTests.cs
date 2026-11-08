@@ -139,7 +139,7 @@ public class RunOptionsTests
     }
 
     private const string Known =
-        "The flags are: --provider, --seed, --model, --setting, --want, --difficulty, --occupation, --tone, --race, --letter, --syllables, --family-letter, --load, --record, --recording, --lab, --repeat, --mode, --out, --score.";
+        "The flags are: --provider, --seed, --model, --setting, --want, --difficulty, --occupation, --tone, --race, --letter, --syllables, --family-letter, --load, --record, --recording, --lab, --repeat, --mode, --out, --score, --list.";
 
     [Fact]
     public void An_unknown_flag_stops_the_run_and_names_the_flags_the_app_knows()
@@ -198,6 +198,31 @@ public class RunOptionsTests
 
         Assert.Equal(message, last.Message);
         Assert.Equal(message, beforeAnother.Message);
+    }
+
+    // ADR-013, decision 5: --list is the first flag with no value. Given alone it is on; a word after
+    // it is a stray word, not its value; and it is off when not given.
+    [Fact]
+    public void List_is_a_switch_that_takes_no_value()
+    {
+        Assert.True(RunOptions.Parse(["--list"]).List);
+        Assert.False(RunOptions.Parse([]).List);
+
+        var error = Assert.Throws<ArgumentException>(() => RunOptions.Parse(["--list", "8"]));
+        Assert.StartsWith("Unexpected argument '8'", error.Message);
+    }
+
+    // It goes with no other flag, as --score does: a flag beside it would be ignored in silence.
+    [Theory]
+    [InlineData(new[] { "--list", "--seed", "1" }, "--seed")]
+    [InlineData(new[] { "--seed", "1", "--list" }, "--seed")]
+    [InlineData(new[] { "--list", "--load", "3" }, "--load")]
+    public void List_refuses_every_other_flag(string[] args, string other)
+    {
+        var error = Assert.Throws<ArgumentException>(() => RunOptions.Parse(args));
+
+        Assert.Contains("--list takes no other flag", error.Message);
+        Assert.Contains(other, error.Message);
     }
 
     [Theory]
