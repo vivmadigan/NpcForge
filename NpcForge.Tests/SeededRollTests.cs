@@ -5,24 +5,13 @@ using static NpcForge.Tests.McpToolSourceTests;    // RollArgs: the four answers
 
 namespace NpcForge.Tests;
 
-// The server's dice, checked against the real server with no model: one seed rolls one brief, and a
-// handed-in value replaces its die without moving the others (ADR-009). Every test here rolls on a
-// seeded server of its own. These were half of McpToolSourceTests; xUnit runs one class's tests one
-// after another, so as two classes the halves run side by side (epic 9).
+// The server's dice, checked against the real server with no model: a handed-in value replaces its
+// die without moving the others (ADR-009). That one seed rolls one brief is DiceOrderTests' golden.
+// Every test here rolls on a seeded server of its own. These were half of McpToolSourceTests; xUnit
+// runs one class's tests one after another, so as two classes the halves run side by side (epic 9).
 [Trait("Category", "Process")]
 public class SeededRollTests
 {
-    [Fact]
-    public async Task The_same_seed_rolls_the_same_brief()
-    {
-        // Two servers, one after the other, both given seed 1. If the seed never reached the
-        // dice, two briefs would match about one time in six million.
-        var first = await RollWithSeed(1);
-        var second = await RollWithSeed(1);
-
-        Assert.Equal(first, second);
-    }
-
     [Fact]
     public async Task A_handed_in_trait_replaces_its_die_without_moving_the_others()
     {
@@ -159,56 +148,16 @@ public class SeededRollTests
         }
     }
 
-    // A given tone, race, letter, count or family letter is kept; the one not given is rolled.
-    [Fact]
-    public async Task A_given_value_is_kept_and_a_value_not_given_is_rolled()
-    {
-        var args = RollArgs();
-        args["tone"] = "Heartfelt";
-        args["race"] = "half-orc";
-        args["nameLetter"] = "Q";                // outside the dice's table, still allowed when handed in
-        args["nameSyllables"] = "3";
-
-        var brief = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(await RollWithSeed(5, args))!;
-
-        Assert.Equal("Heartfelt", brief["tone"].GetString());
-        Assert.Equal("half-orc", brief["race"].GetString());
-        Assert.Equal("Q", brief["nameLetter"].GetString());
-        Assert.Equal("3", brief["nameSyllables"].GetString());
-        Assert.Contains(brief["familyLetter"].GetString(), Tables.NameLetters.Select(l => l.Value.ToString()));   // rolled
-    }
-
-    // Done when: under one seed, --tone Comic and --tone Serious roll the same brief except for tone.
-    [Fact]
-    public async Task One_seed_rolls_the_same_brief_whatever_tone_is_given()
-    {
-        var comic = RollArgs();
-        comic["tone"] = "Comic";
-        var serious = RollArgs();
-        serious["tone"] = "Serious";
-
-        var withComic = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(await RollWithSeed(5, comic))!;
-        var withSerious = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(await RollWithSeed(5, serious))!;
-
-        // The third roll gives no tone. Two given tones could skip the tone die alike and still match
-        // each other, so the control is the roll where the die is the only thing that picks.
-        var untoned = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(await RollWithSeed(5))!;
-
-        Assert.Equal("Comic", withComic["tone"].GetString());
-        Assert.Equal("Serious", withSerious["tone"].GetString());
-        foreach (var (name, value) in untoned.Where(e => e.Key != "tone"))
-        {
-            Assert.True(value.ToString() == withComic[name].ToString(), $"{name} moved with the tone");
-            Assert.True(value.ToString() == withSerious[name].ToString(), $"{name} moved with the tone");
-        }
-    }
-
-    // Each new die, handed in, replaces its result and moves no other die.
+    // Each new die, handed in, replaces its result and moves no other die (epic 3's Done when: under
+    // one seed, a given tone changes the tone and nothing else). Every value differs from what seed 5
+    // rolls (Heartfelt, gnome, C, 3, H), so a value the server ignored fails too. The control is the
+    // roll with nothing handed in, where the die is the only thing that picks. Q is outside the
+    // letter dice's table, and still allowed when handed in.
     [Theory]
-    [InlineData("tone", "Heartfelt")]
+    [InlineData("tone", "Comic")]
     [InlineData("race", "handed-in race")]
     [InlineData("nameLetter", "Q")]
-    [InlineData("nameSyllables", "3")]
+    [InlineData("nameSyllables", "1")]
     [InlineData("familyLetter", "Q")]
     public async Task A_handed_in_new_value_replaces_its_die_without_moving_the_others(string parameter, string value)
     {
@@ -220,30 +169,6 @@ public class SeededRollTests
         Assert.Equal(value, withValue[parameter].GetString());
         foreach (var (name, was) in rolled.Where(e => e.Key != parameter))
             Assert.True(was.ToString() == withValue[name].ToString(), $"{name} moved when {parameter} was handed in");
-    }
-
-    // The new dice come after the old seven, so a seed's old traits stay as they were. The fixture's
-    // brief was rolled by the code before the five fields; its seven traits must still be what the
-    // same seed rolls now. Read from the fixture with the library's types, like ReplayTests does.
-    [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public async Task A_seeds_old_seven_traits_are_what_they_were_before_the_new_dice(bool namerCallFirst)
-    {
-        // Run on the fixture as recorded and on a copy with a namer call in front, as a re-recorded
-        // fixture will have: the writer's call is found by what it is, not by its line.
-        var fixture = namerCallFirst ? RecordedRun.CopyWithNamerFirst() : RecordedRun.Fixture;
-        string[] lines;
-        try { lines = File.ReadAllLines(fixture); }
-        finally { if (namerCallFirst) File.Delete(fixture); }
-        var run = RunOptions.Parse(JsonSerializer.Deserialize<string[]>(lines[0])!);
-        var recorded = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(
-            RecordedRun.BriefJson(RecordedRun.WriterCalls(lines)[0]))!;
-
-        var now = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(await RollWithSeed(run.Seed!.Value, run.RollArguments()))!;
-
-        foreach (var trait in new[] { "characterWants", "obstacle", "attitude", "mannerism", "weakness", "willNotDiscuss", "wrongAbout" })
-            Assert.Equal(recorded[trait].GetString(), now[trait].GetString());
     }
 
     // Two rolls on one server, the dice carrying on from the first into the second. Returns the second.

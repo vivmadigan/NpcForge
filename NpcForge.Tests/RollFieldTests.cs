@@ -23,7 +23,9 @@ public class RollFieldTests
 
         // ADR-010, decision 1: the schema alone gives each field its kind. Setting and occupation are
         // required and not nullable, so Ask; the want is required and nullable, so NotGiven; the rest
-        // are optional, so Roll. Difficulty is Roll because it is optional on the server.
+        // are optional, so Roll. Difficulty is Roll because it is optional on the server. A new
+        // required field, or an SDK that stops writing the want's null, fails here; the fallback is
+        // then a server-owned list (ADR-010, decision 1).
         Assert.Equal(WhenMissing.Ask, fields.Single(f => f.Name == "setting").WhenMissing);
         Assert.Equal(WhenMissing.NotGiven, fields.Single(f => f.Name == "playersWant").WhenMissing);
         Assert.Equal(WhenMissing.Ask, fields.Single(f => f.Name == "occupation").WhenMissing);
@@ -38,34 +40,19 @@ public class RollFieldTests
         // look is free text, the GM's own words.
         Assert.Equal(["Male", "Female"], fields.Single(f => f.Name == "gender").Choices);
         Assert.Equal(["Teenager", "Adult", "MiddleAged", "Old"], fields.Single(f => f.Name == "age").Choices);
+        // ADR-009: the syllable count is a number in a string. The attribute on the server's enum must
+        // reach the schema, or the interview would offer the member names (One, Two, Three).
+        Assert.Equal(["1", "2", "3"], fields.Single(f => f.Name == "nameSyllables").Choices);
+        // Both name letters offer the whole alphabet: the dice leave out Q, U, X, Y and Z, but a GM may
+        // still ask for one.
+        var alphabet = Enumerable.Range('A', 26).Select(c => ((char)c).ToString()).ToList();
+        Assert.Equal(alphabet, fields.Single(f => f.Name == "nameLetter").Choices);
+        Assert.Equal(alphabet, fields.Single(f => f.Name == "familyLetter").Choices);
         Assert.All(fields.Where(f => f.Name is not ("difficulty" or "obstacle" or "tone" or "nameLetter" or "nameSyllables" or "familyLetter" or "gender" or "age")),
             f => Assert.Null(f.Choices));
 
         // The interviewer reads these to know each field.
         Assert.All(fields, f => Assert.False(string.IsNullOrWhiteSpace(f.Description)));
-    }
-
-    // ADR-010: the schema itself says which kind each required field is. playersWant is required and
-    // admits null ("not given"); setting and occupation are required and do not. If a later SDK stops
-    // writing the null, this fails, and the fallback is a server-owned list (ADR-010, decision 1).
-    [Fact]
-    [Trait("Category", "Process")]
-    public async Task The_schema_requires_three_fields_and_only_the_want_admits_null()
-    {
-        await using var tools = new McpToolSource();
-        await tools.ConnectAsync(CancellationToken.None);
-        var schema = tools.SchemaOf("roll_character");
-
-        Assert.Equal(["setting", "playersWant", "occupation"],
-            schema.GetProperty("required").EnumerateArray().Select(name => name.GetString()));
-        bool AdmitsNull(string field)
-        {
-            var type = schema.GetProperty("properties").GetProperty(field).GetProperty("type");
-            return type.ValueKind == JsonValueKind.Array && type.EnumerateArray().Any(t => t.GetString() == "null");
-        }
-        Assert.True(AdmitsNull("playersWant"), schema.GetProperty("properties").GetProperty("playersWant").GetRawText());
-        Assert.False(AdmitsNull("setting"));
-        Assert.False(AdmitsNull("occupation"));
     }
 
     // SceneDraftTests.Fields is a hand copy of this list, so its tests run with no server. Held equal to
@@ -79,30 +66,6 @@ public class RollFieldTests
 
         Assert.Equal(fields.Select(f => (f.Name, f.WhenMissing, Choices: string.Join(",", f.Choices ?? []))),
             SceneDraftTests.Fields.Select(f => (f.Name, f.WhenMissing, Choices: string.Join(",", f.Choices ?? []))));
-    }
-
-    // ADR-009: the syllable count is a number in a string, "1", "2", "3". The attribute on the server's
-    // enum must reach the schema, or the console would read the member names (One, Two, Three).
-    [Fact]
-    [Trait("Category", "Process")]
-    public async Task The_syllable_choices_are_written_as_digits()
-    {
-        var fields = await FieldsFromServer();
-
-        Assert.Equal(["1", "2", "3"], fields.Single(f => f.Name == "nameSyllables").Choices);
-    }
-
-    // Both name letters offer the whole alphabet: the table the dice use leaves out Q, U, X, Y and Z,
-    // but a GM may still ask for one.
-    [Fact]
-    [Trait("Category", "Process")]
-    public async Task Both_name_letters_offer_all_26_letters()
-    {
-        var fields = await FieldsFromServer();
-        var alphabet = Enumerable.Range('A', 26).Select(c => ((char)c).ToString()).ToList();
-
-        Assert.Equal(alphabet, fields.Single(f => f.Name == "nameLetter").Choices);
-        Assert.Equal(alphabet, fields.Single(f => f.Name == "familyLetter").Choices);
     }
 
     [Fact]

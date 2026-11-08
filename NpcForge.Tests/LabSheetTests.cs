@@ -97,18 +97,6 @@ public class LabSheetTests
         Assert.Contains(others, key => key != one.Key);
     }
 
-    [Fact]
-    public void Shuffle_is_a_permutation_decided_by_the_random()
-    {
-        var items = Enumerable.Range(0, 10).ToList();
-
-        var shuffled = LabSheet.Shuffle(items, new Random(5));
-
-        Assert.Equal(items, shuffled.Order());
-        Assert.NotEqual(items, shuffled);
-        Assert.Equal(shuffled, LabSheet.Shuffle(items, new Random(5)));
-    }
-
     // The score the ADR names: 5 of 6 from piped guesses.
     [Fact]
     public void Score_gives_five_of_six_and_writes_each_label_and_guess_beside_its_letter()

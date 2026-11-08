@@ -250,42 +250,14 @@ public class SceneInterviewTests(ITestOutputHelper output)
         Assert.False(string.IsNullOrWhiteSpace(brief.GetProperty("mannerism").GetString()));
     }
 
-    // Program.cs, as a process: no answer flag means the interview, and end of input stops it with
-    // nothing rolled and nothing saved. Free twice over: the replay provider, and no model turn.
-    [Fact]
-    [Trait("Category", "Process")]
-    public async Task The_app_with_no_answer_flag_waits_for_a_scene_and_end_of_input_rolls_nothing()
-    {
-        var fixture = Path.Combine(ConsoleProcess.RepoRoot, "NpcForge.Tests", "Fixtures", "replay.jsonl");
-        var saveFile = Path.Combine(Path.GetTempPath(), $"npcforge-interview-{Guid.NewGuid():N}.json");
-        try
-        {
-            var run = await ConsoleProcess.RunAsync(
-                ["--provider", "replay", "--recording", fixture],
-                offline: true,
-                environment: new() { ["NPCFORGE_CHARACTERS"] = saveFile },
-                input: "");
-
-            Assert.True(run.ExitCode == 0, run.Stderr);
-            Assert.Contains(SceneInterview.Greeting, run.Stderr);
-            Assert.Contains("[app] not rolled: the GM did not say yes", run.Stderr);
-            Assert.DoesNotContain("[app] brief", run.Stderr);
-            Assert.DoesNotContain("[loop]", run.Stderr);
-            Assert.Equal("", run.Stdout.Trim());
-            Assert.False(File.Exists(saveFile));
-        }
-        finally
-        {
-            File.Delete(saveFile);
-        }
-    }
-
     // A scene piped in from a UTF-8 file reaches the interviewer as the GM wrote it. A curly
     // apostrophe is three bytes in UTF-8; decoded in the console's OEM code page it became "ÔÇÖ",
     // so the model was sent, and quoted back, words the GM never typed. The recording is made here,
     // in process, from the scene as it should arrive, so the console's one model call matches it
     // only if stdin was decoded as UTF-8; when it was not, the replay names the line that differs.
-    // Free: the replay provider.
+    // It is also Program.cs's interview run as a process: no answer flag means the interview, and a
+    // GM who does not say yes gets no brief, no answer and no save. End of input stops it the same
+    // way, which this class's two End_of_input tests hold in process. Free: the replay provider.
     [Fact]
     [Trait("Category", "Process")]
     public async Task A_piped_scene_reaches_the_interviewer_with_its_curly_apostrophe()
@@ -319,7 +291,11 @@ public class SceneInterviewTests(ITestOutputHelper output)
             // The stderr is the message, so a failure shows the replay's "recorded:" and "now:" lines.
             Assert.False(run.Stderr.Contains("differs from the recording"), run.Stderr);
             Assert.True(run.ExitCode == 0, run.Stderr);
+            Assert.Contains(SceneInterview.Greeting, run.Stderr);
             Assert.Contains("[app] not rolled: the GM did not say yes", run.Stderr);
+            Assert.DoesNotContain("[app] brief", run.Stderr);
+            Assert.Equal("", run.Stdout.Trim());
+            Assert.False(File.Exists(saveFile));
         }
         finally
         {

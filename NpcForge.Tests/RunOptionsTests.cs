@@ -190,45 +190,17 @@ public class RunOptionsTests
     [InlineData("--mode", "--mode needs a value after it.")]
     [InlineData("--out", "--out needs a folder, for example --out lab-1.")]
     [InlineData("--score", "--score needs the folder of a blind lab, for example --score lab-1.")]
-    public void Every_flag_given_last_stops_the_run(string flag, string message)
-    {
-        var error = Assert.Throws<ArgumentException>(() => RunOptions.Parse([flag]));
-
-        Assert.Equal(message, error.Message);
-    }
-
-    [Theory]
-    [InlineData("--provider")]
-    [InlineData("--seed")]
-    [InlineData("--model")]
-    [InlineData("--setting")]
-    [InlineData("--want")]
-    [InlineData("--difficulty")]
-    [InlineData("--occupation")]
-    [InlineData("--tone")]
-    [InlineData("--race")]
-    [InlineData("--letter")]
-    [InlineData("--syllables")]
-    [InlineData("--family-letter")]
-    [InlineData("--load")]
-    [InlineData("--record")]
-    [InlineData("--recording")]
-    [InlineData("--lab")]
-    [InlineData("--repeat")]
-    [InlineData("--mode")]
-    [InlineData("--out")]
-    [InlineData("--score")]
-    public void Every_flag_followed_by_a_flag_gets_the_same_message_as_when_last(string flag)
+    public void Every_flag_given_last_or_followed_by_a_flag_stops_the_run(string flag, string message)
     {
         var last = Assert.Throws<ArgumentException>(() => RunOptions.Parse([flag]));
+        // Followed by another flag it has no value either, and gets the same refusal.
         var beforeAnother = Assert.Throws<ArgumentException>(() => RunOptions.Parse([flag, "--difficulty", "Hill"]));
 
-        Assert.Equal(last.Message, beforeAnother.Message);
+        Assert.Equal(message, last.Message);
+        Assert.Equal(message, beforeAnother.Message);
     }
 
     [Theory]
-    [InlineData(new[] { "--load" }, "--load needs a number, for example --load 3.")]
-    [InlineData(new[] { "--record" }, "--record needs a file, for example --record NpcForge.Tests/Fixtures/replay.jsonl.")]
     [InlineData(new[] { "--record", "f.jsonl" }, "--record needs --seed, for example --seed 1.")]
     [InlineData(new[] { "--recording", "f.jsonl" }, "--recording only goes with --provider replay.")]
     [InlineData(new[] { "--seed", "1", "--record", "f.jsonl", "--provider", "replay" },

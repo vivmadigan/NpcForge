@@ -14,8 +14,10 @@ public class NamedRunTests
         ["--seed", "1", "--setting", "a mill", "--occupation", "miller", "--race", "dwarf",
          "--letter", "K", "--syllables", "2", "--family-letter", "V"];
 
+    // A named run prints the name and its dice, then writes. The save keeps the name as the namer
+    // split it, and --load prints it after the brief line.
     [Fact]
-    public async Task A_named_run_prints_the_name_and_its_dice_before_the_writer_and_writes()
+    public async Task A_named_run_prints_the_name_before_the_writer_and_load_prints_the_saved_name()
     {
         await using var made = await MadeRun.Of(NamerStandIn.FollowsTheDice(), Flags);
 
@@ -27,16 +29,6 @@ public class NamedRunTests
         // Named before the writer is told anything: the name line comes before the writer's skill line.
         Assert.True(name < run.Stderr.IndexOf("npc-writer", StringComparison.Ordinal), run.Stderr);
         Assert.Equal("A character.", run.Stdout.Trim());
-        Assert.True(File.Exists(made.SaveFile), "a named run saves");
-    }
-
-    // The save keeps the name as the namer split it, and --load prints it after the brief line.
-    [Fact]
-    public async Task The_save_keeps_the_name_and_load_prints_it()
-    {
-        await using var made = await MadeRun.Of(NamerStandIn.FollowsTheDice(), Flags);
-        var run = await made.ReplayAsync();
-        Assert.True(run.ExitCode == 0, run.Stderr);
 
         var saved = System.Text.Json.Nodes.JsonNode.Parse(File.ReadAllText(made.SaveFile))!["1"]!;
         Assert.Equal("""{"syllables":["Ka","ra"],"family":"Vale"}""", saved["name"]!.ToJsonString());

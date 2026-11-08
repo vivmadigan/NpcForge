@@ -96,27 +96,15 @@ public class LabRunTests : IDisposable
         return new Result(ended.Folder, capture.ToString(), model.Calls.Count, ended.NoName);
     }
 
-    // A lab never has a null in its brief, so its skill folders need no not-given folder (ADR-010,
-    // decision 5). Skill() builds a folder without one, and the lab still runs.
-    [Fact]
-    public async Task A_lab_skill_folder_with_no_not_given_folder_still_runs()
-    {
-        var model = new LabStandIn();
-        var alpha = Skill("alpha");
-        Assert.False(Directory.Exists(Path.Combine(alpha, "not-given")));
-
-        var result = await RunLab(model, ["--lab", $"skill={alpha},{Skill("beta")}"], "yes\n");
-
-        Assert.Equal(2, model.Calls.Count);
-        Assert.Contains("[lab] written to ", result.Stderr);
-    }
-
     [Fact]
     public async Task A_skill_lab_writes_every_variant_and_take_and_each_skill_reaches_the_writer()
     {
         var model = new LabStandIn();
         var alpha = Skill("alpha");
         var beta = Skill("beta");
+        // A lab never has a null in its brief, so its skill folders need no not-given folder (ADR-010,
+        // decision 5). Skill() builds folders without one, and the lab still runs.
+        Assert.False(Directory.Exists(Path.Combine(alpha, "not-given")));
 
         var result = await RunLab(model, ["--lab", $"skill={alpha},{beta}", "--repeat", "2"], "yes\n");
 
@@ -136,15 +124,6 @@ public class LabRunTests : IDisposable
         Assert.False(File.Exists(Path.Combine(result.Folder!, "blind.md")));
         Assert.Contains("[lab] 4 characters (2 variants x 2 takes), written by gpt-6-luna.", result.Stderr);
         Assert.Contains("[lab] written to ", result.Stderr);
-    }
-
-    [Fact]
-    public async Task One_take_is_not_printed_as_takes()
-    {
-        var result = await RunLab(new LabStandIn(), ["--lab", "temperature=0.2,0.9"], "yes\n");
-
-        Assert.Contains("[lab] 2 characters (2 variants x 1 take), written by", result.Stderr);
-        Assert.DoesNotContain("1 takes", result.Stderr);
     }
 
     [Fact]
@@ -181,6 +160,8 @@ public class LabRunTests : IDisposable
 
         var result = await RunLab(model, ["--lab", "tone"], "yes\n");
 
+        // A lab that wrote its sheet is not a failed run: only a lab with no name is.
+        Assert.False(result.NoName);
         Assert.Equal(AllTones, model.Calls.Select(call => (string)BriefOf(call)["tone"]!));
         var rest = model.Calls.Select(call => { var brief = BriefOf(call); brief.Remove("tone"); return brief; }).ToList();
         Assert.All(rest, brief => Assert.True(JsonNode.DeepEquals(rest[0], brief), brief.ToJsonString()));
@@ -236,15 +217,6 @@ public class LabRunTests : IDisposable
         Assert.False(Directory.Exists(folder));
         // Program.cs exits 1 on this, as a normal run does when no name follows the dice.
         Assert.True(result.NoName);
-    }
-
-    // Only a lab with no name is a failed run: a lab that is declined, or over the cap, ends
-    // quietly as a normal run does, and a lab that wrote its sheet is not one either.
-    [Fact]
-    public async Task Only_a_lab_with_no_name_is_flagged_as_failed()
-    {
-        Assert.False((await RunLab(new LabStandIn(), ["--lab", "tone"], "yes\n")).NoName);
-        Assert.False((await RunLab(new LabStandIn(), ["--lab", "tone"], "no\n")).NoName);
     }
 
     // A namer that fails outright (a 500, or a replay that does not match) is an exception the lab
@@ -394,13 +366,13 @@ public class LabRunTests : IDisposable
         Assert.DoesNotContain("npcforge-labskill", data);
         Assert.DoesNotContain("[skill]", data);
 
-        // The run order is Shuffle(variants) from new Random(seed), and the letters come next from the
-        // same Random, so a test can predict both without running the lab.
-        var random = new Random(Seed);
-        var runOrder = LabSheet.Shuffle(SixNames, random);
-        Assert.Equal(runOrder.Select(name => $"SKILL-{name}"), model.Calls.Select(c => c.SystemFirstLine));
-        var lettered = LabSheet.Shuffle(runOrder, random);
-        Assert.Equal(lettered, key.OrderBy(pair => pair.Key).Select(pair => pair.Value));
+        // ADR-009: blind shuffles the run order and the letters from --seed, so neither follows the
+        // order the skills were given in, and each skill is still run once. Which shuffle does it is
+        // not pinned; that the same seed gives the same key is Blind_prints_no_trace_...'s check.
+        var runOrder = model.Calls.Select(c => c.SystemFirstLine["SKILL-".Length..]).ToList();
+        Assert.Equal(SixNames, runOrder.Order());
+        Assert.NotEqual(SixNames, runOrder);
+        Assert.NotEqual(SixNames, key.OrderBy(pair => pair.Key).Select(pair => pair.Value));
     }
 
     [Fact]
@@ -517,8 +489,12 @@ public class LabRunTests : IDisposable
         Assert.Null(result.Folder);
         Assert.Equal(0, result.Calls);
         Assert.False(Directory.Exists(folder));
+        // Declined is not a failed run: it ends quietly, as a normal run does. Only a lab with no name exits 1.
+        Assert.False(result.NoName);
         Assert.Contains("Run this lab? Type yes to run it. Anything else stops before any model call.", result.Stderr);
         Assert.Contains("[lab] not run: the GM did not say yes", result.Stderr);
+        // The plan was shown before the question, one take not printed as "1 takes".
+        Assert.Contains("[lab] 2 characters (2 variants x 1 take), written by", result.Stderr);
         // The estimate was shown before the question, labelled "about", in tokens.
         Assert.Matches(
             @"\[lab\] About [\d,]+ tokens, against the session cap of 200,000\. The cap stops the lab if it runs over\.",

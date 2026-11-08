@@ -55,16 +55,7 @@ public class LongFolderTests : IDisposable
             name += "x";
         var copy = Path.Combine(bin, name);
         _cleanup.Add(copy);
-        CopyDirectory(Path.Combine(bin, "net10.0"), copy);
+        ConsoleBuildCopy.CopyDirectory(Path.Combine(bin, "net10.0"), copy);
         return copy;
-    }
-
-    private static void CopyDirectory(string from, string to)
-    {
-        Directory.CreateDirectory(to);
-        foreach (var file in Directory.EnumerateFiles(from))
-            File.Copy(file, Path.Combine(to, Path.GetFileName(file)));
-        foreach (var dir in Directory.EnumerateDirectories(from))
-            CopyDirectory(dir, Path.Combine(to, Path.GetFileName(dir)));
     }
 }

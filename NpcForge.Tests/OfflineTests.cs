@@ -1,6 +1,4 @@
 using Microsoft.Extensions.Configuration;
-using System.Text.Json;
-using System.Text.Json.Nodes;           // JsonNode
 
 namespace NpcForge.Tests;
 
@@ -45,6 +43,8 @@ public class OfflineTests
         Assert.DoesNotContain("Missing user secret", error.Message);
     }
 
+    // Through the whole app, NamedRunTests replays with NPCFORGE_OFFLINE=1 in its environment, to a
+    // save, so the app reading the variable does not refuse a replay either.
     [Fact]
     public void Create_still_builds_the_replay_client_when_offline()
     {
@@ -69,27 +69,4 @@ public class OfflineTests
         Assert.Contains(OfflineMessage, run.Stderr);
     }
 
-    [Fact]
-    [Trait("Category", "Process")]
-    public async Task The_app_still_replays_when_NPCFORGE_OFFLINE_is_set()
-    {
-        var fixture = Path.Combine(ConsoleProcess.RepoRoot, "NpcForge.Tests", "Fixtures", "replay.jsonl");
-        var flags = JsonSerializer.Deserialize<string[]>(File.ReadLines(fixture).First())!;
-        var saveFile = Path.Combine(Path.GetTempPath(), $"npcforge-offline-{Guid.NewGuid():N}.json");
-
-        try
-        {
-            var run = await ConsoleProcess.RunAsync(
-                [.. flags, "--provider", "replay", "--recording", fixture],
-                offline: true,
-                environment: new() { ["NPCFORGE_CHARACTERS"] = saveFile });
-
-            Assert.True(run.ExitCode == 0, run.Stderr);
-            Assert.NotNull(JsonNode.Parse(File.ReadAllText(saveFile))!["1"]);
-        }
-        finally
-        {
-            File.Delete(saveFile);
-        }
-    }
 }

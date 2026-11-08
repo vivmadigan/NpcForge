@@ -418,7 +418,7 @@ One real run is recorded once, and the whole app replays against it for free (AD
 
 `dotnet test` is free: no network and no model. The whole suite takes about a minute on a quiet
 16-core machine. A test that starts the console or a server carries `[Trait("Category", "Process")]`,
-so `dotnet test --filter "Category!=Process"` runs the 331 tests that start none in about 5 s.
+so `dotnet test --filter "Category!=Process"` runs the 304 tests that start none in about 5 s.
 xUnit runs one class's tests one after another and classes side by side, so the slowest chains are
 the classes that start many servers: `McpToolSourceTests`, `SeededRollTests`, and `LabRunTests`,
 which runs alone at the end because the lab swaps the process-wide `Console.Error`.
@@ -428,8 +428,8 @@ which runs alone at the end because the lab swaps the process-wide `Console.Erro
   tool, a save loads back byte for byte with its name, a brief without `nameLetter` is refused and
   saves nothing, an unknown number stops the run, and an undefined enum value or a blank want or
   look is refused by name.
-- `SeededRollTests`, against the real server: the same seed rolls the same brief from two servers,
-  and a handed-in value replaces its die without moving the others. Split from
+- `SeededRollTests`, against the real server: a handed-in value replaces its die without moving the
+  others, and a handed-in look, gender or age moves no die on the next roll. Split from
   `McpToolSourceTests` so the two run side by side.
 - `ReplayTests`: the whole app against the recorded run, as above, and the temp-file save.
 - `ReplaySensitivityTests`: the replay fails on a changed system prompt, an emptied tool list, a
@@ -437,19 +437,19 @@ which runs alone at the end because the lab swaps the process-wide `Console.Erro
   call in front, so the writer's calls are found by their system message.
 - `NameCheckTests` and `NamerTests`: each rule with its own reason, pure; a scripted namer refused
   for "Tobin" on K and then accepted for "Kessa", a wrong or missing family name refused, a second
-  accepted name refused, four turns with no name throwing `NoNameException`, and what the namer is
-  told and offered.
+  accepted name refused, a name accepted before the cap standing, and what the namer is told and
+  offered.
 - `NamedRunTests`: the whole app as a process against a recording made in process from a stand-in
   namer and writer: the `[app] name` line before the writer, the name in the save and on `--load`,
   and a namer that never follows the dice stopping the run before the writer with nothing saved.
-- `OfflineTests`: `NPCFORGE_OFFLINE=1` refuses both paid providers, and replay still works.
+- `OfflineTests`: `NPCFORGE_OFFLINE=1` refuses both paid providers, in process and through the app,
+  and still builds the replay client. `NamedRunTests` replays the whole app with it set.
 - `RunOptionsTests` and `FlagRefusalTests`: the flag table, its refusals, when the interview runs,
-  and which save file a run uses; and a typo'd flag next to the paid default stops at the parser,
-  through the whole app.
+  and which save file a run uses; and a typo'd flag or a bad lab next to the paid default stops at
+  the parser, through the whole app.
 - `RollFieldTests`, against the real server: the fields in order, each one's `WhenMissing` kind, the
-  choice lists, a description on each, and a flag default for every Ask and NotGiven field; the
-  schema's `required` list and the want's nullable type; the hand copy in `SceneDraftTests` equal to
-  the real schema; and the three schema shapes with no server.
+  choice lists, a description on each, and a flag default for every Ask and NotGiven field; the hand
+  copy in `SceneDraftTests` equal to the real schema; and the three schema shapes with no server.
 - `DiceOrderTests`: a late read picks what `Next(n)` picks; seeds 1 to 12 at every difficulty match
   a golden captured before the reorder; and a missing difficulty is rolled last and rolls what handing
   it in rolls.
@@ -460,7 +460,8 @@ which runs alone at the end because the lab swaps the process-wide `Console.Erro
   and naming `roll_character` fails; anything but `yes`, end of input included, returns nothing to
   roll; `yes` returns the arguments only after the confirmation was shown; the tavern scene's
   confirmation; a described trait reaches the brief from the real server; and the app with no answer
-  flag waits for a scene and, at end of input, rolls and saves nothing. A yes hands the scene back
+  flag, piped a scene with a curly apostrophe and then `no`, sends the scene as typed and rolls,
+  prints and saves nothing. A yes hands the scene back
   as typed, trimmed. A scene with no place and no role asks two questions in schema order, an empty
   answer asks again, end of input at a question rolls nothing, and a scene with no want shows
   `[not given]` and sends a null.
@@ -473,7 +474,8 @@ which runs alone at the end because the lab swaps the process-wide `Console.Erro
   brief names.
 - `ToneFileTests`: every tone in the server's schema has a file in the default skill folder, a deleted
   file is reported by its path, and the app, run as a process on a copy of its own build with one tone
-  file deleted, stops before the interview and names the file.
+  file deleted, stops before the interview and names the file. An intact copy reaching the interview
+  is the control for this run and for `NotGivenFileTests`' (`ConsoleBuildCopy`).
 - `StorageTests`: a copy of the real `characters.json` goes through `Storage.Load` and `Save` byte for
   byte, and a new save, with its name, leaves every old entry's bytes alone, with no `name` added.
   They set `NPCFORGE_CHARACTERS` for the whole test process, so their collection runs alone, and no

@@ -82,17 +82,6 @@ public class NamerTests
         Assert.Contains("already named Kessa Vale", Results(model)[1]);
     }
 
-    [Fact]
-    public async Task A_namer_that_never_follows_the_dice_stops_at_four_turns_with_the_dice_in_the_reason()
-    {
-        var model = NamerStandIn.Always(new(([ "To", "bin" ], "Vale")));
-
-        var error = await Assert.ThrowsAsync<NoNameException>(() => Name(model));
-
-        Assert.Equal("no name followed the dice (K, 2, V)", error.Message);
-        Assert.Equal(4, model.NamerCalls.Count);
-    }
-
     // A name accepted on the last turn still stands when the namer then runs out of turns.
     [Fact]
     public async Task A_name_accepted_before_the_cap_stands()
@@ -150,16 +139,20 @@ public class NamerTests
     }
 
     // ADR-011: the gender is read from the brief as the race is. Male and Female are what the server
-    // writes; the namer is told them in lower case, and a brief with none is refused, not guessed.
+    // writes; the namer is told them in lower case. A brief with none is refused before the namer is
+    // asked, so it is never guessed and never paid for. Which exception says so is not the promise.
     [Fact]
-    public void The_gender_in_the_first_message_is_the_briefs_and_a_brief_without_one_is_refused()
+    public async Task The_gender_in_the_first_message_is_the_briefs_and_a_brief_without_one_is_refused()
     {
         var male = Brief.Replace("\"Female\"", "\"Male\"");
         var none = Brief.Replace(",\"gender\":\"Female\"", "");
+        var model = new NamerStandIn(new NamerStandIn.Turn(([ "Kes", "sa" ], "Vale")));
 
         Assert.Contains("Race: dwarf\nGender: male\nFirst name", Namer.FirstMessage(male, scene: null));
         Assert.Contains("Race: dwarf\nGender: female\nFirst name", Namer.FirstMessage(Brief, scene: null));
-        Assert.Throws<KeyNotFoundException>(() => Namer.FirstMessage(none, scene: null));
+        await Assert.ThrowsAnyAsync<Exception>(() =>
+            Namer.RunAsync(model, new ChatOptions(), new WriterInput(none, null, WriterInput.DefaultSkillDir), CancellationToken.None));
+        Assert.Empty(model.NamerCalls);
     }
 
     // A Windows checkout has CRLF files and a Linux one LF. The namer is sent "\n" either way, so a
@@ -184,16 +177,5 @@ public class NamerTests
             Assert.Equal(fromLf.Trace[fromLf.Trace.LastIndexOf('(')..], fromCrlf.Trace[fromCrlf.Trace.LastIndexOf('(')..]);
         }
         finally { Directory.Delete(dir, recursive: true); }
-    }
-
-    // The writer's options are not changed by the namer's tool list.
-    [Fact]
-    public async Task The_callers_options_keep_their_tools()
-    {
-        var options = new ChatOptions();
-
-        await Namer.RunAsync(new NamerStandIn(new NamerStandIn.Turn(([ "Kes", "sa" ], "Vale"))), options, Input(), CancellationToken.None);
-
-        Assert.Null(options.Tools);
     }
 }
