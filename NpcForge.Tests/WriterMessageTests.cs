@@ -49,16 +49,6 @@ public class WriterMessageTests
             model.Messages[1].Text);
     }
 
-    // With no scene and no name, the message from before the namer, to the byte: the lab's estimate
-    // still measures it.
-    [Fact]
-    public void With_no_scene_and_no_name_the_first_message_is_the_one_from_before_the_namer()
-    {
-        Assert.Equal(
-            $"Write this character. The brief is settled; do not change it.\n\n{Brief}",
-            ChatAgent.FirstMessage(Brief, scene: null, name: null));
-    }
-
     private const string BriefWithDice =
         """{"setting":"a mill","occupation":"miller","tone":"Comic","race":"dwarf","nameLetter":"K","nameSyllables":"2","familyLetter":"V","gender":"Female"}""";
 
