@@ -183,28 +183,14 @@ else
     rollArguments = run.RollArguments();
 }
 
-// Roll: the app calls roll_character itself. The model never sees this tool, so it cannot
-// skip the roll. The difficulty goes as text and the server turns it into the enum; a value
-// it does not know stops the run here, before the writer is called. A trait the GM described
-// goes in through the parameter roll_character already has, and only the rest is rolled.
-var briefJson = await tools.CallDirectAsync("roll_character", rollArguments, CancellationToken.None);
-
-// The dice, made visible. Every trait in the writing should trace back to a value on this line,
-// and any that does not was invented by the model.
-Console.Error.WriteLine($"[app] {provider} {model}");
-Console.Error.WriteLine($"[app] brief {briefJson}");
-
-// Shows in every run's record that the writer was given the scene. A count, not the text: the GM
-// typed it, and it is on the screen above.
-if (scene is not null)
-    Console.Error.WriteLine($"[app] scene sent ({scene.Length} chars)");
-
-// Run: the namer names the character inside its dice, then the writer writes it.
-Written written;
+// Roll, name and write are one step (CharacterRun): the app calls roll_character itself, prints the
+// dice, then the namer names the character and the writer writes it. The Ask is what the run is made
+// from; the scene is the GM's, or null for a run with answer flags.
+var ask = new Ask(rollArguments, scene, provider);
+Draft draft;
 try
 {
-    written = await ChatAgent.WriteAsync(
-        client, options, tools, new WriterInput(briefJson, scene, WriterInput.DefaultSkillDir), CancellationToken.None);
+    draft = await CharacterRun.RollAndWriteAsync(client, options, tools, ask, CancellationToken.None);
 }
 catch (NoNameException ex)
 {
@@ -213,6 +199,8 @@ catch (NoNameException ex)
     Environment.ExitCode = 1;
     return;
 }
+var briefJson = draft.BriefJson;
+var written = draft.Written;
 var answer = written.Text;
 Console.WriteLine(answer);
 
