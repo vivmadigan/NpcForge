@@ -32,8 +32,8 @@ public sealed class Dice(int? seed)
 
     // The roll with its arguments as a dictionary, parameter name to value, the way the console and a lab
     // hold them. Binds by name through the same function the SDK bound them through, then casts the same dice
-    // in the same order, with the same refusals. Nothing awaits: a method that does no IO finishes the call
-    // before it returns.
+    // in the same order, with the same refusals. The call completes before it returns, because Roll does no
+    // IO, so blocking on it cannot deadlock.
     public CharacterBrief Roll(IReadOnlyDictionary<string, object?> arguments)
     {
         var call = new AIFunctionArguments(new Dictionary<string, object?>(arguments))
