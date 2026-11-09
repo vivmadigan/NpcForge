@@ -3,10 +3,22 @@ using System.Text.Json.Nodes;           // JsonNode
 
 namespace NpcForge;
 
-// The brief is the server's JSON and the console has no type for it, so the few things the console
-// does to one are done on the JSON itself, here.
+// The brief as JSON text, and the few things done to a brief on its JSON itself. The text is what the
+// writer's first message carries, and the console still reads it from the server until the switch.
 public static class BriefJson
 {
+    // The brief's JSON options, decided once. BriefJson.Of writes the text the writer is sent and
+    // SavedCharacter.Of keeps the brief a save holds, so the two cannot drift apart (ADR-015, decision 5).
+    // The names are camelCase and the enums write their own names (CharacterBrief). The encoder is the
+    // default one, which writes an apostrophe, a markup character or a letter such as Æ as a backslash-u
+    // escape: that is how the MCP SDK wrote the text the writer was sent before the switch, and the writer
+    // must read the same bytes. A save written to the file is re-encoded by the file's own writer, so its
+    // bytes do not depend on this.
+    internal static readonly JsonSerializerOptions Options = new(JsonSerializerDefaults.Web);
+
+    // The brief as the roll_character tool returned it, byte for byte (CoreMatchesServerTests).
+    public static string Of(CharacterBrief brief) => JsonSerializer.Serialize(brief, Options);
+
     // roll_character's arguments for the same brief with one field changed: every field of the brief
     // handed back in, `field` set to `value`. The server stays the only author of briefs, and since
     // every field is given, every die it still casts is replaced by the value given (ADR-009).
