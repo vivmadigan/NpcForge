@@ -92,7 +92,7 @@ implementation and `haiku` for cheap checks. pstack's defaults name Fable; the m
   never from asking the model to invent.
 - **Never parse the model's prose.** Its markup differs by model. Code checks only structured data:
   the brief, the save file, and the arguments of a tool call.
-- **`NpcForge.Console/skills/npc-writer/SKILL.md` is product, not documentation.** It is what the
+- **`NpcForge.Core/skills/npc-writer/SKILL.md` is product, not documentation.** It is what the
   model is told. Changing it changes the app's behaviour, so treat it like code.
 - **No XML comment may contain `--`** (`.csproj`, `.props`, `.slnx`). The project stops loading
   (lesson 003).

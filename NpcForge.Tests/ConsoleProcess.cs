@@ -34,9 +34,11 @@ internal static class ConsoleProcess
     {
         // --no-build runs whatever is in bin, so a missing or old build would run old code and
         // pass or fail for the wrong reason. The console starts the server in this same
-        // configuration, so both are checked.
+        // configuration, so both are checked. The core holds the dice, the loop, the writer and the
+        // skills, so a change there is stale to the console too, and it is checked as well.
         RequireFreshBuild("NpcForge.Console");
         RequireFreshBuild("NpcForge.Server");
+        RequireFreshBuild("NpcForge.Core");
 
         var start = new ProcessStartInfo("dotnet")
         {
@@ -103,8 +105,8 @@ internal static class ConsoleProcess
         return new Result(process.ExitCode, await stdout, await stderr);
     }
 
-    // Unlike the verify script this includes the console's skill, which is product and is copied
-    // to bin.
+    // Unlike the verify script this includes the skills, which are product, live in the core and are
+    // copied to bin.
     private static void RequireFreshBuild(string name)
     {
         var project = Path.Combine(RepoRoot, name);

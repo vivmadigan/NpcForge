@@ -120,7 +120,7 @@ cmd_doctor() {
   # Each SKILL.md is copied to bin at build, and the model is told the bin copy.
   local skill
   for skill in npc-writer scene-interviewer; do
-    if cmp -s "NpcForge.Console/skills/$skill/SKILL.md" \
+    if cmp -s "NpcForge.Core/skills/$skill/SKILL.md" \
               "NpcForge.Console/bin/Debug/net10.0/skills/$skill/SKILL.md"; then
       ok "$skill SKILL.md in bin matches the source"
     else
