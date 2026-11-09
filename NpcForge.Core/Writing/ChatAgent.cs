@@ -51,9 +51,9 @@ public static class ChatAgent
         // file, so the tone still governs (ADR-010, decision 5). A brief with no null adds nothing, so
         // its text and trace are what they were before. Fields are found from the JSON, never named.
         var notGiven = NotGivenOf(briefJson);
-        var text = (File.ReadAllText(skillPath).TrimEnd() + "\n\n"
-                + string.Concat(notGiven.Select(field => File.ReadAllText(NotGivenFiles.PathOf(skillDir, field)).TrimEnd() + "\n\n"))
-                + File.ReadAllText(ToneFiles.PathOf(skillDir, tone)))
+        var text = (SkillFiles.Read(skillPath).TrimEnd() + "\n\n"
+                + string.Concat(notGiven.Select(field => SkillFiles.Read(NotGivenFiles.PathOf(skillDir, field)).TrimEnd() + "\n\n"))
+                + SkillFiles.Read(ToneFiles.PathOf(skillDir, tone)))
             .ReplaceLineEndings("\n");
         var notGivenTrace = string.Concat(notGiven.Select(field => $" + not-given/{field}.md"));
 

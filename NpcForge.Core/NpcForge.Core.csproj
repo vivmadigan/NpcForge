@@ -12,8 +12,21 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <!-- Pinned to 10.8.3, what the MCP server resolves today through ModelContextProtocol 2.2.0. The
+         pin keeps the server on the schema writer it shipped with until it retires (ADR-014). A
+         higher version here would reach the server through its project reference and replace that
+         writer under it. 10.10.0 and 10.11.0 were measured to write the same schemas as 10.8.3, so
+         the pin is caution, not a known difference. It can move once the server is gone. -->
+    <PackageReference Include="Microsoft.Extensions.AI.Abstractions" Version="10.8.3" />
     <PackageReference Include="Microsoft.CodeAnalysis.BannedApiAnalyzers" Version="5.6.0" PrivateAssets="all" />
     <AdditionalFiles Include="BannedSymbols.txt" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- The skills are content, not code. They travel with the core into every front end's bin
+         folder, so the app reads them from next to the exe, and editing one changes the writing
+         without touching any C# (ADR-014, decision 6). -->
+    <None Include="skills\**" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>

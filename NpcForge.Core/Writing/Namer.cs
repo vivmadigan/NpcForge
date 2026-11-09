@@ -60,7 +60,7 @@ public static class Namer
         // "\n" throughout, as the writer's is (ChatAgent.SystemMessage): git checks the file out with
         // CRLF on Windows, and one commit must send the same text and print the same fingerprint on
         // either machine, or a recording made on one would not replay on the other.
-        var text = File.ReadAllText(skillPath).ReplaceLineEndings("\n");
+        var text = SkillFiles.Read(skillPath).ReplaceLineEndings("\n");
         return (text, $"[skill] {skillPath} ({text.Length} chars, {Fingerprint.Of(text)})");
     }
 

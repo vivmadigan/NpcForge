@@ -17,7 +17,7 @@ public static class NotGivenFiles
 
         return [.. skillDirs.Distinct()
             .SelectMany(dir => notGiven.Select(field => PathOf(dir, field)))
-            .Where(path => !File.Exists(path))];
+            .Where(path => !SkillFiles.Exists(path))];
     }
 
     // The stop Program.cs makes on the interview path, before anything is paid for. A flag run and

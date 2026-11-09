@@ -295,18 +295,18 @@ always comes before the question, so nothing is saved. The lab catches it on its
 
 ## Writing guidance
 
-`NpcForge.Console/skills/scene-interviewer/SKILL.md` is the interviewer's: quote the GM exactly, at
+`NpcForge.Core/skills/scene-interviewer/SKILL.md` is the interviewer's: quote the GM exactly, at
 most one sentence and 12 words, never offer a value, free text only as the GM's words, a choice only
 when the GM's words point to it, the players' want read as what they want from this character, a people, an age or a look named
 with the role kept out of `occupation`, a gender only from a word that is itself male or female, and
 no questions of its own (code asks for a missing Ask field). The interview appends the field list from
 the server's schema to it.
 
-`NpcForge.Console/skills/namer/SKILL.md` is the namer's: follow the dice, fit the name to the race,
+`NpcForge.Core/skills/namer/SKILL.md` is the namer's: follow the dice, fit the name to the race,
 the gender and the scene, hand it back split into syllables through `give_name`, and stop once a name is
 accepted. It is sent as it is, with no appended text.
 
-`NpcForge.Console/skills/npc-writer/SKILL.md` is copied to `bin` and read into a system message at
+`NpcForge.Core/skills/npc-writer/SKILL.md` is copied to `bin` and read into a system message at
 index 0, followed by a blank line and one tone file from `skills/npc-writer/tones/` (`Serious.md`,
 `Comic.md` or `Heartfelt.md`). `ChatAgent.SystemMessage` picks the file from the `tone` in the brief's
 JSON, so the model is never shown the other two. A tone file says how to write; the brief still says

@@ -13,15 +13,12 @@ public sealed record SavedCharacter(
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] CharacterName? Name,
     string Text)
 {
-    // The same camelCase names as the [app] brief line. The enums write their names from their own
-    // attributes (CharacterBrief). The encoder and the indentation belong to the file that writes the
-    // element, not to the element.
-    private static readonly JsonSerializerOptions BriefOptions = new(JsonSerializerDefaults.Web);
-
-    // A new save: the typed brief as the JSON it is kept as. Only a new save goes through
-    // CharacterBrief, so every new save has every field and a name (ADR-009).
+    // A new save: the typed brief as the JSON it is kept as, written with the options BriefJson.Of
+    // writes the writer's text with (ADR-015, decision 5). The indentation belongs to the file that
+    // writes the element, not to the element. Only a new save goes through CharacterBrief, so every new
+    // save has every field and a name (ADR-009).
     public static SavedCharacter Of(CharacterBrief brief, CharacterName name, string text) =>
-        new(JsonSerializer.SerializeToElement(brief, BriefOptions), name, text);
+        new(JsonSerializer.SerializeToElement(brief, BriefJson.Options), name, text);
 }
 
 // The name the namer gave and the console accepted, split as the namer split it, so the count it
