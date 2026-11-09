@@ -130,7 +130,7 @@ public static class SceneInterview
     {
         // Read from next to the exe, as the writer's skill is. It is product: what the model is told.
         var skillPath = Path.Combine(AppContext.BaseDirectory, "skills", "scene-interviewer", "SKILL.md");
-        var skill = File.ReadAllText(skillPath);
+        var skill = SkillFiles.Read(skillPath);
 
         // A long choice is never recorded from a scene (SceneDraft.IsLongChoice), so the interviewer is
         // not told about it and spends no turn on it. The confirmation still shows it, as rolled.

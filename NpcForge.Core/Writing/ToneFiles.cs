@@ -18,7 +18,7 @@ public static class ToneFiles
 
         return [.. skillDirs.Distinct()
             .SelectMany(dir => tones.Select(tone => PathOf(dir, tone)))
-            .Where(path => !File.Exists(path))];
+            .Where(path => !SkillFiles.Exists(path))];
     }
 
     // The stop Program.cs and the lab make before anything is paid for.

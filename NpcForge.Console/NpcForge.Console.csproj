@@ -30,9 +30,9 @@
 	</ItemGroup>
 	
 	<ItemGroup>
-		<!-- The skill is content, not code. It travels to bin so the app reads it from next to
-         the exe, and so editing it changes the writing without touching any C#. -->
-		<None Include="skills\**" CopyToOutputDirectory="PreserveNewest" />
+		<!-- The loop, the namer, the writer and the interview live in the core, and so do the skills,
+         which the core's project file copies into this project's bin folder (ADR-014). -->
+		<ProjectReference Include="..\NpcForge.Core\NpcForge.Core.csproj" />
 	</ItemGroup>
 
 
