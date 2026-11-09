@@ -33,7 +33,7 @@ There is no server to keep up. Each drive is one `dotnet run` that starts and st
 
 `$V doctor` is read-only. Run it first, and again whenever anything looks off. It checks:
 - `dotnet` is on `PATH`.
-- Each of the three projects was built after its newest `.cs` or `.csproj`.
+- Each of the four projects (Core, Console, Server, Tests) was built after its newest `.cs` or `.csproj`.
 - `bin` holds the same `npc-writer/SKILL.md` and `scene-interviewer/SKILL.md` as the source. The model is told the `bin` copy.
 - The fixture exists and its line 1 is a plain JSON array of flags.
 - No `NpcForge.Console` or `NpcForge.Server` process is running. A hit is not necessarily yours. The owner may have one paused in the debugger. Do not kill it.

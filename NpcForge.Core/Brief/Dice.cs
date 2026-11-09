@@ -26,14 +26,20 @@ public sealed class Dice(int? seed)
             MarshalResult = (result, _, _) => new ValueTask<object?>(result),
         });
 
-    // roll_character's fields, read from that schema. The interview, ToneFiles and SavedView read this, and the
-    // server's copy of the same descriptions is held equal to it until the server goes (CoreMatchesServerTests).
+    // roll_character's fields, read from that schema. Once the console calls the core in-process (ADR-014),
+    // the interview, ToneFiles and SavedView read this. Until then they read the server's copy of the same
+    // descriptions, which CoreMatchesServerTests holds equal to it.
     public static IReadOnlyList<RollField> Fields { get; } = RollField.ListFrom(RollFunction.JsonSchema);
 
     // The roll with its arguments as a dictionary, parameter name to value, the way the console and a lab
-    // hold them. Binds by name through the same function the SDK bound them through, then casts the same dice
-    // in the same order, with the same refusals. The call completes before it returns, because Roll does no
-    // IO, so blocking on it cannot deadlock.
+    // hold them. Binds by name through AIFunctionFactory over this class's own Roll, the factory the MCP SDK
+    // binds through for the server, then casts the same dice in the same order. A blank want or look and an
+    // undefined enum number refuse as RollRefusedException, as on the server. A missing argument, or an enum
+    // name such as "grumpy", fails in the binder with its own ArgumentException instead. ADR-014, decision 3,
+    // wants every refusal to be a RollRefusedException, and the switch settles that, together with the text
+    // the GM sees. Wrapping every ArgumentException here would also relabel an internal bug, such as an empty
+    // table, as a refusal. The call completes before it returns, because Roll does no IO, so blocking on it
+    // cannot deadlock.
     public CharacterBrief Roll(IReadOnlyDictionary<string, object?> arguments)
     {
         var call = new AIFunctionArguments(new Dictionary<string, object?>(arguments))

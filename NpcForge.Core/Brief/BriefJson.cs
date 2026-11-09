@@ -11,9 +11,9 @@ public static class BriefJson
     // SavedCharacter.Of keeps the brief a save holds, so the two cannot drift apart (ADR-015, decision 5).
     // The names are camelCase and the enums write their own names (CharacterBrief). The encoder is the
     // default one, which writes an apostrophe, a markup character or a letter such as Æ as a backslash-u
-    // escape: that is how the MCP SDK wrote the text the writer was sent before the switch, and the writer
-    // must read the same bytes. A save written to the file is re-encoded by the file's own writer, so its
-    // bytes do not depend on this.
+    // escape: that is how the MCP SDK writes the text the writer is sent today, and the writer must keep
+    // reading the same bytes after the switch. A save written to the file is re-encoded by the file's own
+    // writer, so its bytes do not depend on this.
     internal static readonly JsonSerializerOptions Options = new(JsonSerializerDefaults.Web);
 
     // The brief as the roll_character tool returned it, byte for byte (CoreMatchesServerTests).

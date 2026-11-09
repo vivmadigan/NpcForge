@@ -108,7 +108,7 @@ cmd_doctor() {
 
   # --no-build runs whatever is in bin/Debug, so a source newer than its dll means the run would
   # drive an old build.
-  for p in Console Server Tests; do
+  for p in Core Console Server Tests; do
     dll="NpcForge.$p/bin/Debug/net10.0/NpcForge.$p.dll"
     if [ ! -f "$dll" ]; then fail "not built: $dll. Run dotnet build"; continue; fi
     newer=$(find "NpcForge.$p" -type f \( -name '*.cs' -o -name '*.csproj' \) \
