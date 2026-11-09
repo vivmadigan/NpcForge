@@ -35,18 +35,22 @@ public class CoreMatchesServerTests
         // The replay compares tools by this text, so a schema that differs in property order fails here too.
         Assert.Equal(AsRecorded(served), AsRecorded(Archetypes.Lookup));
 
-        var servedText = await tools.InvokeAsync(
-            new FunctionCallContent("call-1", "lookup_archetype", new Dictionary<string, object?> { ["occupation"] = "innkeeper" }),
-            CancellationToken.None);
-        var coreText = await Archetypes.Lookup.InvokeAsync(new AIFunctionArguments { ["occupation"] = "innkeeper" });
+        // The text the model reads back. Once the console calls the core in-process, the writer's tool is a
+        // ConsoleTool over Archetypes.Lookup (ADR-014, decision 5), so the core's side goes through it too.
+        var call = new FunctionCallContent("call-1", "lookup_archetype", new Dictionary<string, object?> { ["occupation"] = "innkeeper" });
+        var servedText = await tools.InvokeAsync(call, CancellationToken.None);
+        var coreText = await new ConsoleTool(Archetypes.Lookup).InvokeAsync(call, CancellationToken.None);
 
-        Assert.Equal(servedText, coreText?.ToString());
+        Assert.Equal(servedText, coreText);
     }
 
     // One server per seed, rolled several times in a row, with a Dice of the same seed rolled the same way,
     // so the dice carrying on from one roll into the next are held too. The arguments are the same
     // dictionary on both sides. An apostrophe, a letter beyond ASCII, markup characters and an emoji are in
-    // them because escaping is where one JSON writer differs from another.
+    // them because escaping is where one JSON writer differs from another. The last roll is a lab's tone
+    // variant (BriefJson.WithField, as Lab.cs rolls one) of the "playersWant not given" brief: every argument
+    // but the tone is a JsonElement, null for the want, and AIFunctionFactory binds a JsonElement down a
+    // different path than a string.
     [Theory]
     [InlineData(1)]
     [InlineData(5)]
@@ -57,14 +61,24 @@ public class CoreMatchesServerTests
         await tools.ConnectAsync(CancellationToken.None);
         var dice = new Dice(seed);
 
-        foreach (var (label, arguments) in RollsToCompare())
+        async Task<string> RollOnBothSides(string label, Dictionary<string, object?> arguments)
         {
             var server = await tools.CallDirectAsync("roll_character", arguments, CancellationToken.None);
             var core = BriefJson.Of(dice.Roll(arguments));
 
             Assert.True(server == core, $"seed {seed}, {label}: the core's brief text differs from the server's.\nserver: {server}\ncore:   {core}");
+            return server;
         }
+
+        var served = new Dictionary<string, string>();
+        foreach (var (label, arguments) in RollsToCompare())
+            served[label] = await RollOnBothSides(label, arguments);
+
+        await RollOnBothSides("a lab's tone variant of the playersWant-not-given brief",
+            BriefJson.WithField(served[PlayersWantNotGiven], "tone", "Heartfelt"));
     }
+
+    private const string PlayersWantNotGiven = "playersWant not given, an apostrophe and a letter beyond ASCII in the setting";
 
     private static IEnumerable<(string Label, Dictionary<string, object?> Arguments)> RollsToCompare()
     {
@@ -73,7 +87,7 @@ public class CoreMatchesServerTests
         var notGiven = RollArgs();
         notGiven["playersWant"] = null;
         notGiven["setting"] = "Gull's Rest at Ærø";
-        yield return ("playersWant not given, an apostrophe and a letter beyond ASCII in the setting", notGiven);
+        yield return (PlayersWantNotGiven, notGiven);
 
         yield return ("every enum handed in", new Dictionary<string, object?>
         {
