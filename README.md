@@ -4,7 +4,8 @@ Writes non-player characters for tabletop roleplaying games. You describe the sc
 who the character is, and a model writes them: who they are, where they stand, what would move
 them, and what they do after the players leave.
 
-A .NET 10 console app and an MCP server. It is also where I practise directing AI agents well;
+A .NET 10 console app over one core library that a website will call the same way. It is also
+where I practise directing AI agents well;
 [AGENTS.md](AGENTS.md) says how work is done here.
 
 ## Why
@@ -26,7 +27,7 @@ writing. The dice give the variety.
 
 1. You give four answers: where we are, what the players want, how hard it should be, and who the
    character is (an innkeeper by default).
-2. The app has the server roll up a **character brief**: what the character wants, what kind of
+2. The app's dice roll up a **character brief**: what the character wants, what kind of
    obstacle they are, an attitude, a mannerism, a weakness, something they will not talk about,
    and one thing they are wrong about. The rolls stay inside what the difficulty allows, so a wall
    does not come out cheerfully helpful. It also rolls how they look: a gender, an age, and one
@@ -94,9 +95,9 @@ and `--load` call no model and need no key. `NPCFORGE_OFFLINE=1`
 makes the app refuse OpenAI and Anthropic outright. A replay or a recording run saves to a temp file,
 named on its `[app] saved as` line, so it never touches `characters.json`.
 
-The character is printed on stdout. A trace on stderr shows each step: `[app]` the rolled brief,
-`[skill]` the writing guidance used, `[loop]` each model turn, `[tool]` and `[server]` each tool
-call. The interview's greeting, confirmation and question are on stderr too, so stdout stays the
+The character is printed on stdout. A trace on stderr shows each step: `[app]` the dice and the
+rolled brief, `[skill]` the writing guidance used, `[loop]` each model turn, `[tool]` each tool call
+and its answer. The interview's greeting, confirmation and question are on stderr too, so stdout stays the
 character alone.
 
 ## Status
@@ -119,10 +120,13 @@ writes the character to be won over, with a hook from your scene, and rolls a mi
 Every character now opens with a passage you can read straight to your players, from a rolled
 gender, age and look, and the name fits the gender. Saving is your choice: after each character
 you save it, roll again for the same scene, or leave, and `--list` finds any save by number and
-name. The free tests run in about a minute, and the part that starts no process in about 5 s.
-Next: a structure ready for a website, then the website with logins and a database so friends can
-use it, and later editing a saved character. See
-[ROADMAP.md](ROADMAP.md).
+name. The app is ready to grow: one core, `NpcForge.Core`, holds the dice, the brief, the namer,
+the writer, the interview and the save rules, and the console calls it in-process, as the website
+will. Saving sits behind a store a database can replace, and the MCP server it started with is
+retired. A field the dice cannot read, such as `--tone grumpy`, stops the run with one line naming
+the field and its values. The free tests run in about 25 s, and the part that starts no process in a
+few seconds. Next: the website with logins and a database so friends can use it, and later editing
+a saved character. See [ROADMAP.md](ROADMAP.md).
 
 ## Out of scope, for now
 

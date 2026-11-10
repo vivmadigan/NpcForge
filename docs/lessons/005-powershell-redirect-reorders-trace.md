@@ -3,7 +3,7 @@
 - **Status:** active
 - **Date:** 2026-09-20
 - **Plan version:** v01 (see docs/plans/INDEX.md)
-- **Applies to:** `docs/runs/**`, `NpcForge.Console/AgentLoop.cs`, `NpcForge.Console/Program.cs` · tags: powershell, traces, runs
+- **Applies to:** `docs/runs/**`, `NpcForge.Core/Loop/AgentLoop.cs`, `NpcForge.Console/Program.cs` · tags: powershell, traces, runs
 
 ## Symptom
 

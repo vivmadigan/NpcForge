@@ -1,11 +1,11 @@
 ---
 name: verify
-description: Drive NpcForge, a .NET console app that starts an MCP server as a child process, and prove a change works without paying for a model call. Use after any edit to NpcForge.Console, NpcForge.Server, the npc-writer SKILL.md or the tests, and before saying a task is done. Replays the recorded run, loads a saved character, probes the flag refusals, stops the scene interview at end of input and runs the free test suite.
+description: Drive NpcForge, a .NET console app that calls its core library in-process, and prove a change works without paying for a model call. Use after any edit to NpcForge.Console, NpcForge.Core, a skill's SKILL.md or the tests, and before saying a task is done. Replays the recorded run, loads a saved character, probes the flag refusals, stops the scene interview at end of input and runs the free test suite.
 ---
 
 # Verify NpcForge
 
-NpcForge is a CLI. `dotnet run --project NpcForge.Console` starts `NpcForge.Server` as a child process and talks MCP to it over stdio, with no ports. The server rolls a character brief with dice. A model writes the character, the app saves it, and it prints. The answer is stdout. The trace is stderr, each line prefixed `[app]`, `[server]`, `[skill]`, `[loop]` or `[tool]`. The server has no surface of its own here. It is driven through the console and through `dotnet test`.
+NpcForge is a CLI. `dotnet run --project NpcForge.Console` calls `NpcForge.Core` in-process: one process, no ports. The core's dice roll a character brief. A model writes the character, the app saves it, and it prints. The answer is stdout. The trace is stderr, each line prefixed `[app]`, `[skill]`, `[loop]`, `[tool]` or `[interview]`. The core has no surface of its own here. It is driven through the console and through `dotnet test`.
 
 ## Nothing here costs money
 
@@ -27,17 +27,17 @@ $V start                                       # prints the evidence directory
 $V doctor                                      # ready means no FAIL line
 ```
 
-There is no server to keep up. Each drive is one `dotnet run` that starts and stops its own server. `--no-build` runs whatever is in `bin/Debug`, so a missing or stale build drives old code. A fresh worktree has no `bin`. The run directory starts empty and the first save creates `save.json` in it. Run `dotnet build` outside the helper, which sets the proxy only for the console.
+Each drive is one `dotnet run`, with nothing else to start or stop. `--no-build` runs whatever is in `bin/Debug`, so a missing or stale build drives old code. A fresh worktree has no `bin`. The run directory starts empty and the first save creates `save.json` in it. Run `dotnet build` outside the helper, which sets the proxy only for the console.
 
 ## Doctor
 
 `$V doctor` is read-only. Run it first, and again whenever anything looks off. It checks:
 - `dotnet` is on `PATH`.
-- Each of the four projects (Core, Console, Server, Tests) was built after its newest `.cs` or `.csproj`.
+- Each of the three projects (Core, Console, Tests) was built after its newest `.cs` or `.csproj`.
 - `bin` holds the same `npc-writer/SKILL.md` and `scene-interviewer/SKILL.md` as the source. The model is told the `bin` copy.
 - The fixture exists and its line 1 is a plain JSON array of flags.
-- No `NpcForge.Console` or `NpcForge.Server` process is running. A hit is not necessarily yours. The owner may have one paused in the debugger. Do not kill it.
-- `NpcForge.Server/characters.json` is unmodified in `git status`.
+- No `NpcForge.Console` process is running. A hit is not necessarily yours. The owner may have one paused in the debugger. Do not kill it.
+- `NpcForge.Console/characters.json` is unmodified in `git status`.
 
 ## Drive
 
@@ -73,7 +73,7 @@ Everything lands in `$TEMP/npcforge-verify/<UTC timestamp>-<pid>/`, which is out
 - `save.json`, the exact record of what the app saved.
 
 Proof standards:
-- Run the real console as a process, with flags as a user types them and the real server as its child. The only stand-in is the model. Replay skips the vendor SDK and the network, so `ModelClients` openai and anthropic branches are not exercised.
+- Run the real console as a process, with flags as a user types them. The only stand-in is the model. Replay skips the vendor SDK and the network, so `ModelClients` openai and anthropic branches are not exercised.
 - Capture the action and the state it left: the command, the transcript, the exit code and the save file.
 - Check side effects in the save file, never in a console paste. A paste is not byte-exact (lesson 006).
 - Pair every negative claim with a positive control. A clean tracked `characters.json` proves nothing if the run died early, so the temp save must exist. A refusal is proved by its exact message, not by a non-zero exit (lesson 004).
@@ -86,30 +86,30 @@ In Git Bash, `<cmd> 2>&1 | tee <file>` keeps both streams in the order written, 
 To show a new test fail with the code it guards removed:
 
 ```bash
-sed -i 's/= \["roll_character", "save_character", "load_character"\];/= [];/' NpcForge.Console/McpToolSource.cs
-dotnet build && $V test Refuses_an_app_only_tool_the_model_names   # must fail
-git checkout -- NpcForge.Console/McpToolSource.cs
-git status --short                                                  # must print nothing
-dotnet build && $V test Refuses_an_app_only_tool_the_model_names   # must pass again
+sed -i 's/if (field.WhenMissing != WhenMissing.Roll)/if (field.WhenMissing == (WhenMissing)99)/' NpcForge.Core/Brief/Dice.cs
+dotnet build && $V test A_required_field_left_out_is_refused_by_name   # must fail
+git checkout -- NpcForge.Core/Brief/Dice.cs
+git status --short                                                     # must print nothing
+dotnet build && $V test A_required_field_left_out_is_refused_by_name   # must pass again
 ```
 
 Replace a value (`= null`, `= []`). Do not comment a line out. Commenting the one-statement body of an unbraced `if` makes the next line its body, which gives CS1023 when that line is a declaration and a different guard when it is not. Chain with `&&`, because a failed build leaves the old binary and a bare `--no-build` test then passes against it. Restoring the source does not restore `bin`, so build again before the next test.
 
 ## Cleanup
 
-- Processes. Every run ends its own server, and the helper's watchdog (GNU `timeout`, `NPCFORGE_VERIFY_TIMEOUT`, 180 seconds) ends a hung run and its children. Run `$V cleanup` to list any `NpcForge.*` process still up. Never kill by name. Stop only a process you started, by PID. One you did not start belongs to the owner.
+- Processes. Every run ends on its own, and the helper's watchdog (GNU `timeout`, `NPCFORGE_VERIFY_TIMEOUT`, 180 seconds) ends a hung run and its children. Run `$V cleanup` to list any `NpcForge.*` process still up. Never kill by name. Stop only a process you started, by PID. One you did not start belongs to the owner.
 - Source. After a break-it edit, `git checkout -- <file>`, then `git status --short` must show only what the task meant to change, and `dotnet build` again.
 - Shell. Nothing is exported, so nothing needs unsetting.
 - Evidence stays. `cleanup` and the helper never delete the run directory. The OS clears `$TEMP` in time, so copy what a PR needs into the PR.
 
 ## Isolate
 
-Two sessions can drive at once. Each run has its own server on stdio and its own save file. Each checkout, worktree or clone keeps its own pointer to its newest run directory. Set `NPCFORGE_VERIFY_DIR` on every call when more than one session is verifying in the same checkout, or they share it. Builds are shared. Never `dotnet build` while another session's run is in flight. A build fails with MSB3021 and MSB3027 while a running or debugger-paused `NpcForge` process holds a dll it needs to replace.
+Two sessions can drive at once. Each run has its own save file. Each checkout, worktree or clone keeps its own pointer to its newest run directory. Set `NPCFORGE_VERIFY_DIR` on every call when more than one session is verifying in the same checkout, or they share it. Builds are shared. Never `dotnet build` while another session's run is in flight. A build fails with MSB3021 and MSB3027 while a running or debugger-paused `NpcForge` process holds a dll it needs to replace.
 
 ## Gotchas
 
-- An unhandled exception exits `-532462766` in PowerShell and `127` in Git Bash. The helper's own refusals exit `64`, and its watchdog `124`.
-- Plain `--load N` and `--list` connect to the server before any client is built, so they need no key (ADR-013). The helper's `load` still passes `--provider replay`.
+- An unhandled exception, such as a flag the parser refuses, exits `-532462766` in PowerShell and `127` in Git Bash. A roll the dice refuse ends with `[app] not rolled: <reason>` and exit `1`. The helper's own refusals exit `64`, and its watchdog `124`.
+- Plain `--load N` and `--list` run before any client or dice are built, so they need no key (ADR-013). The helper's `load` still passes `--provider replay`.
 - The replay stops at the first line that differs from the recording. After an edit to the npc-writer `SKILL.md`, a tool description or schema, a `ChatOptions` field or `Tables.cs`, that is the signal to re-record. The re-record is paid. Report the drift. Do not re-record to get green.
 - A run with no answer flag and no `--load` waits for the GM to type a scene. Give it `< /dev/null` (`features/scene-interview.md`), or it waits until the watchdog ends it.
-- Not covered. A paid run, an interview with a real scene and model, `--record` for real, and driving the MCP server's stdio directly. Whether a character reads well is *needs my eyes*.
+- Not covered. A paid run, an interview with a real scene and model, and `--record` for real. Whether a character reads well is *needs my eyes*.

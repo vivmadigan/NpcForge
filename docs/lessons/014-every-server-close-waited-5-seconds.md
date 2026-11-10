@@ -1,6 +1,6 @@
 # Every server a test started took 5 s to close, and the wait hid inside each test's time
 
-- **Status:** active
+- **Status:** history: the MCP server retired in epic 5 (ADR-016), and no test starts one
 - **Date:** 2026-11-05
 - **Applies to:** `NpcForge.Console/NpcForge.Console.csproj`, `NpcForge.Server/NpcForge.Server.csproj`, `NpcForge.Console/McpToolSource.cs`, any test that starts a server · tags: tests, speed, mcp
 

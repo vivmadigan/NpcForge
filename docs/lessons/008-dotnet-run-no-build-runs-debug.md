@@ -2,7 +2,7 @@
 
 - **Status:** active
 - **Date:** 2026-10-25
-- **Applies to:** `NpcForge.Tests/ConsoleProcess.cs`, `NpcForge.Console/McpToolSource.cs`, `.claude/skills/verify/scripts/npcforge-verify.sh` · tags: dotnet-run, build-configuration, release
+- **Applies to:** `NpcForge.Tests/ConsoleProcess.cs`, `.claude/skills/verify/scripts/npcforge-verify.sh` · tags: dotnet-run, build-configuration, release
 
 ## Symptom
 

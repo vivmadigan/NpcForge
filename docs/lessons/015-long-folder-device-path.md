@@ -2,7 +2,7 @@
 
 - **Status:** active
 - **Date:** 2026-11-08
-- **Applies to:** `NpcForge.Console/McpToolSource.cs`, `NpcForge.Server/Storage.cs`, `NpcForge.Tests/ConsoleProcess.cs`, any code that walks up from `AppContext.BaseDirectory` · tags: paths, windows, long-paths, mcp
+- **Applies to:** `NpcForge.Console/FileCharacterStore.cs`, `NpcForge.Tests/ConsoleProcess.cs`, `NpcForge.Tests/LongFolderTests.cs`, any code that walks up from `AppContext.BaseDirectory` · tags: paths, windows, long-paths, mcp
 
 ## Symptom
 

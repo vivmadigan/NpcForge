@@ -2,7 +2,7 @@
 
 - **Status:** active
 - **Date:** 2026-11-03
-- **Applies to:** `NpcForge.Tests/ConsoleProcess.cs`, `NpcForge.Console/skills/**` · tags: tests, build, skill
+- **Applies to:** `NpcForge.Tests/ConsoleProcess.cs`, `NpcForge.Core/skills/**` · tags: tests, build, skill
 
 ## Symptom
 

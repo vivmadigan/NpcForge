@@ -2,7 +2,7 @@
 
 - **Status:** active
 - **Date:** 2026-10-27
-- **Applies to:** `NpcForge.Tests/Fixtures/replay.jsonl`, `NpcForge.Server/characters.json`, any PR that needs a paid re-record · tags: workflow, replay, PR
+- **Applies to:** `NpcForge.Tests/Fixtures/replay.jsonl`, `NpcForge.Console/characters.json`, any PR that needs a paid re-record · tags: workflow, replay, PR
 
 ## Symptom
 

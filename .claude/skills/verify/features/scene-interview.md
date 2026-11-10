@@ -22,7 +22,7 @@ Preconditions:
 
 - **End of input.** Run `$V run --save interview.json interview-eof -- --provider replay --recording NpcForge.Tests/Fixtures/replay.jsonl < /dev/null`. Exit code `0`.
 - **Greeting and stop.** Run `grep -c 'Describe the scene in one go' "$D/interview-eof.txt"` and expect `1`. Run `grep -c '\[app\] not rolled: the GM did not say yes' "$D/interview-eof.txt"` and expect `1`.
-- **Nothing reached a model, the dice or the file.** Run `grep -cE '^\[(loop|skill|tool)\]|\[app\] brief' "$D/interview-eof.txt"` and expect `0`. Run `grep interview-eof "$D/index.tsv"` and expect `interview.json absent`. The positive control is the `tools/list` `[server]` line above the greeting: the run connected and stopped at the interview, not before it.
+- **Nothing reached a model, the dice or the file.** Run `grep -cE '^\[(loop|skill|tool)\]|\[app\] brief' "$D/interview-eof.txt"` and expect `0`. Run `grep interview-eof "$D/index.tsv"` and expect `interview.json absent`. The positive control is the `[app] dice: random` line above the greeting: the run built its client and its dice and stopped at the interview, not before it.
 - **Skipped with an answer flag.** `replay-run` passes the fixture's answer flags. Run `grep -c 'Describe the scene' "$D/replay.txt"` (or `replay.stderr` after `--split`) and expect `0`.
 - **Proof.** `$D` holds `interview-eof.cmd`, `interview-eof.txt`, `interview-eof.exit` and `index.tsv`.
 
