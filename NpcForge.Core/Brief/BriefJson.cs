@@ -16,7 +16,8 @@ public static class BriefJson
     // file's own writer, so its bytes do not depend on this.
     internal static readonly JsonSerializerOptions Options = new(JsonSerializerDefaults.Web);
 
-    // The brief as the MCP server's roll_character returned it, byte for byte, which the replay holds.
+    // The brief as the MCP server's roll_character returned it, byte for byte. The replay holds that for a
+    // plain brief, and RollArgumentsTests holds the escaping, against text the server itself wrote.
     public static string Of(CharacterBrief brief) => JsonSerializer.Serialize(brief, Options);
 
     // roll_character's arguments for the same brief with one field changed: every field of the brief

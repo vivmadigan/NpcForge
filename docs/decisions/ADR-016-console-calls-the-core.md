@@ -40,7 +40,10 @@ How the roll refuses an unknown choice:
   converter's rules (case, spaces, numbers, a plus sign, a leading zero, a list), and every rule it misses
   turns an input the roll took into a refusal.
 - **Read the text through the binder's own converter, with the options it binds with**, and refuse only
-  what that converter cannot read. Every input the roll took still binds, by construction.
+  what that converter cannot read. Every input the app's roll took still binds: an independent probe of
+  167 inputs gave the same accept or refuse on the server at `a7dba4a` and on this core. Three texts
+  that only the in-process binder took, because it first tries a text as JSON (`"\"Wall\""`, `"null"`
+  and `"\"2\""`), are now refused, as the server refused them.
 
 How `--load` prints the brief line:
 - **`GetRawText()` of the saved brief.** The file keeps it indented and unescaped, so the line would
@@ -127,8 +130,16 @@ What an unreadable save file throws:
   and before any model call, in a run and in a lab. The verify skill's fence, `--difficulty Nonsense`
   first, still refuses before the model's first turn.
 - **A null setting or occupation still binds** (measured): the binder accepts a null for any string
-  parameter, and the brief is written with `"setting": null`. No caller sends one. Refusing it would
-  change what the roll accepts, so it waits for its own decision.
+  parameter, and the brief is written with `"setting":null`. The server left the key out of such a
+  brief and then refused to save it, so here the writer's text and the save differ from before. No
+  caller sends one: a flag has a default and the interview asks. Refusing it would change what the roll
+  accepts, so it waits for its own decision.
+- **A hand-edited save file with an entry that has no brief or no text** is refused by the entry's
+  number, on `--list`, `--load` and a save, as an unreadable file is.
+- **`scripts/check-restructure-tests.sh` is deleted.** It checked epic 5's restructure PRs, named
+  `NpcForge.Server.` and cited the epic's Done-when, and it ran for the last time on this PR. A later
+  restructure that wants such a check takes it from git.
 - **The full suite takes about 25 s and starts no server.** 500 tests, 449 of them in the fast part.
 - **Epic 6** adds `NpcForge.Api` beside the console; it builds its own `Dice` per request and its own
-  store per friend, and calls `CharacterRun` as the console does.
+  store per friend, and calls `CharacterRun` as the console does. A value of the wrong type stays the
+  binder's `ArgumentException`, so the API answers it as a bad request itself.

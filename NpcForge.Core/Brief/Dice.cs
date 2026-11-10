@@ -17,6 +17,11 @@ public sealed class Dice(int? seed)
     private static readonly MethodInfo TypedRoll =
         typeof(Dice).GetMethods().Single(method => method.Name == nameof(Roll) && method.GetParameters().Length > 1);
 
+    // The JSON options the binder reads an argument with, named once: RollFunction binds with them and
+    // ReadsAsChoice reads a choice with them, so the check and the binding cannot come to differ. They are
+    // AIFunctionFactory's own default, so the schema and the binding are what they were (ADR-016).
+    private static readonly JsonSerializerOptions BinderOptions = AIJsonUtilities.DefaultOptions;
+
     // roll_character as the MCP SDK described it for the server: AIFunctionFactory over the typed Roll
     // below. It is never offered to a model and never called as a tool. Fields reads its schema and Roll(arguments) binds a
     // dictionary through it, so the field list and the binding both come from the one set of [Description]s
@@ -28,6 +33,7 @@ public sealed class Dice(int? seed)
         new AIFunctionFactoryOptions
         {
             Name = "roll_character",
+            SerializerOptions = BinderOptions,
             MarshalResult = (result, _, _) => new ValueTask<object?>(result),
         });
 
@@ -88,7 +94,7 @@ public sealed class Dice(int? seed)
         var type = TypedRoll.GetParameters().Single(parameter => parameter.Name == field).ParameterType;
         try
         {
-            JsonSerializer.Deserialize(JsonSerializer.Serialize(text), type, AIJsonUtilities.DefaultOptions);
+            JsonSerializer.Deserialize(JsonSerializer.Serialize(text), type, BinderOptions);
             return true;
         }
         catch (JsonException)

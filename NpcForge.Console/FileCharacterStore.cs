@@ -60,14 +60,24 @@ public sealed class FileCharacterStore(string path) : ICharacterStore
         if (!File.Exists(path))
             return new();
 
+        Dictionary<int, SavedCharacter> all;
         try
         {
-            return JsonSerializer.Deserialize<Dictionary<int, SavedCharacter>>(File.ReadAllText(path), Options) ?? new();
+            all = JsonSerializer.Deserialize<Dictionary<int, SavedCharacter>>(File.ReadAllText(path), Options) ?? new();
         }
         catch (JsonException ex)
         {
             throw new InvalidDataException($"Could not read {path}: {ex.Message}", ex);
         }
+
+        // The JSON parses, but a hand edit left an entry that is not a save: the brief or the text is
+        // gone. The serializer fills the gap with a default it cannot write back, so the entry is
+        // refused here, by its number, and not later as a crash in whoever reads it.
+        foreach (var (number, saved) in all)
+            if (saved is null || saved.Brief.ValueKind != JsonValueKind.Object || saved.Text is null)
+                throw new InvalidDataException($"Could not read {path}: entry {number} has no brief or no text.");
+
+        return all;
     }
 
     // Writes them all back. The folder does not exist before the first save.

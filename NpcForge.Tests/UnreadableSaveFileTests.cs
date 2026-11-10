@@ -42,4 +42,25 @@ public class UnreadableSaveFileTests : IDisposable
         Assert.DoesNotContain(lines, line => line.TrimStart().StartsWith("at "));
         Assert.Equal(Broken, File.ReadAllText(_file));
     }
+
+    // A file that parses, with an entry a hand edit left without its brief. Before the switch the server
+    // answered --load with one line; read through the store, the missing brief would be a default
+    // JsonElement that crashes whoever writes it out. The store refuses the entry by its number.
+    [Theory]
+    [InlineData("--list")]
+    [InlineData("--load")]
+    public async Task An_entry_with_no_brief_is_one_line_that_names_the_entry_and_exit_1(string flag)
+    {
+        const string noBrief = """{ "1": { "text": "no brief" } }""";
+        File.WriteAllText(_file, noBrief);
+
+        var run = await ConsoleProcess.RunAsync(
+            flag == "--load" ? ["--load", "1"] : ["--list"],
+            offline: true, environment: new() { ["NPCFORGE_CHARACTERS"] = _file });
+
+        Assert.True(run.ExitCode == 1, $"Exit code {run.ExitCode}.\n{run.Stderr}");
+        Assert.Contains($"Could not read {_file}: entry 1 has no brief or no text.", run.Stderr);
+        Assert.DoesNotContain("Unhandled exception", run.Stderr);
+        Assert.Equal(noBrief, File.ReadAllText(_file));
+    }
 }

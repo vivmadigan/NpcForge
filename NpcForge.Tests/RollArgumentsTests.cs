@@ -28,6 +28,21 @@ public class RollArgumentsTests
 
     private static string Roll(Dictionary<string, object?> arguments) => BriefJson.Of(new Dice(1).Roll(arguments));
 
+    // The brief text is what the writer is sent, so its escaping is part of what the model reads: an
+    // apostrophe, a letter beyond ASCII, markup, a quote and an emoji each go as a backslash-u escape. The
+    // expected text is what the MCP server's roll_character returned for these arguments under seed 1,
+    // captured at a7dba4a before the server retired. The fixtures' briefs are plain ASCII and the goldens
+    // compare values, not bytes, so nothing else holds this (ADR-016).
+    [Fact]
+    public void The_brief_text_escapes_what_the_server_escaped()
+    {
+        var brief = Roll(RollArgs("setting", "Gull's Rest at Ærø <stall> & \"q\" \U0001F642"));
+
+        Assert.Equal(
+            """{"setting":"Gull\u0027s Rest at \u00C6r\u00F8 \u003Cstall\u003E \u0026 \u0022q\u0022 \uD83D\uDE42","playersWant":"the name of a fence","difficulty":"Wall","occupation":"innkeeper","characterWants":"to keep a secret buried","obstacle":"Wont","attitude":"world-weary","mannerism":"tilts their head when listening","weakness":"cannot bear being left out","willNotDiscuss":"how they lost a tooth","wrongAbout":"thinks all adventurers know one another","tone":"Heartfelt","race":"human","nameLetter":"N","nameSyllables":"1","familyLetter":"F","gender":"Female","age":"MiddleAged","look":"unusual hair colour: two colours, half light and half dark"}""",
+            brief);
+    }
+
     private static JsonElement Field(string briefJson, string field) =>
         JsonDocument.Parse(briefJson).RootElement.GetProperty(field).Clone();
 
