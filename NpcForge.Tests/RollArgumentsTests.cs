@@ -2,11 +2,11 @@ using System.Text.Json;
 
 namespace NpcForge.Tests;
 
-// Dice.Roll(arguments), in process: what it binds. The flags, the interview, the lab and a saved brief
-// each hand the roll a dictionary, and each must keep binding the way it did before the roll learned
-// to refuse by name (ADR-016). These pins were run on the binder before that change, and a probe of
-// the same inputs gave the same briefs on Microsoft.Extensions.AI.Abstractions 10.8.3, 10.10.0 and
-// 10.11.0. Each pin rolls the same seed twice, once with the value as sent and once as the brief
+// Dice.Roll(arguments), in process: what it binds and what it refuses. The flags, the interview, the lab
+// and a saved brief each hand the roll a dictionary, and each must keep binding the way it did before the
+// roll learned to refuse by name (ADR-016). The pins were run on the binder before that change, and a
+// probe of the same inputs gave the same briefs on Microsoft.Extensions.AI.Abstractions 10.8.3, 10.10.0
+// and 10.11.0. Each pin rolls the same seed twice, once with the value as sent and once as the brief
 // writes it, so a value that bound to anything else would roll a different brief.
 public class RollArgumentsTests
 {
@@ -121,5 +121,70 @@ public class RollArgumentsTests
         args["Setting"] = "somewhere else";
 
         Assert.Equal(Roll(RollArgs()), Roll(args));
+    }
+
+    // ADR-016: the roll refuses a required field left out by name, before any die is cast. Before, the
+    // binder threw an ArgumentException that named the parameter in a .NET sentence. The control is
+    // RollArgs() itself, which every pin above rolls.
+    [Theory]
+    [InlineData("setting", "setting is missing, and the roll needs it: text.")]
+    [InlineData("occupation", "occupation is missing, and the roll needs it: text.")]
+    [InlineData("playersWant", "playersWant is missing, and the roll needs it: text, or null when it is not given.")]
+    public void A_required_field_left_out_is_refused_by_name(string field, string reason)
+    {
+        var args = RollArgs();
+        Assert.True(args.Remove(field));
+
+        var refused = Assert.Throws<RollRefusedException>(() => Roll(args));
+
+        Assert.Equal(reason, refused.Reason);
+    }
+
+    // ADR-016: a choice in words the field does not have is refused with the field's name and its values,
+    // as the schema writes them. Before, "grumpy" reached the binder and came back as "Object of type
+    // 'System.String' cannot be converted to type 'System.Nullable`1[NpcForge.Tone]'". "Two" is a member
+    // name of the syllables enum, but the field's values are 1, 2 and 3.
+    [Theory]
+    [InlineData("tone", "grumpy", "Serious, Comic, Heartfelt")]
+    [InlineData("difficulty", "Nonsense", "Easy, SomeWork, Wall")]
+    [InlineData("difficulty", "Some Work", "Easy, SomeWork, Wall")]
+    [InlineData("nameSyllables", "Two", "1, 2, 3")]
+    [InlineData("age", "Middle Aged", "Teenager, Adult, MiddleAged, Old")]
+    [InlineData("gender", "", "Male, Female")]
+    public void A_choice_the_field_does_not_have_is_refused_with_its_values(string field, string sent, string values)
+    {
+        var refused = Assert.Throws<RollRefusedException>(() => Roll(RollArgs(field, sent)));
+
+        Assert.Equal($"{field} {sent} is not one of its values: {values}.", refused.Reason);
+    }
+
+    // The same refusal for a choice sent as a JsonElement, the way a lab or a saved brief sends one.
+    [Fact]
+    public void A_choice_the_field_does_not_have_is_refused_when_it_comes_as_a_json_element()
+    {
+        var sent = JsonDocument.Parse("\"grumpy\"").RootElement.Clone();
+
+        var refused = Assert.Throws<RollRefusedException>(() => Roll(RollArgs("tone", sent)));
+
+        Assert.Equal("tone grumpy is not one of its values: Serious, Comic, Heartfelt.", refused.Reason);
+    }
+
+    // An enum number that is not one of the values is refused in the same words, with the values.
+    [Theory]
+    [InlineData("tone", "7", "tone 7 is not one of its values: Serious, Comic, Heartfelt.")]
+    [InlineData("nameSyllables", 4, "nameSyllables 4 is not one of its values: 1, 2, 3.")]
+    public void An_enum_number_that_is_not_a_value_is_refused_with_its_values(string field, object sent, string reason)
+    {
+        var refused = Assert.Throws<RollRefusedException>(() => Roll(RollArgs(field, sent)));
+
+        Assert.Equal(reason, refused.Reason);
+    }
+
+    // Only those refusals are relabelled. A value of the wrong type is a caller's bug, so the binder's own
+    // ArgumentException reaches the caller as it is, and the console does not show it as the GM's slip.
+    [Fact]
+    public void A_value_of_the_wrong_type_is_the_binders_own_error_and_not_a_refusal()
+    {
+        Assert.Throws<ArgumentException>(() => Roll(RollArgs("setting", 5)));
     }
 }
