@@ -1,6 +1,6 @@
 namespace NpcForge.Tests;
 
-// Tone files (ADR-009 section 3): one per tone the server can roll, in every skill folder a run uses.
+// Tone files (ADR-009 section 3): one per tone the roll can give, in every skill folder a run uses.
 // A gap must stop the run before anything is paid for, so these tests use no model at all.
 [Trait("Category", "Process")]
 public class ToneFileTests : IDisposable
@@ -14,28 +14,20 @@ public class ToneFileTests : IDisposable
                 Directory.Delete(path, recursive: true);
     }
 
-    private static async Task<IReadOnlyList<RollField>> RollFields()
-    {
-        var save = Path.Combine(Path.GetTempPath(), $"npcforge-tonefiles-{Guid.NewGuid():N}.json");
-        await using var tools = new McpToolSource(save, seed: 1);
-        await tools.ConnectAsync(CancellationToken.None);
-        return RollField.ListFrom(tools.SchemaOf("roll_character"));
-    }
-
-    // The test that fails when a tone is added on the server without its file, or a file is deleted.
+    // The test that fails when a tone is added to the roll without its file, or a file is deleted.
     [Fact]
-    public async Task Every_tone_in_the_schema_has_a_file_in_the_default_skill_folder()
+    public void Every_tone_in_the_schema_has_a_file_in_the_default_skill_folder()
     {
-        var fields = await RollFields();
+        var fields = Dice.Fields;
 
         Assert.Equal(["Serious", "Comic", "Heartfelt"], fields.Single(f => f.Name == "tone").Choices);
         Assert.Empty(ToneFiles.Missing(fields, [WriterInput.DefaultSkillDir]));
     }
 
     [Fact]
-    public async Task A_folder_with_a_tone_file_deleted_is_reported_by_that_files_path()
+    public void A_folder_with_a_tone_file_deleted_is_reported_by_that_files_path()
     {
-        var fields = await RollFields();
+        var fields = Dice.Fields;
         var dir = CopyOfDefaultSkill();
         File.Delete(ToneFiles.PathOf(dir, "Comic"));
 
@@ -43,9 +35,9 @@ public class ToneFileTests : IDisposable
     }
 
     [Fact]
-    public async Task A_schema_with_no_tone_cannot_be_checked_and_says_so()
+    public void A_schema_with_no_tone_cannot_be_checked_and_says_so()
     {
-        var fields = (await RollFields()).Where(f => f.Name != "tone").ToList();
+        var fields = Dice.Fields.Where(f => f.Name != "tone").ToList();
 
         var error = Assert.Throws<InvalidOperationException>(() => ToneFiles.Missing(fields, [WriterInput.DefaultSkillDir]));
 

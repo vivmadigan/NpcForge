@@ -12,8 +12,8 @@ public class SceneDraftTests
     private const string SecondSentence =
         "He knows nothing about the guild, knows a few people who might, and doesn't want to get involved.";
 
-    // roll_character's fields as the server lists them today. RollFieldTests holds this to the real
-    // server; these tests stay pure.
+    // roll_character's fields as the roll lists them today. RollFieldTests holds this to the real
+    // Dice.Fields; these tests stay pure.
     // Declared first: static fields start in the order they are written, and Fields reads this.
     private static readonly string[] Alphabet = [.. Enumerable.Range('A', 26).Select(c => ((char)c).ToString())];
 
@@ -144,7 +144,7 @@ public class SceneDraftTests
 
         Assert.Equal(Rejection.None, result.Reason);
         var line = Asked(draft).Lines().Single(l => l.Field.Name == "difficulty");
-        Assert.Equal("Wall", line.Value);                // the server's spelling, not the model's
+        Assert.Equal("Wall", line.Value);                // the roll's spelling, not the model's
         Assert.Equal(Label.Inferred, line.Label);
         Assert.Equal(new Quoted("doesn't want to get involved", SecondSentence), line.Evidence);
     }
@@ -157,7 +157,7 @@ public class SceneDraftTests
     [InlineData("difficulty", "Some Work", "SomeWork")]
     [InlineData("age", "middle aged", "MiddleAged")]
     [InlineData("gender", "female", "Female")]
-    public void A_choice_spelled_with_spaces_or_an_apostrophe_is_stored_as_the_server_spells_it(string field, string value, string stored)
+    public void A_choice_spelled_with_spaces_or_an_apostrophe_is_stored_as_the_roll_spells_it(string field, string value, string stored)
     {
         var draft = Draft();
 
@@ -435,7 +435,7 @@ public class SceneDraftTests
         draft.Record("attitude", "doesn't want to get involved", "doesn't want to get involved");
         draft.Record("playersWant", "ask about a thieves guild", "to ask about a thieves guild");
 
-        // No difficulty: the scene never gave one, so the server's dice roll it (ADR-010).
+        // No difficulty: the scene never gave one, so the dice roll it (ADR-010).
         Assert.Equal(
             new Dictionary<string, object?>
             {

@@ -3,7 +3,7 @@
 - **Status:** active
 - **Date:** 2026-09-22
 - **Plan version:** v01 (see docs/plans/INDEX.md)
-- **Applies to:** `docs/runs/**`, `NpcForge.Console/Program.cs`, `NpcForge.Server/characters.json` · tags: runs, console, encoding
+- **Applies to:** `docs/runs/**`, `NpcForge.Console/Program.cs`, `NpcForge.Console/characters.json` · tags: runs, console, encoding
 
 ## Symptom
 Step 8's paid run (saved as 3) and its `--load 3`, pasted side by side, did not match. The run, in

@@ -1,7 +1,7 @@
 # AGENTS.md
 
 NpcForge writes non-player characters for tabletop roleplaying games. Dice settle who the
-character is; a model writes them. A .NET console app and an MCP server, two processes.
+character is; a model writes them. A .NET console app that calls one core library in-process.
 
 ## Why this repo exists
 
@@ -39,7 +39,7 @@ pstack, decide how to build it.
 | The change | What it needs |
 | --- | --- |
 | Easy to undo, and covered by tests | Do it. Report the evidence. |
-| Changes the MCP contract (`tools/list`), the save format, or a recorded decision | A design check first (pstack `architect` or `interrogate`), then an ADR |
+| Changes what a model is offered (a tool's name, description or schema, or the roll's fields the interview reads), the save format, or a recorded decision | A design check first (pstack `architect` or `interrogate`), then an ADR |
 | Costs money: any run against a real model | Ask first, with the command and why |
 | Commits on your own branch, pushing that branch, opening a PR | Do it. One branch per task, never `master`. The PR is where I review |
 | Merging, landing a stack, tags, anything on `master` | I do these. Never merge or land unless I ask in so many words |
@@ -48,7 +48,7 @@ pstack, decide how to build it.
 local one, so I push `master` before handing over a task. A PR targets `master`, says how the change
 was proved, and is opened ready for review. I review it and merge it on GitHub.
 
-**My saves.** Uncommitted changes to `NpcForge.Server/characters.json` are characters from my own
+**My saves.** Uncommitted changes to `NpcForge.Console/characters.json` are characters from my own
 runs. Replays, recordings and tests save to temp files; for any other run of yours, set
 `NPCFORGE_CHARACTERS` to a scratch file, so anything in `characters.json` is mine. When you find
 them, commit them on the branch you are working on, in a commit of their own (`chore(saves): ...`),
@@ -77,19 +77,20 @@ implementation and `haiku` for cheap checks. pstack's defaults name Fable; the m
 
 ## Rules that must not break
 
-- **`roll_character` is never shown to the model.** The app calls it directly and puts the brief
-  in the first message. The same goes for `save_character` and `load_character`. A tool the model
-  can see is a tool it can skip. (`McpToolSource.AppOnly`)
-- **The server never writes to stdout.** Stdout is the MCP transport. Logs and traces go to stderr.
+- **The roll is never shown to the model.** The app rolls and puts the brief in the first message.
+  Roll, save, load and list are plain core methods, never an `AIFunction` in a tool list. The
+  writer's one tool is `Archetypes.Lookup`. A tool the model can see is a tool it can skip.
+  (`CharacterRun.WriterTools`)
+- **The core never writes to stdout or reads stdin; the banned list holds it.** Stdout is the
+  answer. Traces go to stderr.
 - **One core, called in-process.** `NpcForge.Core` holds every rule the front ends share: the dice,
   the brief, the namer, the writer, the interview and the save rules. The console calls it
   in-process, and so will the website's API. The core references only .NET and
   `Microsoft.Extensions.AI.Abstractions`: no front end, no model vendor, no MCP, and it reads no file
   but the bundled skills, through `SkillFiles`. `CoreReferenceTests` and the core's
-  `BannedSymbols.txt` hold this. Widening either needs an ADR. (ADR-014. Epic 5 builds it; until its
-  behavior PR the console still starts the server, which calls the core.)
-- **The model never guesses. It is either told or it rolls.** Variety comes from the server's dice,
-  never from asking the model to invent.
+  `BannedSymbols.txt` hold this. Widening either needs an ADR. (ADR-014, ADR-016.)
+- **The model never guesses. It is either told or it rolls.** Variety comes from the dice, never
+  from asking the model to invent.
 - **Never parse the model's prose.** Its markup differs by model. Code checks only structured data:
   the brief, the save file, and the arguments of a tool call.
 - **`NpcForge.Core/skills/npc-writer/SKILL.md` is product, not documentation.** It is what the
@@ -128,8 +129,8 @@ implementation and `haiku` for cheap checks. pstack's defaults name Fable; the m
 
 ```
 dotnet build
-dotnet test                                        # free: no network, no model calls; about a minute
-dotnet test --filter "Category!=Process"           # the fast part: no console or server, about 5 s
+dotnet test                                        # free: no network, no model calls; about 25 s
+dotnet test --filter "Category!=Process"           # the fast part: starts no console, a few seconds
 dotnet run --project NpcForge.Console -- --load 3  # no model call, no API key needed
 dotnet run --project NpcForge.Console -- --list    # no model call: every save, one row each
 dotnet run --project NpcForge.Console              # paid: OpenAI, default model
@@ -141,14 +142,14 @@ dotnet run --project NpcForge.Console -- --provider anthropic --model claude-opu
   `docs/runs/README.md` has both commands for the replay fixture.
 - A run that writes a character asks `Keep this character? Type save, again (new dice, same scene) or
   leave.` after showing it. Only `save` writes to the save file, and `again` rolls a new character for
-  the same answers on the same server. Piped input answers it: a test or a script ends its input with
+  the same answers with the run's one set of dice. Piped input answers it: a test or a script ends its input with
   `save`, and an input that ends first saves nothing (`[app] not saved: end of input`).
 - API keys are user-secrets on the console project: `OpenAI:ApiKey` and `Anthropic:ApiKey`.
 - A build fails while the app is running or paused in the debugger: it locks `NpcForge.Console.dll`.
-- The full suite takes about a minute on a quiet 16-core machine (63 to 88 s over three runs), and
-  longer beside other work. Run the fast part between edits and the full suite before saying a task
-  is done. A test that starts the console or a server carries `[Trait("Category", "Process")]`, or it
-  hides in the fast part (`NpcForge.Tests/ConsoleProcess.cs`).
+- The full suite takes about 25 s (24 to 25 s over five runs on 2026-11-10, once no test started a
+  server), and longer beside other work. Run the fast part between edits and the full suite before
+  saying a task is done. A test that starts the console carries `[Trait("Category", "Process")]`, or
+  it hides in the fast part (`NpcForge.Tests/ConsoleProcess.cs`).
 
 ## Where things are
 

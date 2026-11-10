@@ -11,11 +11,10 @@ namespace NpcForge.Tests;
 [CollectionDefinition("Console.Error", DisableParallelization = true)]
 public class ConsoleErrorCollection;
 
-// Lab.RunAsync against the real server and a stand-in model (ADR-009 build order 4). No paid call
-// is possible: the stand-in is the only IChatClient, and NPCFORGE_OFFLINE=1 is set for the run.
-// Each test names its own temp save file and lab folder, never the owner's characters.json.
+// Lab.RunAsync against the real dice and a stand-in model (ADR-009 build order 4), in process. No paid
+// call is possible: the stand-in is the only IChatClient. Each test names its own lab folder. A lab is
+// handed no store, so it cannot save a character.
 [Collection("Console.Error")]
-[Trait("Category", "Process")]
 public class LabRunTests : IDisposable
 {
     private const int Seed = 5;
@@ -38,7 +37,7 @@ public class LabRunTests : IDisposable
         _cleanup.Add(parent);
         var dir = Directory.CreateDirectory(Path.Combine(parent, name)).FullName;
         File.WriteAllText(Path.Combine(dir, "SKILL.md"), $"SKILL-{name}\nWrite a character.\n");
-        // A skill folder carries its tones (ADR-009); one file per tone the server can roll.
+        // A skill folder carries its tones (ADR-009); one file per tone the dice can roll.
         Directory.CreateDirectory(Path.Combine(dir, "tones"));
         foreach (var tone in new[] { "Serious", "Comic", "Heartfelt" })
             File.WriteAllText(ToneFiles.PathOf(dir, tone), $"TONE-{tone}\n");
@@ -56,18 +55,14 @@ public class LabRunTests : IDisposable
 
     private sealed record Result(string? Folder, string Stderr, int Calls, bool NoName = false);
 
-    // Runs the lab the way Program.cs does, with the stand-in as the whole model. Stderr is captured
-    // from after the server is up, so only the lab's own lines and the variants' traces are in it.
+    // Runs the lab the way Program.cs does, with the stand-in as the whole model and the run's one seeded
+    // Dice. Stderr is captured around the lab alone, so only its own lines and the variants' traces are in it.
     private async Task<Result> RunLab(
         LabStandIn model, string[] labFlags, string input, string? out_ = null, IChatClient? client = null)
     {
-        var save = Path.Combine(Path.GetTempPath(), $"npcforge-labsave-{Guid.NewGuid():N}.json");
-        _cleanup.Add(save);
         var run = RunOptions.Parse(
             [.. labFlags, "--seed", Seed.ToString(), "--setting", "a farm", "--out", out_ ?? TempFolder()]);
-
-        await using var tools = new McpToolSource(save, run.Seed);
-        await tools.ConnectAsync(CancellationToken.None);
+        var dice = new Dice(run.Seed);
 
         var options = new ChatOptions { ModelId = "stand-in", MaxOutputTokens = 5000 };
         var capture = new StringWriter();
@@ -76,7 +71,7 @@ public class LabRunTests : IDisposable
         LabOutcome ended;
         try
         {
-            ended = await Lab.RunAsync(client ?? model, options, tools, run, new StringReader(input), CancellationToken.None);
+            ended = await Lab.RunAsync(client ?? model, options, dice, run, new StringReader(input), CancellationToken.None);
         }
         finally
         {
@@ -90,8 +85,6 @@ public class LabRunTests : IDisposable
             Assert.True(restored, "Lab.RunAsync left Console.Error pointing somewhere else");
         }
 
-        // A lab saves nothing: the temp save file was never created.
-        Assert.False(File.Exists(save), "a lab run must not save a character");
         Assert.Null(options.Temperature);
         return new Result(ended.Folder, capture.ToString(), model.Calls.Count, ended.NoName);
     }
@@ -151,7 +144,7 @@ public class LabRunTests : IDisposable
     private static JsonObject BriefOf(LabStandIn.Call call) =>
         JsonNode.Parse(call.UserText[call.UserText.IndexOf('{')..])!.AsObject();
 
-    // The lab's tone axis (ADR-009): one character in every mood. The server rolls each variant's
+    // The lab's tone axis (ADR-009): one character in every mood. The dice roll each variant's
     // brief from the base brief with the tone replaced, so the briefs differ in tone and nothing else.
     [Fact]
     public async Task A_tone_lab_with_no_values_writes_every_tone_from_briefs_that_differ_only_in_tone()
@@ -269,7 +262,7 @@ public class LabRunTests : IDisposable
         Assert.True(line.Index < result.Stderr.IndexOf("[lab] written to ", StringComparison.Ordinal));
     }
 
-    // Passes the writer's calls to the stand-in and fails the namer's, as a server error would.
+    // Passes the writer's calls to the stand-in and fails the namer's, as a provider's server error would.
     private sealed class NamerFails(IChatClient inner) : IChatClient
     {
         public Task<ChatResponse> GetResponseAsync(
@@ -299,8 +292,25 @@ public class LabRunTests : IDisposable
         Assert.Contains("## Comic, take 1", sheet);
     }
 
+    // ADR-016: a lab whose brief the dice refuse lets the refusal out, for Program.cs to report as it
+    // reports a normal run's, and leaves no folder and no model call behind. A skill lab, so --tone goes
+    // to the roll as a normal run's would.
     [Fact]
-    public async Task A_tone_lab_that_names_a_tone_the_server_lacks_stops_before_any_call_and_lists_the_tones()
+    public async Task A_lab_the_dice_refuse_to_roll_lets_the_refusal_out_and_leaves_nothing()
+    {
+        var model = new LabStandIn();
+        var folder = TempFolder();
+
+        var refused = await Assert.ThrowsAsync<RollRefusedException>(() =>
+            RunLab(model, ["--lab", $"skill={Skill("one")},{Skill("two")}", "--tone", "grumpy"], "yes\n", folder));
+
+        Assert.Equal("tone grumpy is not one of its values: Serious, Comic, Heartfelt.", refused.Reason);
+        Assert.False(Directory.Exists(folder), "the lab's own folder was left behind");
+        Assert.Empty(model.Calls);
+    }
+
+    [Fact]
+    public async Task A_tone_lab_that_names_a_tone_the_roll_lacks_stops_before_any_call_and_lists_the_tones()
     {
         var model = new LabStandIn();
 
@@ -388,8 +398,6 @@ public class LabRunTests : IDisposable
             Assert.DoesNotContain("[loop]", stderr);
             Assert.DoesNotContain("[skill]", stderr);
             Assert.DoesNotContain("[tool]", stderr);
-            // Not [server]: the server's startup and roll lines arrive on their own thread before
-            // the window opens, and are not the variants'. The side control below does see them.
             Assert.DoesNotContain("npcforge-labskill", stderr);
             // The lab's own lines are outside the window: the confirmation and the folder.
             Assert.Contains("Run this lab? Type yes to run it.", stderr);
@@ -446,7 +454,6 @@ public class LabRunTests : IDisposable
         Assert.Contains("[loop]", result.Stderr);
         Assert.Contains("[skill]", result.Stderr);
         Assert.Contains("[tool] lookup_archetype", result.Stderr);
-        Assert.Contains("[server]", result.Stderr);
     }
 
     // The cap is caught inside the lab, so it never tests the finally. Cancellation is the one
@@ -679,8 +686,8 @@ public class LabRunTests : IDisposable
         public int TokensPerCall { get; init; }
 
         // True: the first call of each character asks for lookup_archetype, and the call after the
-        // tool's answer writes the text. That is a real [tool] line (and a [server] line) for the
-        // blind window to hide.
+        // tool's answer writes the text. That is a real [tool] line, and the tool's answer on the next,
+        // for the blind window to hide.
         public bool CallsATool { get; init; }
 
         public Task<ChatResponse> GetResponseAsync(

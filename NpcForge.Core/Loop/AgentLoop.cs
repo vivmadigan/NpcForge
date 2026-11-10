@@ -14,7 +14,8 @@ namespace NpcForge
         // the whole list. The caller builds it and owns it; this method only ever appends.
         public async Task<string> RunAsync(List<ChatMessage> history, CancellationToken ct)
         {
-            // Ask the source what exists instead of knowing. Step 5 swaps the fake for MCP here.
+            // Ask the source what exists instead of knowing. Step 5 swapped the fake for MCP here, and
+            // ADR-014 swapped MCP for ConsoleTool, with no change to the loop.
             options.Tools = [.. await tools.ListAsync(ct)];
 
             // One pass per model turn. The cap is not optional: a confused model loops until stopped.
@@ -30,7 +31,7 @@ namespace NpcForge
                     .OfType<FunctionCallContent>()
                     .ToList();
 
-                // One line per turn, on stderr beside [tool] and [server] so a plain run reads
+                // One line per turn, on stderr beside [app] and [tool] so a plain run reads
                 // as one trace. history.Count is the number to watch: it only ever grows.
                 Console.Error.WriteLine($"[loop] turn {turn + 1}: {calls.Count} tool call(s), history {history.Count}, "
                     + $"{response.Usage?.InputTokenCount} in / {response.Usage?.OutputTokenCount} out");

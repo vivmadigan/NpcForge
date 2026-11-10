@@ -43,7 +43,7 @@ change to `Tables.cs` or to the order of the picks re-rolls the seeded brief, so
 too. A feature that adds answers (tone, importance) adds their flags here, and to the `flags` array
 in `Program.cs` that writes line 1 of the recording.
 
-An upgrade of Microsoft.Extensions.AI, the OpenAI library or the MCP library can also turn the replay
+An upgrade of Microsoft.Extensions.AI or the OpenAI library can also turn the replay
 red with no change in behavior, because the recording is the library's own JSON. Run the replay test
 first after one. If it is red and the upgrade is the only change, re-record in the upgrade's PR.
 

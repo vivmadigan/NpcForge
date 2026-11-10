@@ -35,82 +35,11 @@ Two rules for every epic, now that the Safety net exists:
 
 | # | Epic | In one line |
 | --- | --- | --- |
-| 5 | Ready to grow | One core the console and a website both call in-process, ready for a database |
 | 6 | Friends can use it | A website with logins and a database, deployed |
 | 11 | Change a saved character | Change a saved character without starting over. For later |
 
-Epic 5 is ready to start. Epics 6 and 11 are drafts: sharpen each one before it starts. Epic 11
-waits until after the website.
-
-## 5. Ready to grow
-
-**Goal.** A structure that's easy to keep developing. One core holds the dice, the brief, the namer
-and the writer, and the rules for saving, listing and loading. The console calls it in-process now,
-and a website will call it the same way in epic 6. Saving can move from the file to a database
-without rewriting the rest. This comes just before epic 6, when the website and database make it pay.
-
-Today the dice and the save file live in the MCP server, a second process the console starts, and
-the namer and writer live in the console. A website would have to start and supervise that second
-process, and could not reuse the writer.
-
-**Constraints.**
-- My preferred style is Clean Architecture. pstack decides the shape (`architect`), and an ADR
-  records it before it's built. That ADR replaces three of AGENTS.md's rules: "two processes, no
-  shared contracts project", "no Clean Architecture layering" and "no abstraction until there are
-  two" where the core needs a port. It also decides whether the MCP server stays as a thin adapter
-  over the core or is retired, once the console no longer starts it.
-- The core references no front end, no model vendor (OpenAI, Anthropic), no MCP package and no file
-  IO, and the compiler enforces it. It may use `IChatClient` from Microsoft.Extensions.AI, the one
-  interface AGENTS.md already keeps.
-- The console stays hand-wired, with no host or DI container. `Program.cs` still reads in the order
-  things happen. Only the website gets DI, in epic 6.
-- The rules that keep the model honest stay: the model never sees the roll, save, load or list,
-  it's told or it rolls, and code never parses its prose. The model is sent byte-identical messages
-  and tool definitions, so `lookup_archetype` reaches it exactly as today.
-- Restructure first, behavior last, in separate PRs (the rule at the top of this file):
-  - **Restructure PRs** move code into the core while the console still talks MCP to the server.
-    Nothing visible changes. The replay test passes unchanged and is never re-recorded, and tests
-    change only in `using` lines and project references.
-  - **One behavior PR, last,** switches the console to call the core in-process. The `[server]`
-    trace lines and the server's start-up go away. That PR is the only one where a test may change
-    beyond `using` lines, and only where it checked the server process or its traces. Each such
-    change is listed in the PR. If the switch changes what the model is sent, stop and ask.
-- The save format does not change, and my `characters.json` loads and lists as it does today.
-- `NpcForge.Console/skills/` is product (AGENTS.md). It may move only if every path to it still
-  works, and the tone-file check still runs before any model call.
-- Earlier thinking on layers is in steps 10 and 12 of `git show eddc444:ROADMAP.md`.
-
-**Done when.**
-- A test fails if the core project references a front end, a model vendor package, an MCP package
-  or the file store. Show it failing with such a reference added.
-- The file store and a second, in-memory store pass the same save, load and list tests. The tests
-  are written once and run against both.
-- Before the behavior PR: the replay test and every existing test pass, the fixtures are
-  byte-identical, and a script shows that every test-file change is a `using` line or a project
-  reference.
-- After the behavior PR:
-  - The replay and roll-again tests pass against the unchanged fixtures. A seeded run gives the
-    same brief and character as before the switch.
-  - `--list` and `--load` work on my `characters.json` (a scratch copy).
-  - The verify skill passes, updated for the missing `[server]` lines.
-- `AGENTS.md`, `docs/architecture.md` and README describe the new shape, and the build history has
-  the epic.
-- The project layout and its names (*needs my eyes*).
-- How a run reads in the terminal without the `[server]` lines (*needs my eyes*).
-
-**Tasks.**
-- ADR: the core, its ports, the projects, what happens to the MCP server, and the three AGENTS.md
-  rules it replaces.
-- Restructure: the dice, the brief and the tables move into the core.
-- Restructure: saving, listing and loading move behind a store port. The file store becomes an
-  adapter, and an in-memory store with shared tests proves the port.
-- Restructure: the namer, writer, scene interview and `CharacterRun` move into the core.
-- Behavior: the console calls the core in-process. Close-out.
-
-**Not in this epic.**
-- The website, logins, a database and DI anywhere (epic 6).
-- Any change to what the model is sent, or to how a character reads.
-- Changing a saved character (epic 11).
+Epics 6 and 11 are drafts: sharpen each one before it starts. Epic 11 waits until after the
+website.
 
 ## 6. Friends can use it (draft)
 
@@ -194,3 +123,10 @@ that rewrites the character calls the model, so its checks are paid.
   number never saved stops with the reason, and the spending cap stops a run with `[app] stopped`
   and exit 1. The bakery scene rolled again twice and saved the third, found by `--list` and opened
   by `--load`. See ADR-013 and `docs/runs/2026-11-08-01-epic4-checks.md`.
+- **Ready to grow** (epic 5, 2026-11-10). One core, `NpcForge.Core`, holds the dice, the brief, the
+  namer, the writer, the interview and the save rules, and the console calls it in-process, as the
+  website will. Saves sit behind `ICharacterStore`; the file store and an in-memory store pass the
+  same tests, and the compiler keeps vendors, MCP, screens and files out of the core. The MCP server
+  is retired. The replay and roll-again tests pass on the unchanged fixtures, a seeded run gives the
+  same brief and character, `--list` and `--load` print what they printed, and a field the dice
+  cannot read stops the run with one line. See ADR-014, ADR-015, ADR-016 and lesson 017.

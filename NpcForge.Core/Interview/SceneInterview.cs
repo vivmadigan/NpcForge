@@ -9,8 +9,8 @@ public sealed record Told(string Scene, Dictionary<string, object?> RollArgument
 
 // The scene interview (ADR-007): greet the GM, read the scene in one go, let a model record what the
 // scene says through record_answer, show every field with its label and words, and hand back the
-// scene and roll_character's arguments only after the GM types yes. It never rolls. It holds no tool source
-// that reaches the server, so it cannot roll, save or load: that is Program.cs's job, after the yes.
+// scene and roll_character's arguments only after the GM types yes. It never rolls. It holds no dice and
+// no store, so it cannot roll, save or load: that is Program.cs's job, after the yes.
 public static class SceneInterview
 {
     public const string Greeting =
@@ -62,7 +62,7 @@ public static class SceneInterview
         // never parse the model's prose).
         Console.Error.WriteLine($"[interview] {closing}");
 
-        // A field the scene left out and the dice cannot pick is asked for, in the server's order
+        // A field the scene left out and the dice cannot pick is asked for, in the roll's order
         // (ADR-010, decision 4). End of input here rolls nothing. The text comes from the field's own
         // name and description, so no field is named in code.
         foreach (var field in draft.StillToAsk)
@@ -124,7 +124,7 @@ public static class SceneInterview
         }
     }
 
-    // The interviewer skill, then the fields as the server lists them, so a field added on the server
+    // The interviewer skill, then the fields as the roll lists them, so a field added to the roll
     // reaches the model with no change here.
     private static string Instructions(IReadOnlyList<RollField> fields)
     {

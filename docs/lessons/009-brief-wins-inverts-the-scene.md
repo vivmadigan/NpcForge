@@ -2,7 +2,7 @@
 
 - **Status:** active
 - **Date:** 2026-10-25
-- **Applies to:** `NpcForge.Console/skills/npc-writer/SKILL.md`, `NpcForge.Console/ChatAgent.cs` · tags: skill, scene, writer
+- **Applies to:** `NpcForge.Core/skills/npc-writer/SKILL.md`, `NpcForge.Core/Writing/ChatAgent.cs` · tags: skill, scene, writer
 
 ## Symptom
 

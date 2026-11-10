@@ -2,7 +2,7 @@
 
 - **Status:** active
 - **Date:** 2026-10-27
-- **Applies to:** `NpcForge.Console/skills/npc-writer/tones/*.md`, `NpcForge.Console/skills/npc-writer/SKILL.md` · tags: skill, tone, lab
+- **Applies to:** `NpcForge.Core/skills/npc-writer/tones/*.md`, `NpcForge.Core/skills/npc-writer/SKILL.md` · tags: skill, tone, lab
 
 ## Symptom
 

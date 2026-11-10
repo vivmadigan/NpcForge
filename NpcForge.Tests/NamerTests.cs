@@ -138,8 +138,8 @@ public class NamerTests
             model.NamerCalls[0].FirstUser);
     }
 
-    // ADR-011: the gender is read from the brief as the race is. Male and Female are what the server
-    // writes; the namer is told them in lower case. A brief with none is refused before the namer is
+    // ADR-011: the gender is read from the brief as the race is. Male and Female are what the brief
+    // holds; the namer is told them in lower case. A brief with none is refused before the namer is
     // asked, so it is never guessed and never paid for. Which exception says so is not the promise.
     [Fact]
     public async Task The_gender_in_the_first_message_is_the_briefs_and_a_brief_without_one_is_refused()

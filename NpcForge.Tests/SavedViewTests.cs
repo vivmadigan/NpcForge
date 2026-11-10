@@ -25,14 +25,14 @@ public class SavedViewTests
         , "gender": "Female", "age": "Old", "look": "bald"
         """;
 
-    // A name as the server saves it.
+    // A name as the file store saves it.
     private const string Kessa = """ "name": { "syllables": ["Kes", "sa"], "family": "Vale" }, """;
 
-    private static JsonElement Entry(string briefFields, string name = "")
-    {
-        using var entry = JsonDocument.Parse($$"""{ "brief": { {{briefFields}} },{{name}} "text": "A character." }""");
-        return entry.RootElement.Clone();
-    }
+    // An entry of the save file, read as the file store reads one, into the SavedCharacter the store
+    // hands over.
+    private static SavedCharacter Entry(string briefFields, string name = "") =>
+        JsonSerializer.Deserialize<SavedCharacter>(
+            $$"""{ "brief": { {{briefFields}} },{{name}} "text": "A character." }""", JsonSerializerOptions.Web)!;
 
     [Fact]
     public void An_old_save_lacks_the_eight_fields_and_a_name_and_they_are_listed_in_schema_order_then_name()

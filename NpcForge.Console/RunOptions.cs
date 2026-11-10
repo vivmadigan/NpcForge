@@ -39,7 +39,7 @@ public sealed class RunOptions
         new("--difficulty", "Wall", AsIs, Recorded: true, RollParameter: "difficulty"),
         new("--occupation", "innkeeper", AsIs, Recorded: true, RollParameter: "occupation"),
         // ADR-009: no default. Left off the line, the dice roll them; a flag given is handed to
-        // roll_character and recorded. The server reads a name or a letter in any case.
+        // roll_character and recorded. The roll reads a name or a letter in any case.
         new("--tone", null, AsIs, Recorded: true, RollParameter: "tone"),
         new("--race", null, AsIs, Recorded: true, RollParameter: "race"),
         new("--letter", null, AsIs, Recorded: true, RollParameter: "nameLetter"),
@@ -87,7 +87,7 @@ public sealed class RunOptions
     public string Difficulty => _values["--difficulty"];
     public string Occupation => _values["--occupation"];
 
-    // --seed <number> fixes the dice. It goes to the server, never to roll_character, whose
+    // --seed <number> fixes the dice. It goes to the run's Dice, never to roll_character, whose
     // parameters are only the brief fields a GM may set.
     public int? Seed => Int("--seed");
     public int? Load => Int("--load");
@@ -258,8 +258,8 @@ public sealed class RunOptions
 
     // Which file this run saves its character in. A replay or a recording run is not a real
     // character, so unless the caller says otherwise it goes in a fresh temp file and the tracked
-    // characters.json stays the owner's. A normal run and --load keep the tracked file (null leaves
-    // the server on its own default). `told` is NPCFORGE_CHARACTERS as the caller set it, and
+    // characters.json stays the owner's. A normal run and --load keep the tracked file (null: the
+    // console opens FileCharacterStore.DefaultPath). `told` is NPCFORGE_CHARACTERS as the caller set it, and
     // always wins: the tests name their own file. Either way the answer is returned, so the
     // console can say where it saved.
     public string? CharactersPath(string? told)
@@ -276,9 +276,8 @@ public sealed class RunOptions
         return Path.Combine(Path.GetTempPath(), $"npcforge-{kind}-{Guid.NewGuid():N}.json");
     }
 
-    // The arguments of the roll_character call, named by the table. Seed is not among them: it goes
-    // to the server, not to the tool. A flag with no default and no value is left out, so the
-    // server's dice roll it (ADR-009).
+    // The arguments of the roll, named by the table. Seed is not among them: it goes to the Dice,
+    // not to the roll. A flag with no default and no value is left out, so the dice roll it (ADR-009).
     public Dictionary<string, object?> RollArguments() =>
         Table.Where(flag => flag.RollParameter is not null && _values.ContainsKey(flag.Name))
             .ToDictionary(flag => flag.RollParameter!, flag => (object?)_values[flag.Name]);

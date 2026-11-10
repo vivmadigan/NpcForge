@@ -7,64 +7,70 @@ How NpcForge fits together as it is now. Why it is shaped this way is in `README
 
 ```
 NpcForge.slnx
-├── NpcForge.Console   the app: flags, the scene interview, the agent loop, the model clients, the MCP client
-├── NpcForge.Server    an MCP server over stdio: the brief, the trait tables, the dice, storage
-└── NpcForge.Tests     xUnit, free: fake models, the real server, and the whole app against a recording
+├── NpcForge.Core      every rule the front ends share: the brief, the tables, the dice, the namer,
+│                      the writer, the interview, the loop, the save rules and the skills
+├── NpcForge.Console   the app: flags, the model clients, record and replay, the lab, the file store
+│                      and the owner's characters.json
+└── NpcForge.Tests     xUnit, free: fake models, the real dice and tools, and the whole app against a recording
 ```
 
-Two processes. The console starts the server as a child process and talks MCP over its stdin and
-stdout. They share no types: JSON over the wire is the contract, and a shared project would quietly
-recouple what MCP separates. The console's `ProjectReference` to the server only sets the build
-order (`ReferenceOutputAssembly="false"`).
+One process. The console calls the core in-process and hands it what lives outside it: an
+`IChatClient` for the model and an `ICharacterStore` for the saves, the core's two ports (ADR-014).
+Inside the core, folders follow the domain: `Brief`, `Interview`, `Writing`, `Loop`, `Saves`.
+`CoreReferenceTests` and the core's `BannedSymbols.txt` hold the boundary: the core references only
+.NET and Microsoft.Extensions.AI.Abstractions, writes only traces to the console, and reads no file but
+the bundled skills, through `SkillFiles`. Until epic 5 the dice and the saves lived in an MCP server
+that the console started as a second process; ADR-016 records the switch.
 
 ## One run, end to end
 
 ```
 you ──► Program.cs
-          │ 1. connect: start the server, list its tools
-          │ 1a. interview, only with no answer flag: read the scene, a model
+          │ 1. the saves: a FileCharacterStore on characters.json, or the file the run names;
+          │    --list and --load stop here, with no client and no dice
+          │ 2. the model client, the options and the run's one Dice
+          │ 2a. interview, only with no answer flag: read the scene, a model
           │     records the GM's words with record_answer, show them, wait for "yes"
-          │ 2. roll: call roll_character directly ─────────► server: tables and dice
-          │ ◄─────────────────────────────────────────────── the brief, as JSON
-          │ 3. name: the namer skill; the race, the gender, the name dice and the scene
-          │       AgentLoop ◄──► model, which must call give_name (console),
+          │ 3. roll: dice.Roll(arguments), in-process ──────► core: tables and dice
+          │ ◄─────────────────────────────────────────────── the brief, typed
+          │ 4. name: the namer skill; the race, the gender, the name dice and the scene
+          │       AgentLoop ◄──► model, which must call give_name (ConsoleTool),
           │       checked against the dice; no accepted name stops the run here
-          │ 4. write: SKILL.md plus the brief's one tone file as the system message;
+          │ 5. write: SKILL.md plus the brief's one tone file as the system message;
           │       the first user message holds the GM's scene (interview runs
           │       only), the name and the brief
-          │       AgentLoop ◄──► model, which may call lookup_archetype ◄──► server
-          │ 5. show the character, then ask: save, again or leave
-          │       save: save_character(brief, name, text) ──► characters.json
-          │       again: back to 2, same answers, scene, server and client
+          │       AgentLoop ◄──► model, which may call lookup_archetype (ConsoleTool)
+          │ 6. show the character, then ask: save, again or leave
+          │       save: the store keeps the brief, the name and the text
+          │       again: back to 3, same answers, scene, dice and client
           │       leave, or end of input: nothing saved
           ▼
      each character on stdout, the trace on stderr
 ```
 
-Steps 2 to 4 are one step, `CharacterRun.RollAndWriteAsync`, and `Program.cs` loops over it
-(ADR-013). The answers and the scene are one `Ask`, built once, so a roll again rolls only what was
-rolled. Every roll uses the run's one server, so under `--seed` the next roll takes the next dice from
-the server's one `Random`, and a run with roll agains gives the same characters every time. The
-question (`KeepQuestion`) goes to stderr and reads `Console.In`, the reader the interview uses. It
-accepts `save`, `again` and `leave`, trimmed, in any case, and a UTF-8 byte order mark before the
-first answer is ignored. Anything else, a blank line or a first letter included, prints
+Steps 3 to 5 are one step, `CharacterRun.RollAndWriteAsync` in the core, and `Program.cs` loops over
+it (ADR-013); `CharacterRun.SaveAsync` is the save. The answers and the scene are one `Ask`, built
+once, so a roll again rolls only what was rolled. Every roll uses the run's one `Dice`, so under
+`--seed` the next roll takes the next dice, and a run with roll agains gives the same characters every
+time. The question (`KeepQuestion`) goes to stderr and reads `Console.In`, the reader the interview
+uses. It accepts `save`, `again` and `leave`, trimmed, in any case, and a UTF-8 byte order mark before
+the first answer is ignored. Anything else, a blank line or a first letter included, prints
 `[app] "<answer>" is not save, again or leave.` and asks again. Only the character on the screen
 when the GM types `save` is saved, and a run ends with `[app] saved as N`, `[app] not saved` or
 `[app] not saved: end of input`, each with exit code 0.
 
-Step 1a runs only when no answer flag and no `--load` is given ("The scene interview"). Its
-answers go to the same `roll_character` call the flags fill. A yes also hands back the scene as the
-GM typed it, and the writer is sent it word for word, between `<scene>` tags, before the brief
-(ADR-008). `ChatAgent.FirstMessage` builds that message: the scene, then `Their name is Kessa
-Vale.`, then the brief, which stays last. Code never reads the scene, and it is not saved.
-`[app] scene sent (<n> chars)` on stderr shows it went. Steps 3 and 4 are both
-`ChatAgent.WriteAsync` ("The namer"). `--load <number>` replaces steps 2 to 5
-with `load_character`, and `--list` with `list_characters`: no roll, no model, no cost. The order
-at start-up is config, flags, connect, then `--list` or `--load` if given, then the model client.
-So the server connects before the model client is built, `--load` and `--list` need no API key, and
-a missing key is reported after the server starts. A number never saved stops with
-`[app] not loaded: <reason>` and exit code 1. `--seed`, `--record` and `--provider replay`
-are under "Replay".
+Step 2a runs only when no answer flag and no `--load` is given ("The scene interview"). Its
+answers go to the same roll the flags fill. A yes also hands back the scene as the GM typed it, and
+the writer is sent it word for word, between `<scene>` tags, before the brief (ADR-008).
+`ChatAgent.FirstMessage` builds that message: the scene, then `Their name is Kessa Vale.`, then the
+brief, which stays last. Code never reads the scene, and it is not saved. `[app] scene sent (<n>
+chars)` on stderr shows it went. Steps 4 and 5 are both `ChatAgent.WriteAsync` ("The namer").
+`--load <number>` replaces steps 2 to 6 with the store's `LoadAsync`, and `--list` with its
+`ListAsync`: no dice, no roll, no model, no cost. The order at start-up is config, flags, the saves,
+then `--list` or `--load` if given, then the model client, then the dice. So `--load` and `--list`
+need no API key and print no dice line. A number never saved stops with `[app] not loaded: No
+character saved as N.` and exit code 1. `--seed`, `--record` and `--provider replay` are under
+"Replay".
 
 ## Run options
 
@@ -80,12 +86,12 @@ flag cannot be parsed and left off the recording. The same table names the `roll
 | `--setting`, `--want`, `--difficulty`, `--occupation` | an inn in a major city, the name of a fence, `Wall`, `innkeeper` | The GM's answers, sent to `roll_character`. Any one of them skips the interview |
 | `--seed <n>` | none | Fixes the dice (see "Replay") |
 | `--load <n>` | none | Prints saved character n instead of making one |
-| `--list` | off | A switch, alone like `--score`. Prints one row per save (number, name or `(no name)`, occupation, setting) from the app-only `list_characters` tool. An empty file says `[app] nothing saved yet` on stderr |
+| `--list` | off | A switch, alone like `--score`. Prints one row per save (number, name or `(no name)`, occupation, setting) from the store. An empty file says `[app] nothing saved yet` on stderr |
 | `--record <file>` | none | Also writes every model call to a file. Needs `--seed` |
 | `--recording <file>` | none | The file `--provider replay` answers from |
 | `--lab skill=<dir>,<dir>`, `--lab temperature=<t>,<t>` or `--lab tone[=<tone>,<tone>]` | none | The writers' lab (see "The lab") |
 | `--repeat <n>`, `--mode side\|blind`, `--out <dir>` | 1, `side`, a new temp folder | How many takes of each variant, blind or not, and where the sheet goes. Only with `--lab` |
-| `--score <dir>` | none | Marks the guesses for a finished blind lab. No model, no server, no key |
+| `--score <dir>` | none | Marks the guesses for a finished blind lab. No model, no dice, no key |
 
 A flag the table does not know, a flag with no value (last, or before another flag) and a stray word
 stop the run in `RunOptions.Parse`, before any model client is built. So do `--record` without
@@ -105,10 +111,11 @@ the sheets, which are pure.
   the answers as flags, and is refused with `--load`, `--record`,
   `--provider replay`, a repeated folder, temperature or tone, a temperature on `anthropic`, and
   `--lab tone` with `--tone`. Every refusal comes before a model client is built, except a tone name
-  the server lacks, which needs the schema and so stops after connect, before any model call.
-- **The tone axis.** The base brief is rolled once. Each variant's brief comes from `roll_character`
-  with every field of the base brief handed back in and `tone` replaced (`BriefJson.WithField`), so
-  the server stays the only author of briefs and the briefs differ in tone alone. The sheet's brief
+  the roll lacks, which the lab checks against `Dice.Fields` after the client is built and before any
+  model call.
+- **The tone axis.** The base brief is rolled once. Each variant's brief is rolled on the run's one
+  `Dice` with every field of the base brief handed back in and `tone` replaced (`BriefJson.WithField`),
+  so the dice stay the only author of briefs and the briefs differ in tone alone. The sheet's brief
   leaves the tone out, because the labels give it and a blind sheet must not.
 - **Tone files are checked first.** Before the question, the lab compares the schema's tones with the
   `tones/` folder of the default skill and of every `skill=` folder, and stops with the missing paths.
@@ -116,8 +123,9 @@ the sheets, which are pure.
   brief after the `yes`, and every variant and take is written with that name through
   `ChatAgent.WriteAsync`, the call a normal run makes. Every sheet then shows one character. A namer
   that gives no name stops the lab with `[lab] not written: no name followed the dice (K, 2, V)`
-  and no sheet, and the exit code is 1, as it is for a normal run. It saves nothing, and
-  `CharactersPath` sends it to a temp file as a second stop.
+  and no sheet, and the exit code is 1, as it is for a normal run. It is handed no store, so it
+  saves nothing, and `CharactersPath` names a temp file for the run as a second stop. A brief the dice
+  refuse stops the lab before its question, as it stops a run.
 - **No empty folder is left behind.** A `--out` folder the lab made itself is removed again when the
   lab stops without a sheet, and when anything escapes it (a replay mismatch, a 500 from the namer).
   A folder that was already there stays, and so does one with anything in it.
@@ -136,26 +144,31 @@ the sheets, which are pure.
   `[app] name Kessa Vale (K, 2, V)`, because every variant shares it and it is kept nowhere else, and
   then only a count of failures.
 - **`--score <dir>`** reads `blind.json` and `key.json`, asks for a guess per letter, prints
-  `n of m right` and writes `scored.md`. It reads no model prose as markup and runs before any client
-  or server.
+  `n of m right` and writes `scored.md`. It reads no model prose as markup and runs before any client,
+  store or dice.
 
-## The server's tools
+## What the model can reach
 
-| Tool | Called by | Does |
-| --- | --- | --- |
-| `lookup_archetype` | the model | Says how a kind of person usually behaves |
-| `roll_character` | the app only | Rolls the brief. Any rolled trait can be passed in instead. Each parameter has a `[Description]`, which the interview reads |
-| `save_character` | the app only | Saves a brief, its name and its text, returns the new number. Binds the brief through `CharacterBrief`, so a brief missing a field is refused |
-| `load_character` | the app only | Returns a saved brief, name (when it has one) and text by number. A number never saved is refused with the reason |
-| `list_characters` | the app only | Returns every save in number order: its number, its name (or null) and the brief's `occupation` and `setting`. Reads no text |
+The writer is offered one tool, `lookup_archetype`, which says how a kind of person usually behaves:
+`CharacterRun.WriterTools`, a `ConsoleTool` over `Archetypes.Lookup`. The lab writes through the same
+list. The namer is offered `give_name` and the interviewer `record_answer`, each a `ConsoleTool` of its
+own. A `ConsoleTool` answers only the name it was offered, and every failure comes back as text starting
+`Tool failed:`, so the model can read it and carry on. After a malformed `lookup_archetype` call that
+text is the binder's own reason (ADR-016).
 
-`McpToolSource` has two doors:
-- **The model's door**, `ListAsync` and `InvokeAsync`, sees only the tools not in `AppOnly`. Every
-  failure comes back as text starting `Tool failed:`, so the model can read it and carry on.
-- **The app's door**, `CallDirectAsync`, reaches the app-only tools. A failure throws, so a failed
-  roll stops the run instead of reaching the model as a brief.
-- **`SchemaOf(name)`** returns any tool's input schema from `tools/list`, app-only ones included. It
-  shows the model nothing.
+Roll, save, load and list are plain methods the app calls, never a tool in a list, so no model can see
+or name them (ADR-014, decision 5):
+
+| Method | Does |
+| --- | --- |
+| `Dice.Roll(arguments)` | Rolls the brief from the roll's arguments. Any rolled trait can be passed in instead. A field it cannot read is refused before any die is cast ("The brief") |
+| `Dice.Fields` | The roll's fields, from its schema: name, description, choices and what a missing one gets. The interview, the tone and not-given checks, the lab and `--load` read them |
+| `ICharacterStore.SaveAsync` | Keeps a brief, its name and its text under a number greater than every number held, and returns the number. `CharacterRun.SaveAsync` hands it the typed brief, so a save cannot lack a field |
+| `ICharacterStore.LoadAsync` | The saved brief, name (when it has one) and text by number, or null for a number never saved |
+| `ICharacterStore.ListAsync` | Every save in number order: its number, its name (or null) and the brief's `occupation` and `setting`. Never the text |
+
+`roll_character` is still the roll's name: `Dice` builds an `AIFunction` of that name over its typed
+`Roll`, for the schema and the binding, and never offers it to a model.
 
 ## The loop
 
@@ -168,13 +181,14 @@ the sheets, which are pure.
   malformed.
 - **The turn cap is not optional.** Eight turns, then it throws.
 
-`IToolSource` is the seam to where tools come from (`FakeToolSource` or `McpToolSource`).
+`IToolSource` is the seam to where tools come from (`ConsoleTool` in the app, `FakeToolSource` in tests).
 `IChatClient` from Microsoft.Extensions.AI is the seam to the vendor, and `ModelClients.Create` is
 the only code that knows which one. `UseFunctionInvocation` stays off: it would hide the loop.
 
 ## The brief
 
-`CharacterBrief`, on the server only.
+`CharacterBrief`, in the core. `Dice.Roll` is where loose arguments become one, and everything after it
+trusts the type.
 - **Supplied:** `setting` and `occupation`. `playersWant` is supplied too, or null for "not given"
   (ADR-010): the parameter is `string?`, required, with no default, so a caller must send the null
   and a forgotten one is refused. `CharacterBrief` always writes the null, and a blank want is
@@ -190,7 +204,7 @@ the only code that knows which one. `UseFunctionInvocation` stays off: it would 
   they were. A letter field is never read from a scene: it is rolled or set by flag.
 - **Given, inferred or rolled (ADR-011):** `gender` (Male or Female), `age` (Teenager, Adult,
   MiddleAged or Old) and `look` (free text). Seven casts follow the thirteenth die, every time and
-  all in `RollCharacter`: gender, age, the look's d20, two extra looks, an eye colour and a hair
+  all in `Dice.Roll`: gender, age, the look's d20, two extra looks, an eye colour and a hair
   colour. `Looks.Read` is pure and reads the look from its casts and the settled age, against the
   owner's rows on `Tables`: a 20 gives two looks that never repeat or clash, written with "; "
   between them; a colour look carries its colour after ": "; an old character never gets snow white
@@ -199,8 +213,8 @@ the only code that knows which one. `UseFunctionInvocation` stays off: it would 
 
 The difficulty filter is code: each want is tagged with the difficulties it fits, and `Easy` never
 rolls `Wont`. The wants and obstacle dice are cast first, as `NextDouble` values, and read against
-their tables only once the difficulty is settled, given or rolled (`CharacterTools.ReadCast`). Seeded
-`Random` computes `Next(n)` as `(int)(NextDouble() * n)`, so this keeps every seed's brief. Enums travel as their names, and `roll_character` refuses a value an enum does not
+their tables only once the difficulty is settled, given or rolled (`Dice.ReadCast`). Seeded
+`Random` computes `Next(n)` as `(int)(NextDouble() * n)`, so this keeps every seed's brief. Enums travel as their names, and the roll refuses a value an enum does not
 define. The brief is settled once and never changes, and it is
 half of the save format (ADR-003).
 
@@ -208,6 +222,16 @@ A trait handed in to `roll_character` is used as given. The difficulty filter sh
 handed-in trait: `Easy` with an obstacle of `Wont` the GM described is kept (ADR-007). Every die is
 still cast, in one fixed order, and a handed-in value replaces its die's result, so the same seed
 rolls the same other traits whatever is handed in (ADR-009).
+
+`Dice.Roll(arguments)` checks the arguments against `Dice.Fields` before it binds them (ADR-016). A
+required field left out is refused as `setting is missing, and the roll needs it: text.`, and a choice
+the binder's own converter cannot read as `tone grumpy is not one of its values: Serious, Comic,
+Heartfelt.` An enum number that is not a value, a blank want and a blank look are refused in the typed
+`Roll`, in the same words, before any die is cast. Each is a `RollRefusedException`: `Program.cs`
+prints `[app] not rolled: <reason>` and exits with code 1, in a run and in a lab. Every spelling the
+roll took before still binds: a name in any case or with spaces round it, a number that is one of the
+values, a `JsonElement`, a null want, and a key it has no field for (`RollArgumentsTests`). A value
+of the wrong type stays the binder's own `ArgumentException`, a caller's bug and not the GM's slip.
 
 ## The namer
 
@@ -238,18 +262,18 @@ tool list does not change, because the namer runs on a copy of the options.
 ADR-007 is the design. `SceneInterview.RunAsync` greets the GM, reads one line (asked again while it
 is empty), and runs `AgentLoop` with the `scene-interviewer` skill and one tool, `record_answer(field,
 value, quote)`. The tool lives in the console (`ConsoleTool`, as `give_name` does), and any other name, `roll_character`
-included, fails as `Tool failed: No tool named '...'`. The interview holds no `McpToolSource`, so it
+included, fails as `Tool failed: No tool named '...'`. The interview holds no dice and no store, so it
 cannot roll, save or load. It returns `roll_character`'s arguments after a `yes`, or null after
 anything else, end of input included, and `Program.cs` rolls only on the arguments. The loop gets
 one turn per field plus three; out of turns (`TurnCapReachedException`) it goes on to the
 confirmation with what was recorded, since every answer there already passed its checks.
 
-- **The fields** come from `roll_character`'s schema (`RollField.ListFrom`): name, order,
+- **The fields** come from the roll's schema, `Dice.Fields` (`RollField.ListFrom`): name, order,
   description, choices for an enum, and what a missing one gets (`WhenMissing`, ADR-010): not in
   `required` is *Roll*; required with a type that admits null is *NotGiven*; any other required field
   is *Ask*. Today that makes `setting` and `occupation` Ask, `playersWant` NotGiven and the rest Roll. The SDK writes the nullable
   `ObstacleKind` as type `["string","null"]` with a null among its choices; the null is dropped. A
-  trait added on the server reaches the interview with no console change.
+  trait added to the roll reaches the interview with no console change.
 - **The checks** are in `SceneDraft.Record`, pure, each with its own `Rejection`: an unknown field, an
   empty value, a choice not in the list, an empty quote, a quote longer than one sentence or 12 words
   (or running across two sentences of the scene), a quote not in the scene as whole words, and a
@@ -261,7 +285,7 @@ confirmation with what was recorded, since every answer there already passed its
   an opening quote or the end, so `3.5` and `He...` stay in one; `Mr. Hobb` still splits, and a
   quote across it is rolled instead.
 - **The labels** are decided by code, never claimed by the model: *my words* for a free-text field,
-  stored as the GM typed it, cut from the scene; *inferred* for a choice, stored as the server spells
+  stored as the GM typed it, cut from the scene; *inferred* for a choice, stored as the roll spells
   it; *rolled* for a Roll field nobody recorded, left out of the roll; *not given* for a NotGiven
   field nobody recorded, sent to the roll as null. An interview never uses a flag default.
 - **The questions** (ADR-010, decision 4): after the interviewer's loop, code asks one question for
@@ -300,7 +324,7 @@ most one sentence and 12 words, never offer a value, free text only as the GM's 
 when the GM's words point to it, the players' want read as what they want from this character, a people, an age or a look named
 with the role kept out of `occupation`, a gender only from a word that is itself male or female, and
 no questions of its own (code asks for a missing Ask field). The interview appends the field list from
-the server's schema to it.
+the roll's schema to it.
 
 `NpcForge.Core/skills/namer/SKILL.md` is the namer's: follow the dice, fit the name to the race,
 the gender and the scene, hand it back split into syllables through `give_name`, and stop once a name is
@@ -311,7 +335,7 @@ index 0, followed by a blank line and one tone file from `skills/npc-writer/tone
 `Comic.md` or `Heartfelt.md`). `ChatAgent.SystemMessage` picks the file from the `tone` in the brief's
 JSON, so the model is never shown the other two. A tone file says how to write; the brief still says
 what is true (ADR-009). `ToneFiles.Missing` compares the schema's tone choices with a skill folder's
-`tones/`, and `Program.cs` stops with the missing paths straight after connect, before the interview.
+`tones/`, and `Program.cs` stops with the missing paths before the interview and before any model call.
 
 A field the brief holds as null adds `skills/npc-writer/not-given/<field>.md` between `SKILL.md` and
 the tone file, so the tone still governs, and the `[skill]` line names it (ADR-010, decision 5).
@@ -344,63 +368,53 @@ trace.
 
 | Prefix | From | Says |
 | --- | --- | --- |
-| `[app]` | `Program.cs`, `CharacterRun.cs`, `KeepQuestion.cs`, `Namer.cs` | `recording to <path>`, the provider and model and the rolled brief (once per roll), `name Kessa Vale (K, 2, V)` (the accepted name and its dice), `not written: no name followed the dice (K, 2, V)`, an answer that is not save, again or leave, `saved as N`, `not saved`, `not saved: end of input`, `stopped: <the cap's message> Nothing was saved.`, `loaded N`, `not loaded: <reason>`, on a load `name Kessa Vale`, and `nothing saved yet` for an empty `--list` |
+| `[app]` | `Program.cs`, `CharacterRun.cs`, `KeepQuestion.cs`, `Namer.cs` | `recording to <path>`, `dice: seed N` or `dice: random` (once per run, where the dice are built), the provider and model and the rolled brief (once per roll), `not rolled: <reason>` for a field the dice refuse, `name Kessa Vale (K, 2, V)` (the accepted name and its dice), `not written: no name followed the dice (K, 2, V)`, an answer that is not save, again or leave, `saved as N`, `not saved`, `not saved: end of input`, `not saved: <reason>` and `not listed: <reason>` for a save file that will not parse, `stopped: <the cap's message> Nothing was saved.`, `loaded N`, `not loaded: <reason>`, on a load `name Kessa Vale`, and `nothing saved yet` for an empty `--list` |
 | `[skill]` | `ChatAgent.cs`, `Namer.cs`, `SceneInterview.cs` | Which `SKILL.md` and tone file, their combined length and fingerprint (the interviewer's with its field list) |
 | `[loop]` | `AgentLoop.cs` | One line per model turn: tool calls, history size, tokens |
-| `[tool]` | `McpToolSource`, `ConsoleTool` | Each call the model made, and for `record_answer` and `give_name` what it got back. The app's own calls have none |
+| `[tool]` | `ConsoleTool` | Each call the model made, then what it got back. The app's own calls, the roll among them, have none |
 | `[interview]` | `SceneInterview.cs` | The interviewer's closing line, as a trace; nothing reads it |
-| `[server]` | the server | MCP requests and log lines, and `dice: seed N` or `dice: random` at the first roll |
 
-## Starting the server
-
-The server's own launcher, `NpcForge.Server/bin/<configuration>/net10.0/NpcForge.Server.exe`
-(`NpcForge.Server` off Windows), started directly, with the project path built from
-`AppContext.BaseDirectory` (four folders up, `McpToolSource.RepoRoot`), so the app and the tests
-find it the same way. In a folder long enough, the host hands that folder back as a `\\?\` path,
-which `cmd.exe` (the MCP library starts the server through it) and MSBuild cannot use, so the prefix
-comes off first (lesson 015). The framework folder is named outright, because tests run copies of
-the console from sibling folders of `net10.0`. No build at launch, because build output on stdout would corrupt the wire; the
-`ProjectReference` keeps the server from going stale, and a missing launcher stops the start with
-the build to run. Settings reach it as environment variables (`NPCFORGE_CHARACTERS`,
-`NPCFORGE_SEED`), which arrive before any MCP message. Until epic 9 it was `dotnet run --no-build`,
-which read the project before every start: about 2 s to the first reply, against about 0.6 s now.
-The launcher keeps the process named `NpcForge.Server`, which is how the verify doctor and the
-debugger find it.
-
-It is started in the configuration the console was built in, so a Release console never drives a
-Debug server that may be stale or missing. `McpToolSource` reads the console assembly's
-`AssemblyConfigurationAttribute` and picks that configuration's folder (lesson 008, ADR-012).
 
 ## Storage
 
-One JSON file, `NpcForge.Server/characters.json`: every character the GM chose to save, numbered
-from 1, the brief, the name and the text together (ADR-003, ADR-009, ADR-013). A new save takes one
-past the highest number. An entry is `{ "brief": {...}, "name": { "syllables":
-["Kes", "sa"], "family": "Vale" }, "text": "..." }`; a save from before the namer has no `name`,
-which `SavedCharacter` leaves out when null so the entry keeps its bytes, and `--load` lists it as
-unknown. A missing brief key is unknown too; a key saved as null is not given, and `--load` prints
+One JSON file, `NpcForge.Console/characters.json`, behind `ICharacterStore` (`FileCharacterStore`):
+every character the GM chose to save, numbered from 1, the brief, the name and the text together
+(ADR-003, ADR-009, ADR-013). A new save takes one past the highest number, which keeps the port's
+promise of a number greater than every number held (ADR-015). An entry is `{ "brief": {...}, "name":
+{ "syllables": ["Kes", "sa"], "family": "Vale" }, "text": "..." }`; a save from before the namer has
+no `name`, which the file store's serializer options leave out when null so the entry keeps its
+bytes, and `--load` lists it as unknown. A missing brief key is unknown too; a key saved as null is not given, and `--load` prints
 `[app] not given in save N: playersWant` for it (`SavedView.NotGiven`). A field is in one line or the
-other, never both. The server keeps each saved brief as the JSON it was saved as (`SavedCharacter.Brief`
+other, never both. The store keeps each saved brief as the JSON it was saved as (`SavedCharacter.Brief`
 is a `JsonElement`), so an old entry is read and written back without passing through `CharacterBrief`
-and never gains a field added later (ADR-009). `save_character` still binds a new brief through
-`CharacterBrief`. `NPCFORGE_CHARACTERS` overrides the path. The path is always absolute, because
-the server's working folder is wherever the app was started. Only the server touches the file, so a
-database later changes the server and nothing else.
+and never gains a field added later (ADR-009). A new save is made from the typed brief
+(`SavedCharacter.Of`), so it has every field. `--load` prints the brief line compact and with the
+default escaping, as the run printed it, not as the file indents it. Only `FileCharacterStore` touches
+the file; a database store in epic 6 implements the same port and passes the same
+`CharacterStoreTests`, and `SaveFileGuardTests` holds the owner's file byte for byte. A file that will
+not parse throws `InvalidDataException` with its path, and `--list`, `--load` and a save each report it
+as one `[app]` line with exit code 1 (ADR-015, decision 4).
+
+`NPCFORGE_CHARACTERS` overrides the path. Otherwise the default, `FileCharacterStore.DefaultPath`, is
+found three folders up from the console's bin folder, always absolute, with the two-argument
+`GetFullPath`: a build in a folder long enough gets its own folder as a `\\?\` path, where the
+one-argument form leaves `..` as it is (lesson 015, `LongFolderTests`).
 
 A replay or a recording run is not a real character, so it never uses the tracked file.
 `RunOptions.CharactersPath` decides the file for every run: an `NPCFORGE_CHARACTERS` the caller set
 wins; otherwise `--provider replay`, `--record` and `--lab` get a fresh `npcforge-replay-<guid>.json`,
 `npcforge-record-<guid>.json` or `npcforge-lab-<guid>.json` in the OS temp folder; a normal run and `--load` keep the tracked file.
-The console passes the answer to the server and ends with `[app] saved as N in <path>` whenever it
+The console builds the store on the answer and ends with `[app] saved as N in <path>` whenever it
 chose the file, so the temp file can be found. The temp file is left in place on purpose.
 
 ## Replay
 
 One real run is recorded once, and the whole app replays against it for free (ADR-005).
 
-- **The seed.** `--seed <n>` reaches the server as `NPCFORGE_SEED`, never as a `roll_character`
-  parameter, whose parameters stay the brief fields a GM may set. The same seed rolls the same brief.
-  A run without `--seed` clears any `NPCFORGE_SEED` the shell holds, so only the flag seeds the dice.
+- **The seed.** `--seed <n>` reaches the run's one `Dice` directly, never as a roll argument, whose
+  arguments stay the brief fields a GM may set. The same seed rolls the same brief, and nothing but the
+  flag seeds the dice. The run says which where it builds them: `[app] dice: seed N` or
+  `[app] dice: random`.
 - **Recording.** `--record <file>`, which needs `--seed`, wraps the real client in
   `RecordingChatClient`. The file is JSONL: line 1 is the run's answers as flags, then one line per
   model call with what the app sent (every message, every `ChatOptions` field the library
@@ -428,7 +442,7 @@ One real run is recorded once, and the whole app replays against it for free (AD
   replays it and checks both briefs, both names, and that the save is the second character. A replay
   stops a run that makes one call too many, but not one that leaves calls unused, so the test also
   counts the `[loop]` lines against the recorded calls. A second test replays it twice and gets the
-  same two characters, which a roll again on a new server would not.
+  same two characters, which a roll again on a new `Dice` would not.
 - **Offline.** `NPCFORGE_OFFLINE=1` makes `ModelClients.Create` refuse `openai` and `anthropic` before
   it builds a client or reads a key, so a free run cannot reach a model whatever order `Program.cs` runs
   in. `replay` still works. It is a second stop, independent of the dead proxy. `OfflineTests` runs both
@@ -436,33 +450,31 @@ One real run is recorded once, and the whole app replays against it for free (AD
 - **What forces a re-record.** Anything that changes what the model is sent: `SKILL.md`, a tool's
   description or schema, a `ChatOptions` field, the first message. Anything that changes the seeded
   brief: an entry in `Tables.cs`, the order of the picks, a .NET major version that changes
-  `new Random(seed)`. And an upgrade of the AI, OpenAI or MCP libraries, because the recording is
+  `new Random(seed)`. And an upgrade of the AI or OpenAI libraries, because the recording is
   their JSON. Re-record after a deliberate behavior change or such an upgrade only, never for a
   restructure. A re-record with no tool call fails the test; ask the owner before paying again. Both
   recordings go stale together. The commands and the rules are in `docs/runs/README.md`.
 - **By hand, free.** `docs/runs/README.md` has the replay command. Its save goes to a temp file,
   named on the `[app] saved as` line.
 - **Build configuration.** A test that starts the app passes `-c <the configuration it was built in>`
-  and checks both builds are newer than their source. The one helper that does it is
+  and checks the console's and the core's builds are newer than their source. The one helper that does it is
   `ConsoleProcess` (lesson 008).
 
 ## Tests
 
-`dotnet test` is free: no network and no model. The whole suite takes about a minute on a quiet
-16-core machine. A test that starts the console or a server carries `[Trait("Category", "Process")]`,
-so `dotnet test --filter "Category!=Process"` runs the 315 tests that start none in about 5 s.
-xUnit runs one class's tests one after another and classes side by side, so the slowest chains are
-the classes that start many servers: `McpToolSourceTests`, `SeededRollTests`, and `LabRunTests`,
-which runs alone at the end because the lab swaps the process-wide `Console.Error`.
+`dotnet test` is free: no network and no model. The whole suite, 500 tests, takes about 25 s. A test
+that starts the console carries `[Trait("Category", "Process")]`, so
+`dotnet test --filter "Category!=Process"` runs the 449 tests that start none in a few seconds. No test
+starts a server since the server retired. `LabRunTests` runs alone because the lab swaps the
+process-wide `Console.Error`.
 - `AgentLoopTests`: the loop exits when the model sends no tool calls, throws at the cap, and runs a
-  tool call through the real server. Fake models throughout.
-- `McpToolSourceTests`, against the real server: the model can neither see nor name an app-only
-  tool, a save loads back byte for byte with its name, a brief without `nameLetter` is refused and
-  saves nothing, an unknown number stops the run, and an undefined enum value or a blank want or
-  look is refused by name.
-- `SeededRollTests`, against the real server: a handed-in value replaces its die without moving the
-  others, and a handed-in look, gender or age moves no die on the next roll. Split from
-  `McpToolSourceTests` so the two run side by side.
+  tool call through the writer's real tool. Fake models throughout.
+- `RollArgumentsTests`: what `Dice.Roll(arguments)` binds, pinned on the binder before it learned to
+  refuse, and what it refuses: a required field left out, a choice the field does not have, an
+  undefined enum value and a blank want or look, each by name, while a value of the wrong type stays
+  the binder's error.
+- `SeededRollTests`: a handed-in value replaces its die without moving the others, and a handed-in
+  look, gender or age moves no die on the next roll.
 - `ReplayTests`: the whole app against the recorded run, as above, and the temp-file save.
 - `KeepQuestionTests` and `KeepAnswerTests`: through the app, `save` saves and prints its number,
   `leave` and end of input save nothing and say so, an unknown answer asks again and a later `save`
@@ -474,7 +486,8 @@ which runs alone at the end because the lab swaps the process-wide `Console.Erro
   exit 1, no stack trace and nothing saved.
 - `ListTests` and `LoadTests`: `--list` shows every save with its number, name or `(no name)`,
   occupation and setting, and an empty or missing file says so and exits 0; `--load` of a number never
-  saved says why and exits 1 with no stack trace, and a load needs no model client. All run with
+  saved says why and exits 1 with no stack trace, a load needs no model client and builds no dice, and
+  its brief line reads as the run's. All run with
   `NPCFORGE_OFFLINE=1`.
 - `ReplaySensitivityTests`: the replay fails on a changed system prompt, an emptied tool list, a
   changed model option and a dropped writer turn, each on the fixture and on a copy with a namer
@@ -490,10 +503,10 @@ which runs alone at the end because the lab swaps the process-wide `Console.Erro
   and still builds the replay client. `NamedRunTests` replays the whole app with it set.
 - `RunOptionsTests` and `FlagRefusalTests`: the flag table, its refusals, when the interview runs,
   and which save file a run uses; and a typo'd flag or a bad lab next to the paid default stops at
-  the parser, through the whole app.
-- `RollFieldTests`, against the real server: the fields in order, each one's `WhenMissing` kind, the
+  the parser, through the whole app, and `--tone grumpy` stops at the roll with one line and exit 1.
+- `RollFieldTests`, on `Dice.Fields`: the fields in order, each one's `WhenMissing` kind, the
   choice lists, a description on each, and a flag default for every Ask and NotGiven field; the hand
-  copy in `SceneDraftTests` equal to the real schema; and the three schema shapes with no server.
+  copy in `SceneDraftTests` equal to the real schema; and the three schema shapes, from hand-written schemas.
 - `DiceOrderTests`: a late read picks what `Next(n)` picks; seeds 1 to 12 at every difficulty match
   a golden captured before the reorder; and a missing difficulty is rolled last and rolls what handing
   it in rolls.
@@ -503,7 +516,7 @@ which runs alone at the end because the lab swaps the process-wide `Console.Erro
 - `SceneInterviewTests`: a scripted stand-in interviewer. The model is offered only `record_answer`
   and naming `roll_character` fails; anything but `yes`, end of input included, returns nothing to
   roll; `yes` returns the arguments only after the confirmation was shown; the tavern scene's
-  confirmation; a described trait reaches the brief from the real server; and the app with no answer
+  confirmation; a described trait reaches the brief from the real dice; and the app with no answer
   flag, piped a scene with a curly apostrophe and then `no`, sends the scene as typed and rolls,
   prints and saves nothing. A yes hands the scene back
   as typed, trimmed. A scene with no place and no role asks two questions in schema order, an empty
@@ -516,25 +529,29 @@ which runs alone at the end because the lab swaps the process-wide `Console.Erro
   its name reaches the writer, and with one it is skipped; a namer that never follows the dice stops
   `WriteAsync` before the writer; and the system message holds the skill and only the tone file the
   brief names.
-- `ToneFileTests`: every tone in the server's schema has a file in the default skill folder, a deleted
+- `ToneFileTests`: every tone in the roll's schema has a file in the default skill folder, a deleted
   file is reported by its path, and the app, run as a process on a copy of its own build with one tone
   file deleted, stops before the interview and names the file. An intact copy reaching the interview
   is the control for this run and for `NotGivenFileTests`' (`ConsoleBuildCopy`).
-- `StorageTests`: a copy of the real `characters.json` goes through `Storage.Load` and `Save` byte for
-  byte, and a new save, with its name, leaves every old entry's bytes alone, with no `name` added.
-  They set `NPCFORGE_CHARACTERS` for the whole test process, so their collection runs alone, and no
-  server or console another test starts can inherit it.
+- `CharacterStoreTests`: the save, load and list rules, written once and run against the file store and
+  the tests' in-memory store. `SaveFileGuardTests`: on a copy of the real `characters.json`, a new
+  save leaves every old entry byte for byte, with no `name` or null added.
+- `UnreadableSaveFileTests`: a save file that will not parse is one `[app]` line naming it, with exit
+  code 1, on `--list`, `--load` and a save. `LongFolderTests`: a console build in a folder long enough
+  for a `\\?\` path still finds its default save file.
 - `LabFlagTests`, `LabSheetTests`, `LabRunTests` and `LabScoreTests`: every lab refusal with its
-  reason; the sheets, the key and the score, pure; the lab against the real server and a stand-in
+  reason; the sheets, the key and the score, pure; the lab, in process, against the real dice and a stand-in
   model (each variant reaches the writer, the confirmation stops without a yes, blind stderr holds no
   variant, the cap stops it, a failure stays on the sheet, the tone axis gives briefs that differ only
   in tone, the lab names once and writes every variant with that name, a lab with no name writes
-  nothing, and a skill folder missing a tone file stops the lab before its question); and `--score`
+  nothing, a skill folder missing a tone file stops the lab before its question, and a brief the dice
+  refuse leaves no folder); and `--score`
   as a process with no key.
 - `SpendingCapTests`: the cap refuses the call after the limit without asking the model, and stops
   an agent loop before its turn cap.
 - `ConsoleProcess`: not a test. The one place a test starts the app as a process: the build
-  configuration, a freshness check, the dead proxy, a timeout, both streams read, and stdin always
+  configuration, a freshness check, the dead proxy, a timeout, both streams read as UTF-8 (lesson
+  017), and stdin always
   its own (closed after any input given), so a run that reaches the interview never waits on a GM.
 
 A test that asserts on `Tool failed:` must give arguments that would otherwise succeed, or it passes
@@ -545,22 +562,15 @@ for the wrong reason (lesson 004).
 Found in the debugger and in paid runs. Each one cost time once.
 - **OpenAI is on the Responses endpoint.** Chat Completions rejects function tools on reasoning
   models (lesson 001).
-- **The console and the server are on different MCP versions.** The console's client is on 2.3.1,
-  which closes the server's stdin before it waits for the server to exit. On 2.2.0 it waited out a
-  5 s timeout and then killed the server, so every run and every test that started a server paid
-  5 s at the end (lesson 014). The server stays on 2.2.0, because a 2.3 server refuses the client's
-  fallback `initialize` after a slow start. Its project file says why (ADR-012).
 - **`FinishReason` is null on OpenAI and set on Anthropic.** A `CallId` is `call_…` on one and
   `toolu_…` on the other. Treat it as opaque and echo it exactly.
 - **Never pass `ConversationId` back.** It lets OpenAI keep the history on its side. History stays
   in the app's list.
-- **Only `McpException` carries its message to the app.** Any other exception in a tool arrives as
-  "An error occurred invoking …", and a `null` return arrives as empty content with no error.
-- **Everything over MCP is text.** `save_character` returns an int and the app receives `"1"`. A
-  brief sent as text fails with no reason given; send it as a JSON object.
-- **A `string` tool parameter accepts JSON `null`.** Nullability is only checked by the compiler.
+- **A `string` parameter accepts a null.** Nullability is only checked by the compiler, so
+  `Dice.Roll(arguments)` binds a null `setting` or `occupation` and writes it into the brief. No
+  caller sends one (ADR-016).
 - **A model may skip a tool it can see.** One run wrote straight from the brief with no tool call.
-  That is why `roll_character` is never visible.
+  That is why the roll is never a tool.
 - **Output formatting differs by model:** numbered headings, bold labels, renamed sections. Never
   parse it.
 - **Names converge, differently per vendor.** OpenAI models kept reaching for `Mar-` and `Mer-`
@@ -569,8 +579,6 @@ Found in the debugger and in paid runs. Each one cost time once.
 - **Prompt caching does not engage.** The prompt is about 700 tokens, under the threshold.
 - **A console paste is not byte-exact** (lesson 006), and a PowerShell redirect reorders stdout
   against stderr (lesson 005). The save file is the exact record.
-- **To debug the server**, stop the app on a `CallDirectAsync` line, then attach to
-  `NpcForge.Server.exe`. Every run starts a new server, so attach every run.
 - **There is no launch profile on purpose.** A `Properties/launchSettings.json` makes every
   `dotnet run` print "Using launch settings from ..." on stdout, above the answer.
   `"dotnetRunMessages": false` does not stop it.
@@ -600,3 +608,4 @@ agents and named, not numbered.
 | Read it to the table (epic 10) | A rolled gender, age and look join the brief with no older die moved; every sheet opens with the name and a passage to read aloud, which passed on seven runs of seven across the bakery and control scenes | |
 | Faster tests (epic 9) | The free suite went from 12 m 19 s to about a minute with all 455 tests kept: a server closes at once on MCP 2.3.1, starts from its launcher, and the fast part runs on its own in 5 s | |
 | Save what I like (epic 4) | Saving is the GM's choice after each character; `again` rolls new dice for the same scene on the same server, so a seeded run repeats; `--list` finds a save and `--load` opens it; the cap stops a run cleanly. The bakery scene rolled again twice and saved the third | |
+| Ready to grow (epic 5) | One core, `NpcForge.Core`, called in-process by the console; saves behind `ICharacterStore`, with a file store and an in-memory store passing the same tests; the MCP server retired, with the replay and roll-again recordings passing unchanged and `--list` and `--load` printing what they printed | |

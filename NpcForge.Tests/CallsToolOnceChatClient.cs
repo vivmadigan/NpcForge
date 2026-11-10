@@ -3,7 +3,7 @@ using Microsoft.Extensions.AI;
 namespace NpcForge.Tests;
 
 // A model that asks for lookup_archetype once, then replies with whatever the tool sent back.
-// Exists to prove a call crosses to the real server and its result comes back.
+// Exists to prove a call reaches the real tool and its result comes back.
 sealed class CallsToolOnceChatClient : IChatClient
 {
     public Task<ChatResponse> GetResponseAsync(
@@ -18,7 +18,7 @@ sealed class CallsToolOnceChatClient : IChatClient
             return Task.FromResult(new ChatResponse(new ChatMessage(ChatRole.Assistant, answer)));
         }
 
-        // First turn: ask for the server's tool, by the server's name.
+        // First turn: ask for the writer's tool, by the name the model is given.
         var call = new FunctionCallContent("call-1", "lookup_archetype",
             new Dictionary<string, object?> { ["occupation"] = "innkeeper" });
         return Task.FromResult(new ChatResponse(new ChatMessage(ChatRole.Assistant, [call])));

@@ -2,10 +2,10 @@ using System.Text.Json;
 
 namespace NpcForge;
 
-// One roll_character parameter, read from the server's tools/list. The server is the one owner of
-// the brief's fields, so the console keeps no copy of their names, order, choices or which ones
-// are required (ADR-007; two processes, no shared contracts project). A trait added on the server
-// reaches the interview, the confirmation and the roll with no console change.
+// One roll_character parameter, read from the roll's own schema (Dice.Fields). The roll is the one
+// owner of the brief's fields, so the console keeps no copy of their names, order, choices or which
+// ones are required (ADR-007, ADR-014). A trait added to the roll reaches the interview, the
+// confirmation and the roll with no console change.
 //
 // Choices: the fixed list for a choice field (difficulty, obstacle), null for free text. The kind
 // decides what the interview may record: a choice may be inferred, free text must be the GM's words.
@@ -18,7 +18,7 @@ public enum WhenMissing { Ask, NotGiven, Roll }
 public sealed record RollField(string Name, string Description, IReadOnlyList<string>? Choices, WhenMissing WhenMissing)
 {
     // The boundary: a JSON schema in, the field list out. A property shape this does not know
-    // throws, so a server change fails a free test instead of a paid run.
+    // throws, so a change to the roll fails a free test instead of a paid run.
     public static IReadOnlyList<RollField> ListFrom(JsonElement inputSchema)
     {
         var required = inputSchema.TryGetProperty("required", out var names)

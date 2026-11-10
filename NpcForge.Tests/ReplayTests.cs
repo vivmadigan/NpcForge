@@ -31,7 +31,7 @@ public class ReplayTests
 
         try
         {
-            // The console never names a save file, so the server inherits this one from it.
+            // The console saves to the file NPCFORGE_CHARACTERS names, never to the tracked one.
             var run = await ConsoleProcess.RunAsync(
                 [.. flags, "--provider", "replay", "--recording", fixture],
                 input: "save\n",
@@ -72,7 +72,7 @@ public class ReplayTests
     {
         var repo = ConsoleProcess.RepoRoot;
         var fixture = Path.Combine(repo, "NpcForge.Tests", "Fixtures", "replay.jsonl");
-        var tracked = Path.Combine(repo, "NpcForge.Server", "characters.json");
+        var tracked = Path.Combine(repo, "NpcForge.Console", "characters.json");
         var lines = File.ReadAllLines(fixture);
         var flags = JsonSerializer.Deserialize<string[]>(lines[0])!;
         var calls = WriterCalls(lines);
@@ -92,7 +92,7 @@ public class ReplayTests
             if (!File.ReadAllBytes(tracked).SequenceEqual(trackedBefore))
             {
                 File.WriteAllBytes(tracked, trackedBefore);
-                Assert.Fail("The replay wrote over the tracked NpcForge.Server/characters.json. It has been restored.");
+                Assert.Fail("The replay wrote over the tracked NpcForge.Console/characters.json. It has been restored.");
             }
 
             // The app says where it saved. Taken from the line, not computed here, so this holds

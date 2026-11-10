@@ -3,10 +3,10 @@ using System.Text.Json;                 // JsonSerializer, JsonElement
 
 namespace NpcForge;
 
-// One tool the console answers itself, offered to a model on its own: record_answer for the scene
-// interview (ADR-007) and give_name for the namer (ADR-009). The model is offered this and nothing
-// else, so it cannot reach roll_character, save_character or load_character (AGENTS.md,
-// McpToolSource.AppOnly).
+// One tool the app answers itself, offered to a model on its own: record_answer for the scene
+// interview (ADR-007), give_name for the namer (ADR-009) and lookup_archetype for the writer
+// (CharacterRun.WriterTools). The model is offered this and nothing else. The roll, the save, the load
+// and the list are plain methods, never a tool, so no model can reach them (AGENTS.md, ADR-014).
 public sealed class ConsoleTool(AIFunction function) : IToolSource
 {
     public Task<IReadOnlyList<AITool>> ListAsync(CancellationToken ct)
@@ -20,7 +20,7 @@ public sealed class ConsoleTool(AIFunction function) : IToolSource
         {
             Console.Error.WriteLine($"[tool] {call.Name} {JsonSerializer.Serialize(call.Arguments)}");
 
-            // Only the name it was offered. roll_character and the rest fail here, by name.
+            // Only the name it was offered. Any other name, roll_character among them, fails here.
             if (call.Name != function.Name)
                 throw new InvalidOperationException($"No tool named '{call.Name}'.");
 

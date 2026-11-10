@@ -12,11 +12,11 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <!-- Pinned to 10.8.3, what the MCP server resolves today through ModelContextProtocol 2.2.0. The
-         pin keeps the server on the schema writer it shipped with until it retires (ADR-014). A
-         higher version here would reach the server through its project reference and replace that
-         writer under it. 10.10.0 and 10.11.0 were measured to write the same schemas as 10.8.3, so
-         the pin is caution, not a known difference. It can move once the server is gone. -->
+    <!-- The lowest version the core is known to work with, so a front end may bring a newer one. It is
+         what the MCP server resolved, which wrote the schemas the replay fixtures were recorded with.
+         The console resolves 10.10.0 through Microsoft.Extensions.AI, and the tests run that one. 10.8.3,
+         10.10.0 and 10.11.0 were measured to write the same schemas and to bind the roll the same way
+         (ADR-016), so the pin is caution, not a known difference. -->
     <PackageReference Include="Microsoft.Extensions.AI.Abstractions" Version="10.8.3" />
     <PackageReference Include="Microsoft.CodeAnalysis.BannedApiAnalyzers" Version="5.6.0" PrivateAssets="all" />
     <AdditionalFiles Include="BannedSymbols.txt" />

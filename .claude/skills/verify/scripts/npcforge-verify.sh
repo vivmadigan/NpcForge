@@ -21,13 +21,13 @@ cd "$repo" || exit 64
 # unhandled exception under Git Bash, 124 for the watchdog), so the two never read as one.
 die() { printf 'verify: %s\n' "$*" >&2; exit 64; }
 
-# The console and the server are native Windows programs, so a path handed to them has to be in
+# The console is a native Windows program, so a path handed to it has to be in
 # C:/ form. cygpath does that under Git Bash and is absent elsewhere.
 native() { if command -v cygpath >/dev/null 2>&1; then cygpath -m "$1"; else printf '%s' "$1"; fi; }
 
 root="${NPCFORGE_VERIFY_ROOT:-$(native "${TEMP:-${TMPDIR:-/tmp}}")/npcforge-verify}"
 fixture="$repo/NpcForge.Tests/Fixtures/replay.jsonl"
-tracked_save="NpcForge.Server/characters.json"
+tracked_save="NpcForge.Console/characters.json"
 
 # Each Bash call is a new shell, so the run directory travels in a file. The file is per checkout,
 # because worktrees and clones of this repo share one temp folder. Two sessions verifying in the
@@ -93,9 +93,9 @@ cmd_start() {
 # Process names of ours, read-only. Whether a hit is ours cannot be told from here.
 our_processes() {
   if command -v tasklist >/dev/null 2>&1; then
-    tasklist //NH 2>/dev/null | tr -d '\r' | grep -iE '^NpcForge\.(Console|Server)\.exe' || true
+    tasklist //NH 2>/dev/null | tr -d '\r' | grep -iE '^NpcForge\.Console\.exe' || true
   else
-    pgrep -fl 'NpcForge\.(Console|Server)' || true
+    pgrep -fl 'NpcForge\.Console' || true
   fi
 }
 
@@ -108,7 +108,7 @@ cmd_doctor() {
 
   # --no-build runs whatever is in bin/Debug, so a source newer than its dll means the run would
   # drive an old build.
-  for p in Core Console Server Tests; do
+  for p in Core Console Tests; do
     dll="NpcForge.$p/bin/Debug/net10.0/NpcForge.$p.dll"
     if [ ! -f "$dll" ]; then fail "not built: $dll. Run dotnet build"; continue; fi
     newer=$(find "NpcForge.$p" -type f \( -name '*.cs' -o -name '*.csproj' \) \
@@ -135,11 +135,11 @@ cmd_doctor() {
     fail "fixture unreadable or line 1 not a plain JSON array: $fixture"
   fi
 
-  # A running console or server locks NpcForge.Console.dll, so the build fails. It is also not
+  # A running console locks NpcForge.Console.dll, so the build fails. It is also not
   # ours to kill, since the owner may have it paused in the debugger.
   found=$(our_processes)
   if [ -n "$found" ]; then fail "NpcForge processes already running (not started by this run, do not kill):"; echo "$found"
-  else ok "no NpcForge.Console or NpcForge.Server process running"; fi
+  else ok "no NpcForge.Console process running"; fi
 
   if [ -z "$(git status --porcelain -- "$tracked_save")" ]; then ok "$tracked_save unmodified"
   else fail "$tracked_save is modified. A run saved to the tracked file"; fi
@@ -286,7 +286,7 @@ cmd_cleanup() {
   # to stop. A process listed here was not started by this script, so leave it.
   found=$(our_processes)
   if [ -n "$found" ]; then printf 'FAIL: NpcForge processes still running (not killed by this script):\n%s\n' "$found"
-  else echo "ok:   no NpcForge.Console or NpcForge.Server process running"; fi
+  else echo "ok:   no NpcForge.Console process running"; fi
 
   if [ -z "$(git status --porcelain -- "$tracked_save")" ]; then echo "ok:   $tracked_save unmodified"
   else echo "FAIL: $tracked_save is modified"; fi

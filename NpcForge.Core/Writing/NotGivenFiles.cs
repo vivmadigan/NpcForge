@@ -1,7 +1,7 @@
 namespace NpcForge;
 
 // The not-given files beside a skill (ADR-010, decision 5). A field the scene left out comes back
-// from the server as null, and the writer is then told how to write around the gap. The server owns
+// from the roll as null, and the writer is then told how to write around the gap. The roll owns
 // which fields may be null (the schema's WhenMissing.NotGiven), so the console keeps no list of them
 // and no line here names a field (ADR-007). Same shape as ToneFiles: one path, one check.
 public static class NotGivenFiles

@@ -1,8 +1,8 @@
 namespace NpcForge.Tests;
 
 // A copy of the console's own build, for a test that deletes one of its files and runs it. A sibling
-// of the console's bin folder, so the copy still finds the server four folders up from itself, as
-// McpToolSource looks. bin\ is ignored by git and by the build's staleness check. ToneFileTests and
+// of the console's bin folder, so the copy still finds its default save file three folders up from
+// itself, as FileCharacterStore looks. bin\ is ignored by git and by the build's staleness check. ToneFileTests and
 // NotGivenFileTests both copy through here, so ToneFileTests' one run of an intact copy is the
 // positive control for both: their missing-file runs stop at their check and not somewhere earlier.
 internal static class ConsoleBuildCopy

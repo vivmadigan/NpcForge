@@ -32,6 +32,8 @@ public class ListTests
 
             // A list reads the name and the brief, never the text (ADR-013, decision 4).
             Assert.DoesNotContain(SavedFile.TextMarker, run.Stdout + run.Stderr);
+            // A list rolls nothing, so it builds no dice.
+            Assert.DoesNotContain("[app] dice", run.Stderr);
         }
         finally
         {

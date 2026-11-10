@@ -3,7 +3,7 @@
 - **Status:** active
 - **Date:** 2026-09-20
 - **Plan version:** v01 (see docs/plans/INDEX.md)
-- **Applies to:** `NpcForge.Tests/**`, `NpcForge.Console/McpToolSource.cs` · tags: testing, mcp, tool-source
+- **Applies to:** `NpcForge.Tests/**`, `NpcForge.Core/Loop/ConsoleTool.cs` · tags: testing, mcp, tool-source
 
 ## Symptom
 

@@ -1,9 +1,8 @@
-using NpcForge.Server;
 using System.Reflection;
 
 namespace NpcForge.Tests;
 
-// ADR-009 build order item 6, the server's half, free and in process: the tables behind the new
+// ADR-009 build order item 6, the roll's half, free and in process: the tables behind the new
 // dice, the weighted pick, and the brief and roll_character staying one set of fields.
 public class BriefFieldsTests
 {
@@ -129,8 +128,8 @@ public class BriefFieldsTests
             Enumerable.Range(0, 50).Select(_ => Tables.PickWeighted(Tables.Races, two)).ToList());
     }
 
-    // The promise is never a row from nothing. No caller sees the exception's type: the server turns
-    // any throw into an MCP error.
+    // The promise is never a row from nothing. No caller sees the exception's type: it is a bug in the
+    // tables, not a roll the GM can mend, so it reaches the console as it is.
     [Fact]
     public void A_weighted_table_with_no_rows_cannot_be_picked_from()
     {
@@ -145,8 +144,7 @@ public class BriefFieldsTests
         string Camel(string name) => char.ToLowerInvariant(name[0]) + name[1..];
 
         var properties = typeof(CharacterBrief).GetProperties().Select(p => Camel(p.Name)).Order();
-        var parameters = typeof(CharacterTools).GetMethod(nameof(CharacterTools.RollCharacter))!
-            .GetParameters().Select(p => p.Name!).Order();
+        var parameters = Dice.Fields.Select(field => field.Name).Order();
 
         Assert.Equal(properties, parameters);
     }

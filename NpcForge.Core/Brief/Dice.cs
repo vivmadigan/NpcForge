@@ -1,6 +1,7 @@
 using Microsoft.Extensions.AI;
 using System.ComponentModel;            // Description
 using System.Reflection;                // MethodInfo
+using System.Text.Json;                 // JsonElement, JsonSerializer
 
 namespace NpcForge;
 
@@ -11,47 +12,110 @@ public sealed class Dice(int? seed)
 {
     private readonly Random _random = seed is null ? Random.Shared : new Random(seed.Value);
 
-    // roll_character as the MCP SDK describes it: AIFunctionFactory over the typed Roll below. It is never
-    // offered to a model and never called as a tool. Fields reads its schema and Roll(arguments) binds a
+    // The typed Roll below, the only overload with more than one parameter. RollFunction binds through it,
+    // and a choice is read as its parameter's type.
+    private static readonly MethodInfo TypedRoll =
+        typeof(Dice).GetMethods().Single(method => method.Name == nameof(Roll) && method.GetParameters().Length > 1);
+
+    // The JSON options the binder reads an argument with, named once: RollFunction binds with them and
+    // ReadsAsChoice reads a choice with them, so the check and the binding cannot come to differ. They are
+    // AIFunctionFactory's own default, so the schema and the binding are what they were (ADR-016).
+    private static readonly JsonSerializerOptions BinderOptions = AIJsonUtilities.DefaultOptions;
+
+    // roll_character as the MCP SDK described it for the server: AIFunctionFactory over the typed Roll
+    // below. It is never offered to a model and never called as a tool. Fields reads its schema and Roll(arguments) binds a
     // dictionary through it, so the field list and the binding both come from the one set of [Description]s
     // on Roll (ADR-014, decisions 3 and 5). Built once for every Dice, so the instance whose dice are cast
     // travels in the call's Context. The result is handed back as the CharacterBrief it is, not as JSON.
     private static readonly AIFunction RollFunction = AIFunctionFactory.Create(
-        // The typed Roll is the only overload with more than one parameter.
-        typeof(Dice).GetMethods().Single(method => method.Name == nameof(Roll) && method.GetParameters().Length > 1),
+        TypedRoll,
         call => (Dice)call.Context![typeof(Dice)]!,
         new AIFunctionFactoryOptions
         {
             Name = "roll_character",
+            SerializerOptions = BinderOptions,
             MarshalResult = (result, _, _) => new ValueTask<object?>(result),
         });
 
-    // roll_character's fields, read from that schema. Once the console calls the core in-process (ADR-014),
-    // the interview, ToneFiles and SavedView read this. Until then they read the server's copy of the same
-    // descriptions, which CoreMatchesServerTests holds equal to it.
+    // roll_character's fields, read from that schema. The interview, ToneFiles, NotGivenFiles, the lab and
+    // SavedView read this, so the console keeps no copy of the brief's fields (ADR-007, ADR-014).
     public static IReadOnlyList<RollField> Fields { get; } = RollField.ListFrom(RollFunction.JsonSchema);
 
     // The roll with its arguments as a dictionary, parameter name to value, the way the console and a lab
-    // hold them. Binds by name through AIFunctionFactory over this class's own Roll, the factory the MCP SDK
-    // binds through for the server, then casts the same dice in the same order. A blank want or look and an
-    // undefined enum number refuse as RollRefusedException, as on the server. A missing argument, or an enum
-    // name such as "grumpy", fails in the binder with its own ArgumentException instead. ADR-014, decision 3,
-    // wants every refusal to be a RollRefusedException, and the switch settles that, together with the text
-    // the GM sees. Wrapping every ArgumentException here would also relabel an internal bug, such as an empty
-    // table, as a refusal. The call completes before it returns, because Roll does no IO, so blocking on it
-    // cannot deadlock.
+    // hold them. Checks them against the roll's own fields, then binds by name through AIFunctionFactory
+    // over this class's own Roll and casts the same dice in the same order. Every refusal is a
+    // RollRefusedException that names the field: a required field left out, a choice the field does not
+    // have, a blank want or look, an enum number that is not one of its values. The call completes before
+    // it returns, because Roll does no IO, so blocking on it cannot deadlock.
     public CharacterBrief Roll(IReadOnlyDictionary<string, object?> arguments)
     {
-        var call = new AIFunctionArguments(new Dictionary<string, object?>(arguments))
+        // Copied first and checked as copied, so the keys checked are the keys bound, compared as the
+        // binder compares them.
+        var given = new Dictionary<string, object?>(arguments);
+        RequireEveryFieldReadable(given);
+
+        var call = new AIFunctionArguments(given)
         {
             Context = new Dictionary<object, object?> { [typeof(Dice)] = this },
         };
         return (CharacterBrief)RollFunction.InvokeAsync(call).AsTask().GetAwaiter().GetResult()!;
     }
 
+    // The two refusals the binder would make with an ArgumentException that names a .NET type, made here
+    // first with the field's name and what it takes, so the GM can act on them (ADR-016). A choice counts
+    // as unknown only when the binder could not read it either: it is read through the same converter,
+    // with the options AIFunctionFactory binds with, so every spelling the roll took before still binds
+    // (RollArgumentsTests). A number is left to the binder and to RequireDefined. Anything else the binder
+    // refuses stays its own ArgumentException: a value of the wrong type is a caller's bug, not the GM's
+    // slip, and must not read as a refusal.
+    private static void RequireEveryFieldReadable(Dictionary<string, object?> given)
+    {
+        foreach (var field in Fields)
+        {
+            if (!given.TryGetValue(field.Name, out var value))
+            {
+                if (field.WhenMissing != WhenMissing.Roll)
+                    throw new RollRefusedException($"{field.Name} is missing, and the roll needs it: {Takes(field)}.");
+            }
+            else if (field.Choices is not null && TextOf(value) is { } text && !ReadsAsChoice(field.Name, text))
+                throw new RollRefusedException(NotAChoice(field.Name, text));
+        }
+    }
+
+    private static string? TextOf(object? value) => value switch
+    {
+        string text => text,
+        JsonElement { ValueKind: JsonValueKind.String } element => element.GetString(),
+        _ => null,
+    };
+
+    private static bool ReadsAsChoice(string field, string text)
+    {
+        var type = TypedRoll.GetParameters().Single(parameter => parameter.Name == field).ParameterType;
+        try
+        {
+            JsonSerializer.Deserialize(JsonSerializer.Serialize(text), type, BinderOptions);
+            return true;
+        }
+        catch (JsonException)
+        {
+            return false;
+        }
+    }
+
+    private static string Takes(RollField field) =>
+        field.Choices is { } choices ? $"one of {string.Join(", ", choices)}"
+        : field.WhenMissing == WhenMissing.NotGiven ? "text, or null when it is not given"
+        : "text";
+
+    // One wording for a choice the field does not have, in words or as a number, with the field's values
+    // as the schema writes them (1, 2, 3 for the syllables, not One, Two, Three).
+    private static string NotAChoice(string field, string value) =>
+        $"{field} {value} is not one of its values: {string.Join(", ", Fields.Single(f => f.Name == field).Choices!)}.";
+
     // Rolls up a character brief inside what the difficulty allows. Throws RollRefusedException, before
     // any die is cast, for a blank field or an undefined enum. Each parameter's [Description] is what the
-    // scene interview's model reads about that field. The server keeps a copy of them until it retires.
+    // scene interview's model reads about that field.
     [Description("Roll up a character brief inside what the difficulty allows.")]
     public CharacterBrief Roll(
         [Description("Where the players meet this character, such as an inn in a major city")]
@@ -108,7 +172,7 @@ public sealed class Dice(int? seed)
         if (look is not null && string.IsNullOrWhiteSpace(look))
             throw new RollRefusedException($"{nameof(look)} is blank. Leave it out to roll one.");
 
-        // The MCP SDK's string-enum converter also accepts a number, so an undefined enum would bind
+        // The binder's string-enum converter also accepts a number, so an undefined enum would bind
         // and be written back as that number. Refused here, before any die is cast, by name.
         RequireDefined(nameof(difficulty), difficulty);
         RequireDefined(nameof(obstacle), obstacle);
@@ -188,10 +252,11 @@ public sealed class Dice(int? seed)
     private static void RequireDefined<T>(string parameter, T? value) where T : struct, Enum
     {
         if (value is { } given && !Enum.IsDefined(given))
-            throw new RollRefusedException($"{parameter} {Convert.ToInt32(given)} is not one of its values.");
+            throw new RollRefusedException(NotAChoice(parameter, Convert.ToInt32(given).ToString()));
     }
 
-    // An empty table throws here, and the app's CallDirectAsync turns that into a stopped run.
+    // An empty table throws here. It is a bug in the tables, not a roll the GM can mend, so it is not a
+    // RollRefusedException and the console does not report it as one.
     private T Pick<T>(IReadOnlyList<T> table) => table[_random.Next(table.Count)];
 
     // A die cast now, as NextDouble(), and read later against its table. A seeded Random computes

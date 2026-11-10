@@ -1,6 +1,6 @@
 # Roll and write a character, replayed
 
-A run rolls a character brief with seeded dice on the server, hands it to the model, lets the model call `lookup_archetype`, prints it, asks whether to keep it, and saves it as number 1 when the answer is `save`. The model here is the recorded run, so the whole app runs for free. This is the free stand-in for the paid main path.
+A run rolls a character brief with seeded dice in the core, hands it to the model, lets the model call `lookup_archetype`, prints it, asks whether to keep it, and saves it as number 1 when the answer is `save`. The model here is the recorded run, so the whole app runs for free. This is the free stand-in for the paid main path.
 
 ## Sub-features
 
@@ -27,12 +27,12 @@ Preconditions:
 - `$D` is a new directory with no `save.json` in it.
 - The fixture has at least two model calls and one assistant tool call. `ReplayTests` enforces this.
 
-- **Replay with split streams.** Run `$V replay --split replay`. Exit code `0`. The helper prints `[app] replay <model>`, the `[app] brief` line and `[app] saved as 1`, then `save.json: present`.
+- **Replay with split streams.** Run `$V replay --split replay`. Exit code `0`. The helper prints `[app] dice: seed 1`, `[app] replay <model>`, the `[app] brief` line and `[app] saved as 1`, then `save.json: present`.
 - **Replay with the order kept.** Run `$V replay --save order.json replay-ordered`. Exit code `0`, and `$D/replay-ordered.txt` holds stdout and stderr in the order written.
-- **Check the order.** Run `grep -nE '^\[app\] brief|^\[tool\] lookup_archetype|^\[loop\] turn 2|^\[app\] saved as' "$D/replay-ordered.txt" | cut -c1-40`. Four lines print, with ascending line numbers, in that order. The roll comes before the model's first turn.
-- **Check the streams.** Run `grep -cE '^\[(app|server|skill|loop|tool)\]' "$D/replay.stdout"` and expect `0`. Run `grep -c '^\[app\] saved as 1' "$D/replay.stderr"` and expect `1`. Stdout holds the character and nothing else.
-- **Check the save.** Run `grep -c '^  "1": {' "$D/save.json"` and expect `1`. Run `grep -cE '^    "(brief|text)":' "$D/save.json"` and expect `2`. Run `git status --short -- NpcForge.Server/characters.json` and expect no output.
-- **Check the temp save.** Run `$V replay --temp-save replay-temp`. This is the one run where the helper does not set `NPCFORGE_CHARACTERS`, and removes it, so the app chooses the file. Exit code `0`. The helper reads the path from the app's `[app] saved as 1 in <path>` line and prints `temp save <path>: present`, a path in the OS temp folder named `npcforge-replay-<guid>.json`. Run `git status --short -- NpcForge.Server/characters.json` and expect no output. `index.tsv` has a `replay-temp` line reading `present`, and the path is not under `$D`.
+- **Check the order.** Run `grep -nE '^\[app\] brief|^\[tool\] lookup_archetype|^\[loop\] turn 2|^\[app\] saved as' "$D/replay-ordered.txt" | cut -c1-40`. Five lines print, with ascending line numbers: the brief, the namer's `[loop] turn 2`, `[tool] lookup_archetype`, the writer's `[loop] turn 2` and `[app] saved as`. The roll comes before the model's first turn.
+- **Check the streams.** Run `grep -cE '^\[(app|skill|loop|tool)\]' "$D/replay.stdout"` and expect `0`. Run `grep -c '^\[app\] saved as 1' "$D/replay.stderr"` and expect `1`. Stdout holds the character and nothing else.
+- **Check the save.** Run `grep -c '^  "1": {' "$D/save.json"` and expect `1`. Run `grep -cE '^    "(brief|text)":' "$D/save.json"` and expect `2`. Run `git status --short -- NpcForge.Console/characters.json` and expect no output.
+- **Check the temp save.** Run `$V replay --temp-save replay-temp`. This is the one run where the helper does not set `NPCFORGE_CHARACTERS`, and removes it, so the app chooses the file. Exit code `0`. The helper reads the path from the app's `[app] saved as 1 in <path>` line and prints `temp save <path>: present`, a path in the OS temp folder named `npcforge-replay-<guid>.json`. Run `git status --short -- NpcForge.Console/characters.json` and expect no output. `index.tsv` has a `replay-temp` line reading `present`, and the path is not under `$D`.
 - **Check the seed.** Run `cmp "$D/save.json" "$D/order.json"` and expect no output. Two runs with one seed saved identical files.
 - **Check the drift stop.** Run `$V replay --save drift.json drift -- --seed 2`. The helper exits non-zero by design. Run `grep -c 'differs from the recording at line' "$D/drift.txt"` and expect `1`. Run `grep -c '^\[app\] brief' "$D/drift.txt"` and expect `1`, which shows the roll ran and the stop came at the model call. Run `ls "$D/drift.json"` and expect that it does not exist.
 - **Check leave.** Run `$V replay --save leave.json --answer 'leave\n' replay-leave`. Exit code `0`. Run `grep -c '^\[app\] not saved$' "$D/replay-leave.txt"` and expect `1`, and `grep -c 'saved as' "$D/replay-leave.txt"` and expect `0`. The positive control is the `[app] brief` line and the character text above the question: the run got as far as saving. `index.tsv` has a `replay-leave` line reading `leave.json absent`.
@@ -46,6 +46,6 @@ Preconditions:
 - A second replay into the same save file saves as 2, and `load-saved` expects entry 1. Give every extra replay its own `--save`.
 - The replay compares what the app sends with the recording and stops at the first line that differs. After an edit to the npc-writer `SKILL.md`, a tool description or schema, a `ChatOptions` field or `Tables.cs`, a stop is drift and not a flaky run. Report it. A re-record is paid and needs the owner's yes.
 - The dice must roll the recorded brief, so the run needs the fixture's `--seed`. A run without `--seed` rolls random dice and drifts at the first model call.
-- The `[server]` lines come from another thread, so do not assert on how a `[server]` line sits next to an `[app]` line.
+- The model's `lookup_archetype` call prints two `[tool]` lines: the call, then `[tool]   ` and the answer it got back.
 - The `[skill]` line names the `SKILL.md` the model was given by its length and a short hash. Record it with the evidence when the task changed that file.
 - This path never exercises the OpenAI or Anthropic client. A change to `ModelClients.cs` is covered only by a paid run, which needs the owner's yes.

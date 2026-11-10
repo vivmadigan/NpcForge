@@ -1,6 +1,6 @@
 # A test that starts many servers at once fails one run in three
 
-- **Status:** active
+- **Status:** history: the MCP server retired in epic 5 (ADR-016), and no test starts one
 - **Date:** 2026-10-30
 - **Applies to:** `NpcForge.Tests/DiceOrderTests.cs`, any test that starts several `McpToolSource` servers · tags: tests, flaky, server
 

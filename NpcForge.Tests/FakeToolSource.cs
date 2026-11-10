@@ -7,8 +7,9 @@ using System.Text.Json;
 
 namespace NpcForge
 {
-    // The step 2 tool, behind the interface. The real run uses this until step 5 swaps in
-    // MCP; the tests keep using it after that. The loop cannot tell the difference, by design.
+    // The step 2 tool, behind the interface. The real run used this until step 5 swapped in
+    // MCP, and since ADR-014 it uses ConsoleTool over Archetypes.Lookup; the tests keep using this
+    // one. The loop cannot tell the difference, by design.
     public sealed class FakeToolSource : IToolSource
     {
         // The model never sees this C#. AIFunctionFactory reads the method by reflection and
@@ -36,8 +37,7 @@ namespace NpcForge
         {
             try
             {
-                // A trace, on stderr so it never mixes with the answer. Step 5's server logs
-                // arrive on the same channel with a [server] prefix.
+                // A trace, on stderr so it never mixes with the answer, as ConsoleTool writes its own.
                 Console.Error.WriteLine($"[tool] {call.Name} {JsonSerializer.Serialize(call.Arguments)}");
 
                 var result = await _lookup.InvokeAsync(new AIFunctionArguments(call.Arguments), ct);   // step 3's line

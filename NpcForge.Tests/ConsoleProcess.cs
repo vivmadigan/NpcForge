@@ -6,16 +6,26 @@ namespace NpcForge.Tests;
 
 // The one way a test starts the whole app as a process. It lives here so the rules that keep a
 // test run free and honest are written once and cannot be forgotten in a fourth copy.
-// A test that starts the app, or a server through McpToolSource, carries
-// [Trait("Category", "Process")], so `dotnet test --filter Category!=Process` runs every other test
-// in seconds (epic 9). Without the trait, a slow test hides in the fast part.
+// A test that starts the app carries [Trait("Category", "Process")], so
+// `dotnet test --filter Category!=Process` runs every other test in seconds (epic 9). Without the
+// trait, a slow test hides in the fast part.
 internal static class ConsoleProcess
 {
     public sealed record Result(int ExitCode, string Stdout, string Stderr);
 
-    // Four folders up from a test's bin is the repo. McpToolSource finds it the same way and finds
-    // the server there, so a long folder's \\?\ path is handled in one place.
-    public static string RepoRoot => McpToolSource.RepoRoot;
+    // The repo, four folders up from this test's bin folder, whatever folder it was started from.
+    // Once a program's dll path reaches 260 characters, the host hands back AppContext.BaseDirectory
+    // as a \\?\ path (LongFolderTests). The one-argument GetFullPath leaves ".." in such a path as it
+    // is, and MSBuild, which `dotnet run --project` below hands it to, cannot use one. So the prefix
+    // comes off first (lesson 015).
+    public static string RepoRoot { get; } = Path.GetFullPath(Path.Combine(
+        WithoutDevicePrefix(AppContext.BaseDirectory), "..", "..", "..", ".."));
+
+    // \\?\C:\x is C:\x, and \\?\UNC\server\share\x is \\server\share\x.
+    private static string WithoutDevicePrefix(string path) =>
+        path.StartsWith(@"\\?\UNC\", StringComparison.Ordinal) ? @"\\" + path[8..]
+        : path.StartsWith(@"\\?\", StringComparison.Ordinal) ? path[4..]
+        : path;
 
     // The SDK stamps the test assembly with the Configuration it was built under, so this is what
     // `dotnet test -c Release` set, not a guess from a path. The console is a project reference, so
@@ -33,11 +43,9 @@ internal static class ConsoleProcess
         string? consoleDll = null)
     {
         // --no-build runs whatever is in bin, so a missing or old build would run old code and
-        // pass or fail for the wrong reason. The console starts the server in this same
-        // configuration, so both are checked. The core holds the dice, the loop, the writer and the
-        // skills, so a change there is stale to the console too, and it is checked as well.
+        // pass or fail for the wrong reason. The core holds the dice, the loop, the writer, the save
+        // rules and the skills, so a change there is stale to the console too, and it is checked as well.
         RequireFreshBuild("NpcForge.Console");
-        RequireFreshBuild("NpcForge.Server");
         RequireFreshBuild("NpcForge.Core");
 
         var start = new ProcessStartInfo("dotnet")
@@ -51,6 +59,12 @@ internal static class ConsoleProcess
             // unset, .NET writes it in the console's code page, and a curly apostrophe would never
             // reach the app as the bytes a real pipe sends.
             StandardInputEncoding = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false),
+            // And read back as UTF-8, because that is what the app writes on both streams (Program.cs
+            // sets it first, lesson 006). Left unset, .NET reads them in an encoding taken from the
+            // console's state, which the other tests running beside this one can change: in a full run,
+            // one of RollAgainTests' two runs read a curly quote as "ÔÇ£" and the other read it right.
+            StandardOutputEncoding = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false),
+            StandardErrorEncoding = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false),
         };
         // consoleDll: a copy of the console's build output that a test has changed, such as one with
         // a tone file deleted. Run directly, because `dotnet run` would build the repo's own.
@@ -84,7 +98,7 @@ internal static class ConsoleProcess
         await process.StandardInput.WriteAsync(input);
         process.StandardInput.Close();
 
-        // Read both streams while it runs. Left unread, the [server] and [loop] lines fill the
+        // Read both streams while it runs. Left unread, the [loop] and [tool] lines fill the
         // pipe and the app stops, waiting for someone to read them.
         var stdout = process.StandardOutput.ReadToEndAsync();
         var stderr = process.StandardError.ReadToEndAsync();

@@ -17,7 +17,7 @@ public sealed class RecordingChatClient : DelegatingChatClient
     // flags: this run's answers as command-line flags. They go on line 1, so the replay test can
     // make the same run again without anyone typing them twice. Nothing touches the disk here:
     // the file is made when the first reply arrives, so a run that stops before the model (a load,
-    // a bad difficulty, a server that will not start) never empties the last good recording.
+    // a difficulty the dice refuse) never empties the last good recording.
     public RecordingChatClient(IChatClient inner, string path, string[] flags) : base(inner)
     {
         _path = path;
