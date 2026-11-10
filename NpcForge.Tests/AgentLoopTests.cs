@@ -3,9 +3,9 @@ using Microsoft.Extensions.AI;
 namespace NpcForge.Tests;
 
 // Two tests, one per rule in docs/architecture.md "The loop": the exit is the absence of tool
-// calls, and the cap is not optional. A third runs the loop against the real MCP server
-// (step 5). None touches the network: the models are local fakes, and the server is a
-// child process on this machine.
+// calls, and the cap is not optional. A third runs the loop against the writer's real tool, the
+// ConsoleTool over Archetypes.Lookup that CharacterRun gives the writer (step 5, then ADR-014). None
+// touches the network: the models are local fakes.
 public class AgentLoopTests
 {
     [Fact]
@@ -28,17 +28,15 @@ public class AgentLoopTests
     }
 
     [Fact]
-    [Trait("Category", "Process")]
-    public async Task Runs_a_tool_call_through_the_real_server()
+    public async Task Runs_a_tool_call_through_the_writers_tool()
     {
-        await using var tools = new McpToolSource();
-        await tools.ConnectAsync(CancellationToken.None);    // starts NpcForge.Server as a child process
+        var tools = new ConsoleTool(Archetypes.Lookup);
 
         var loop = new AgentLoop(new CallsToolOnceChatClient(), tools, new ChatOptions());
 
         var text = await loop.RunAsync([new(ChatRole.User, "hi")], CancellationToken.None);
 
-        // The server's sentence, word for word: the fake echoes whatever the tool returned.
+        // The tool's sentence, word for word: the fake echoes whatever the tool returned.
         Assert.Equal("A typical innkeeper is busy, watchful, and knows everyone's business.", text);
     }
 }

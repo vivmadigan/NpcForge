@@ -187,4 +187,66 @@ public class RollArgumentsTests
     {
         Assert.Throws<ArgumentException>(() => Roll(RollArgs("setting", 5)));
     }
+
+    // The three below held the same rules against the server process in McpToolSourceTests until the
+    // console called the core in-process (ADR-014). Their assertions are kept.
+
+    // Done when: --tone 7 is refused by name. System.Text.Json's string-enum converter takes a number
+    // too, so without the check it would bind and be written back as a number. Every enum parameter,
+    // difficulty and obstacle included, and the number as text as well as a number (the console sends text).
+    [Theory]
+    [InlineData("tone", 7)]
+    [InlineData("tone", "7")]
+    [InlineData("difficulty", 9)]
+    [InlineData("difficulty", "9")]
+    [InlineData("obstacle", 9)]
+    [InlineData("obstacle", "9")]
+    [InlineData("nameLetter", 99)]
+    [InlineData("nameLetter", "99")]
+    [InlineData("nameSyllables", 4)]
+    [InlineData("nameSyllables", "0")]
+    [InlineData("familyLetter", 99)]
+    [InlineData("familyLetter", "99")]
+    [InlineData("gender", 9)]
+    [InlineData("gender", "9")]
+    [InlineData("age", 9)]
+    [InlineData("age", "9")]
+    public void An_enum_value_that_is_not_defined_is_refused_by_the_name_of_its_field(string parameter, object value)
+    {
+        var args = RollArgs();
+        args[parameter] = value;
+
+        var error = Assert.Throws<RollRefusedException>(() => Roll(args));
+
+        // The reason, not just a failure (lesson 004): the roll's own words, naming the field.
+        Assert.Contains($"{parameter} {value} is not one of its values", error.Message);
+    }
+
+    // ADR-011: a blank look would reach the writer as a look of nothing, so it is refused by name, as a
+    // blank want is. The control is the same call with the look left out, which rolls one.
+    [Fact]
+    public void A_blank_look_is_refused_by_name_and_a_left_out_look_rolls()
+    {
+        foreach (var blank in new[] { "", "   " })
+        {
+            var error = Assert.Throws<RollRefusedException>(() => Roll(RollArgs("look", blank)));
+            Assert.Contains("look is blank", error.Message);
+        }
+        var rolled = Roll(RollArgs());
+        Assert.False(string.IsNullOrWhiteSpace(JsonDocument.Parse(rolled).RootElement.GetProperty("look").GetString()));
+    }
+
+    // "Not given" has one spelling. A blank want is refused in the roll's own words, by name.
+    [Theory]
+    [InlineData("")]
+    [InlineData("   ")]
+    public void A_blank_want_is_refused_by_name(string blank)
+    {
+        var args = RollArgs();
+        args["playersWant"] = blank;
+
+        var error = Assert.Throws<RollRefusedException>(() => Roll(args));
+
+        Assert.Contains("playersWant is blank", error.Message);
+    }
 }

@@ -15,12 +15,9 @@ public class NotGivenFileTests : IDisposable
     }
 
     [Fact]
-    public async Task Every_field_the_scene_may_leave_out_has_a_file_in_the_default_skill_folder()
+    public void Every_field_the_scene_may_leave_out_has_a_file_in_the_default_skill_folder()
     {
-        var save = Path.Combine(Path.GetTempPath(), $"npcforge-notgiven-{Guid.NewGuid():N}.json");
-        await using var tools = new McpToolSource(save, seed: 1);
-        await tools.ConnectAsync(CancellationToken.None);
-        var fields = RollField.ListFrom(tools.SchemaOf("roll_character"));
+        var fields = Dice.Fields;
 
         Assert.Contains(fields, f => f.WhenMissing == WhenMissing.NotGiven);
         Assert.Empty(NotGivenFiles.Missing(fields, [WriterInput.DefaultSkillDir]));

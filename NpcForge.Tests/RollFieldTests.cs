@@ -2,16 +2,14 @@ using System.Text.Json;
 
 namespace NpcForge.Tests;
 
-// The interview's field list, read from the real server's tools/list (ADR-007). Free: the server is
-// a child process and no model is asked. This is where a server change to roll_character shows up
-// first, before any paid run.
+// The interview's field list, read from the roll's own schema, Dice.Fields (ADR-007, ADR-014). Free: no
+// model is asked. This is where a change to the roll's parameters shows up first, before any paid run.
 public class RollFieldTests
 {
     [Fact]
-    [Trait("Category", "Process")]
-    public async Task Reads_every_roll_character_field_from_the_real_server()
+    public void Reads_every_roll_character_field_from_the_roll()
     {
-        var fields = await FieldsFromServer();
+        var fields = Dice.Fields;
 
         // roll_character's parameter order. Difficulty is after occupation because it is optional and
         // C# puts optional parameters last (ADR-010); CharacterBrief keeps its own order.
@@ -23,9 +21,9 @@ public class RollFieldTests
 
         // ADR-010, decision 1: the schema alone gives each field its kind. Setting and occupation are
         // required and not nullable, so Ask; the want is required and nullable, so NotGiven; the rest
-        // are optional, so Roll. Difficulty is Roll because it is optional on the server. A new
+        // are optional, so Roll. Difficulty is Roll because it is optional on the roll. A new
         // required field, or an SDK that stops writing the want's null, fails here; the fallback is
-        // then a server-owned list (ADR-010, decision 1).
+        // then a list the core owns (ADR-010, decision 1).
         Assert.Equal(WhenMissing.Ask, fields.Single(f => f.Name == "setting").WhenMissing);
         Assert.Equal(WhenMissing.NotGiven, fields.Single(f => f.Name == "playersWant").WhenMissing);
         Assert.Equal(WhenMissing.Ask, fields.Single(f => f.Name == "occupation").WhenMissing);
@@ -40,7 +38,7 @@ public class RollFieldTests
         // look is free text, the GM's own words.
         Assert.Equal(["Male", "Female"], fields.Single(f => f.Name == "gender").Choices);
         Assert.Equal(["Teenager", "Adult", "MiddleAged", "Old"], fields.Single(f => f.Name == "age").Choices);
-        // ADR-009: the syllable count is a number in a string. The attribute on the server's enum must
+        // ADR-009: the syllable count is a number in a string. The attribute on the core's enum must
         // reach the schema, or the interview would offer the member names (One, Two, Three).
         Assert.Equal(["1", "2", "3"], fields.Single(f => f.Name == "nameSyllables").Choices);
         // Both name letters offer the whole alphabet: the dice leave out Q, U, X, Y and Z, but a GM may
@@ -55,24 +53,22 @@ public class RollFieldTests
         Assert.All(fields, f => Assert.False(string.IsNullOrWhiteSpace(f.Description)));
     }
 
-    // SceneDraftTests.Fields is a hand copy of this list, so its tests run with no server. Held equal to
-    // the real schema on names, order, choices and kinds (WhenMissing), so the copy cannot drift
-    // from the server. Descriptions are the copy's own short ones, so they are not compared.
+    // SceneDraftTests.Fields is a hand copy of this list, so its tests do not depend on the roll. Held
+    // equal to the real schema on names, order, choices and kinds (WhenMissing), so the copy cannot drift
+    // from the roll. Descriptions are the copy's own short ones, so they are not compared.
     [Fact]
-    [Trait("Category", "Process")]
-    public async Task The_scene_draft_tests_hand_copy_matches_the_real_schema()
+    public void The_scene_draft_tests_hand_copy_matches_the_real_schema()
     {
-        var fields = await FieldsFromServer();
+        var fields = Dice.Fields;
 
         Assert.Equal(fields.Select(f => (f.Name, f.WhenMissing, Choices: string.Join(",", f.Choices ?? []))),
             SceneDraftTests.Fields.Select(f => (f.Name, f.WhenMissing, Choices: string.Join(",", f.Choices ?? []))));
     }
 
     [Fact]
-    [Trait("Category", "Process")]
-    public async Task Every_ask_and_not_given_field_has_a_flag_default()
+    public void Every_ask_and_not_given_field_has_a_flag_default()
     {
-        var fields = await FieldsFromServer();
+        var fields = Dice.Fields;
         var defaults = RunOptions.Parse([]).RollArguments();
 
         // A required parameter the flag table does not know would leave the interview with nothing
@@ -92,7 +88,7 @@ public class RollFieldTests
         Assert.Contains("'setting' has no description", error.Message);
     }
 
-    // ADR-010, decision 1: the kind comes from the schema's shape alone, with no server and no field
+    // ADR-010, decision 1: the kind comes from the schema's shape alone, with no roll and no field
     // name. Required text is Ask, required nullable text is NotGiven, optional text is Roll either way.
     [Theory]
     [InlineData("\"string\"", true, WhenMissing.Ask)]
@@ -120,12 +116,5 @@ public class RollFieldTests
         var error = Assert.Throws<InvalidOperationException>(() => RollField.ListFrom(schema.RootElement));
 
         Assert.Contains("'age' is not text", error.Message);
-    }
-
-    private static async Task<IReadOnlyList<RollField>> FieldsFromServer()
-    {
-        await using var tools = new McpToolSource();
-        await tools.ConnectAsync(CancellationToken.None);
-        return RollField.ListFrom(tools.SchemaOf("roll_character"));
     }
 }

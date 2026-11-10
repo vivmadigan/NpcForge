@@ -5,7 +5,7 @@ using Xunit.Abstractions;
 namespace NpcForge.Tests;
 
 // The scene interview end to end, free: a scripted stand-in model, the GM as a TextReader, and the
-// real server for the roll that follows a yes. ADR-007 and the "Talk to it" epic's Done when.
+// real dice for the roll that follows a yes. ADR-007 and the "Talk to it" epic's Done when.
 public class SceneInterviewTests(ITestOutputHelper output)
 {
     private static readonly IReadOnlyList<RollField> Fields = SceneDraftTests.Fields;
@@ -164,9 +164,8 @@ public class SceneInterviewTests(ITestOutputHelper output)
     }
 
     // ADR-011: a look the scene states, quoted, and a gender and an age from quotes, reach the confirmation
-    // with their labels and the real server's brief. A scene with no word for a gender leaves it rolled.
+    // with their labels and the real dice's brief. A scene with no word for a gender leaves it rolled.
     [Fact]
-    [Trait("Category", "Process")]
     public async Task A_look_a_gender_and_an_age_the_scene_states_reach_the_confirmation_and_the_brief()
     {
         const string scene = "The players meet a bald old baker at her shop.";
@@ -179,7 +178,7 @@ public class SceneInterviewTests(ITestOutputHelper output)
 
         var (told, screen) = await Interview(model, scene + "\nthe market\nbaker\nyes\n");
         output.WriteLine(screen);
-        var brief = await Roll(1, told!.RollArguments);
+        var brief = Roll(1, told!.RollArguments);
 
         Assert.Contains("  look: bald   [my words]\n    from \"a bald old baker\"", screen);
         Assert.Contains("  age: Old   [inferred]\n    from \"a bald old baker\"", screen);
@@ -229,19 +228,18 @@ public class SceneInterviewTests(ITestOutputHelper output)
         }
     }
 
-    // Done when: a trait I described reaches the brief instead of a roll. The real server, with a
+    // Done when: a trait I described reaches the brief instead of a roll. The real dice, with a
     // seed whose plain roll gives a different obstacle, so the brief can only say Cant if the
     // interview's answer got there.
     [Fact]
-    [Trait("Category", "Process")]
-    public async Task A_described_trait_reaches_the_brief_from_the_real_server()
+    public async Task A_described_trait_reaches_the_brief_from_the_real_dice()
     {
         const int seed = 1;
-        var plain = await Roll(seed, RunOptions.Parse([]).RollArguments());
+        var plain = Roll(seed, RunOptions.Parse([]).RollArguments());
         Assert.NotEqual("Cant", plain.GetProperty("obstacle").GetString());
 
         var (told, _) = await Interview(new ScriptedInterviewer(TavernAnswers), SceneDraftTests.Tavern + "\nyes\n");
-        var brief = await Roll(seed, told!.RollArguments);
+        var brief = Roll(seed, told!.RollArguments);
 
         Assert.Equal("Cant", brief.GetProperty("obstacle").GetString());
         Assert.Equal("doesn't want to get involved", brief.GetProperty("attitude").GetString());
@@ -271,13 +269,8 @@ public class SceneInterviewTests(ITestOutputHelper output)
             var fixtureCall = JsonSerializer.Deserialize<RecordedCall>(
                 File.ReadLines(RecordedRun.Fixture).Skip(1).First(), Recording.Json)!;
             var options = fixtureCall.Request.Options.Deserialize<ChatOptions>(Recording.Json)!;
-            // And the fields from the real server, as Program.cs reads them, so the instructions match too.
-            IReadOnlyList<RollField> fields;
-            await using (var tools = new McpToolSource())
-            {
-                await tools.ConnectAsync(CancellationToken.None);
-                fields = RollField.ListFrom(tools.SchemaOf("roll_character"));
-            }
+            // And the fields from the roll, as Program.cs reads them, so the instructions match too.
+            var fields = Dice.Fields;
             var recorder = new RecordingChatClient(new ScriptedInterviewer([]), recording, []);
             await SceneInterview.RunAsync(
                 recorder, options, fields, new StringReader(scene + "\nno\n"), TextWriter.Null, CancellationToken.None);
@@ -406,11 +399,9 @@ public class SceneInterviewTests(ITestOutputHelper output)
         return (told, screen.ToString());
     }
 
-    private static async Task<JsonElement> Roll(int seed, Dictionary<string, object?> arguments)
+    private static JsonElement Roll(int seed, Dictionary<string, object?> arguments)
     {
-        await using var tools = new McpToolSource(seed: seed);
-        await tools.ConnectAsync(CancellationToken.None);
-        using var brief = JsonDocument.Parse(await tools.CallDirectAsync("roll_character", arguments, CancellationToken.None));
+        using var brief = JsonDocument.Parse(BriefJson.Of(new Dice(seed).Roll(arguments)));
         return brief.RootElement.Clone();
     }
 

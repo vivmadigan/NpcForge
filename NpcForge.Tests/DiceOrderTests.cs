@@ -5,7 +5,7 @@ namespace NpcForge.Tests;
 
 // ADR-010 moves when the wants and obstacle dice are read, not when they are cast. These tests hold
 // every seed's brief where it was: a golden of seeds 1 to 12 at each difficulty, captured on the code
-// before the change, and the real server rolled against it. ADR-011 adds seven casts after those, so
+// before the change, and the dice rolled against it. ADR-011 adds seven casts after those, so
 // a second golden pins what they rolled, captured on the code that rolls them, and the two together
 // are the whole brief.
 public class DiceOrderTests
@@ -21,12 +21,11 @@ public class DiceOrderTests
     private static readonly string[] Difficulties = ["Easy", "SomeWork", "Wall"];
 
     [Fact]
-    [Trait("Category", "Process")]
-    public async Task Seeds_1_to_12_roll_the_golden_briefs_at_every_difficulty()
+    public void Seeds_1_to_12_roll_the_golden_briefs_at_every_difficulty()
     {
         var cases = Enumerable.Range(1, 12).SelectMany(seed => Difficulties.Select(difficulty => (seed, difficulty)));
 
-        var rolled = await RollSixAtATime(cases, c => RollWithSeed(c.seed, c.difficulty));
+        var rolled = RollEach(cases, c => RollWithSeed(c.seed, c.difficulty));
         var now = new JsonObject();
         foreach (var (c, brief) in rolled)
             now[$"{c.seed}/{c.difficulty}"] = brief;
@@ -71,11 +70,10 @@ public class DiceOrderTests
     //   new Random(seed) when this test was written). The Easy rule must read the rolled difficulty to
     //   pass. The test holds that those three still roll Easy, so the claim cannot go stale unseen.
     [Fact]
-    [Trait("Category", "Process")]
-    public async Task A_missing_difficulty_is_the_thirteenth_die_and_rolls_what_handing_it_in_rolls()
+    public void A_missing_difficulty_is_the_thirteenth_die_and_rolls_what_handing_it_in_rolls()
     {
         var golden = WholeGolden();
-        var rolled = await RollSixAtATime(Enumerable.Range(1, 12), seed => RollWithSeed(seed, difficulty: null));
+        var rolled = RollEach(Enumerable.Range(1, 12), seed => RollWithSeed(seed, difficulty: null));
 
         Assert.Equal(Difficulties, rolled.Select(r => r.brief["difficulty"]!.GetValue<string>()).Distinct().Order());
         foreach (var seed in new[] { 5, 8, 11 })
@@ -115,29 +113,18 @@ public class DiceOrderTests
                 var picking = new Random(seed);
                 var casting = new Random(seed);
                 for (var cast = 0; cast < 5; cast++)
-                    Assert.True(picking.Next(rows) == NpcForge.Server.CharacterTools.ReadCast(casting.NextDouble(), table),
+                    Assert.True(picking.Next(rows) == Dice.ReadCast(casting.NextDouble(), table),
                         $"seed {seed}, {rows} rows, cast {cast}");
             }
     }
 
-    // A server of its own for each roll, so no roll is another's dice carrying on. A few at a time:
-    // one after another takes minutes, and all at once can outlast the client's start-up wait.
-    private static async Task<(T key, JsonObject brief)[]> RollSixAtATime<T>(IEnumerable<T> keys, Func<T, Task<string>> roll)
-    {
-        using var gate = new SemaphoreSlim(6);
-        return await Task.WhenAll(keys.Select(async key =>
-        {
-            await gate.WaitAsync();
-            try { return (key, JsonNode.Parse(await roll(key))!.AsObject()); }
-            finally { gate.Release(); }
-        }));
-    }
+    // A Dice of its own for each roll, so no roll is another's dice carrying on.
+    private static (T key, JsonObject brief)[] RollEach<T>(IEnumerable<T> keys, Func<T, string> roll) =>
+        [.. keys.Select(key => (key, JsonNode.Parse(roll(key))!.AsObject()))];
 
     // A null difficulty is left out of the arguments, as the interview leaves out a rolled field.
-    private static async Task<string> RollWithSeed(int seed, string? difficulty)
+    private static string RollWithSeed(int seed, string? difficulty)
     {
-        await using var tools = new McpToolSource(seed: seed);
-        await tools.ConnectAsync(CancellationToken.None);
         var args = new Dictionary<string, object?>
         {
             ["setting"] = "an inn in a major city",
@@ -146,6 +133,6 @@ public class DiceOrderTests
         };
         if (difficulty is not null)
             args["difficulty"] = difficulty;
-        return await tools.CallDirectAsync("roll_character", args, CancellationToken.None);
+        return BriefJson.Of(new Dice(seed).Roll(args));
     }
 }
