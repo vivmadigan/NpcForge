@@ -17,8 +17,8 @@ public sealed class Dice(int? seed)
     private static readonly MethodInfo TypedRoll =
         typeof(Dice).GetMethods().Single(method => method.Name == nameof(Roll) && method.GetParameters().Length > 1);
 
-    // roll_character as the MCP SDK describes it: AIFunctionFactory over the typed Roll below. It is never
-    // offered to a model and never called as a tool. Fields reads its schema and Roll(arguments) binds a
+    // roll_character as the MCP SDK described it for the server: AIFunctionFactory over the typed Roll
+    // below. It is never offered to a model and never called as a tool. Fields reads its schema and Roll(arguments) binds a
     // dictionary through it, so the field list and the binding both come from the one set of [Description]s
     // on Roll (ADR-014, decisions 3 and 5). Built once for every Dice, so the instance whose dice are cast
     // travels in the call's Context. The result is handed back as the CharacterBrief it is, not as JSON.
@@ -31,9 +31,8 @@ public sealed class Dice(int? seed)
             MarshalResult = (result, _, _) => new ValueTask<object?>(result),
         });
 
-    // roll_character's fields, read from that schema. Once the console calls the core in-process (ADR-014),
-    // the interview, ToneFiles and SavedView read this. Until then they read the server's copy of the same
-    // descriptions, which CoreMatchesServerTests holds equal to it.
+    // roll_character's fields, read from that schema. The interview, ToneFiles, NotGivenFiles, the lab and
+    // SavedView read this, so the console keeps no copy of the brief's fields (ADR-007, ADR-014).
     public static IReadOnlyList<RollField> Fields { get; } = RollField.ListFrom(RollFunction.JsonSchema);
 
     // The roll with its arguments as a dictionary, parameter name to value, the way the console and a lab
@@ -110,7 +109,7 @@ public sealed class Dice(int? seed)
 
     // Rolls up a character brief inside what the difficulty allows. Throws RollRefusedException, before
     // any die is cast, for a blank field or an undefined enum. Each parameter's [Description] is what the
-    // scene interview's model reads about that field. The server keeps a copy of them until it retires.
+    // scene interview's model reads about that field.
     [Description("Roll up a character brief inside what the difficulty allows.")]
     public CharacterBrief Roll(
         [Description("Where the players meet this character, such as an inn in a major city")]
@@ -167,7 +166,7 @@ public sealed class Dice(int? seed)
         if (look is not null && string.IsNullOrWhiteSpace(look))
             throw new RollRefusedException($"{nameof(look)} is blank. Leave it out to roll one.");
 
-        // The MCP SDK's string-enum converter also accepts a number, so an undefined enum would bind
+        // The binder's string-enum converter also accepts a number, so an undefined enum would bind
         // and be written back as that number. Refused here, before any die is cast, by name.
         RequireDefined(nameof(difficulty), difficulty);
         RequireDefined(nameof(obstacle), obstacle);
@@ -250,7 +249,8 @@ public sealed class Dice(int? seed)
             throw new RollRefusedException(NotAChoice(parameter, Convert.ToInt32(given).ToString()));
     }
 
-    // An empty table throws here, and the app's CallDirectAsync turns that into a stopped run.
+    // An empty table throws here. It is a bug in the tables, not a roll the GM can mend, so it is not a
+    // RollRefusedException and the console does not report it as one.
     private T Pick<T>(IReadOnlyList<T> table) => table[_random.Next(table.Count)];
 
     // A die cast now, as NextDouble(), and read later against its table. A seeded Random computes

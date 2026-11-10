@@ -4,24 +4,24 @@ using System.Text.Json.Nodes;           // JsonNode
 namespace NpcForge;
 
 // The brief as JSON text, and the few things done to a brief on its JSON itself. The text is what the
-// writer's first message carries, and the console still reads it from the server until the switch.
+// writer's first message carries and what the [app] brief line shows.
 public static class BriefJson
 {
     // The brief's JSON options, decided once. BriefJson.Of writes the text the writer is sent and
     // SavedCharacter.Of keeps the brief a save holds, so the two cannot drift apart (ADR-015, decision 5).
     // The names are camelCase and the enums write their own names (CharacterBrief). The encoder is the
     // default one, which writes an apostrophe, a markup character or a letter such as Æ as a backslash-u
-    // escape: that is how the MCP SDK writes the text the writer is sent today, and the writer must keep
-    // reading the same bytes after the switch. A save written to the file is re-encoded by the file's own
-    // writer, so its bytes do not depend on this.
+    // escape: that is how the MCP server wrote the text the replay fixtures were recorded with, and the
+    // writer must keep reading the same bytes (ADR-014). A save written to the file is re-encoded by the
+    // file's own writer, so its bytes do not depend on this.
     internal static readonly JsonSerializerOptions Options = new(JsonSerializerDefaults.Web);
 
-    // The brief as the roll_character tool returned it, byte for byte (CoreMatchesServerTests).
+    // The brief as the MCP server's roll_character returned it, byte for byte, which the replay holds.
     public static string Of(CharacterBrief brief) => JsonSerializer.Serialize(brief, Options);
 
     // roll_character's arguments for the same brief with one field changed: every field of the brief
-    // handed back in, `field` set to `value`. The server stays the only author of briefs, and since
-    // every field is given, every die it still casts is replaced by the value given (ADR-009).
+    // handed back in, `field` set to `value`. The dice stay the only author of briefs, and since
+    // every field is given, every die they still cast is replaced by the value given (ADR-009).
     public static Dictionary<string, object?> WithField(string briefJson, string field, string value)
     {
         using var brief = JsonDocument.Parse(briefJson);

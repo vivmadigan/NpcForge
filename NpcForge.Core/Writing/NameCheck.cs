@@ -4,7 +4,7 @@ namespace NpcForge;
 
 // The name dice of one brief: the letter the first name starts with, how many syllables it has, and
 // the letter the family name starts with (ADR-009). Read from the brief's JSON, which is structured
-// data, so the console keeps no copy of the server's enums.
+// data, so the namer and the console need no copy of the brief's enums.
 public sealed record NameDice(char Letter, int Syllables, char FamilyLetter)
 {
     public static NameDice From(string briefJson)
@@ -13,7 +13,7 @@ public sealed record NameDice(char Letter, int Syllables, char FamilyLetter)
         var root = brief.RootElement;
         return new NameDice(
             LetterOf(root, "nameLetter"),
-            // The server writes the count as "1", "2" or "3", so it is read as a number here.
+            // The brief writes the count as "1", "2" or "3", so it is read as a number here.
             int.Parse(TextOf(root, "nameSyllables")),
             LetterOf(root, "familyLetter"));
     }

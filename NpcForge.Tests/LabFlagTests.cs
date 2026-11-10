@@ -172,7 +172,7 @@ public class LabFlagTests
     }
 
     // A bare tone axis is every tone, so it is a comparison already, and tone names are one too. Which
-    // tones, in what order and how spelled, the lab settles from the schema once the server is up:
+    // tones, in what order and how spelled, the lab settles from the schema before any model call:
     // LabRunTests' A_tone_lab_with_no_values_writes_every_tone_from_briefs_that_differ_only_in_tone
     // and A_tone_lab_with_names_writes_only_those_in_the_order_given_spelled_as_the_schema_does.
     [Fact]

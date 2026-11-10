@@ -16,7 +16,7 @@ namespace NpcForge
         public required Difficulty Difficulty { get; init; }
         public required string Occupation { get; init; }      // who they are; supplied, not rolled (ADR-002)
 
-        // rolled on the server, inside what Difficulty allows
+        // rolled by the dice, inside what Difficulty allows
         public required string CharacterWants { get; init; }
         public required ObstacleKind Obstacle { get; init; }
         public required string Attitude { get; init; }
@@ -41,8 +41,8 @@ namespace NpcForge
         public required string Look { get; init; }
     }
 
-    // The MCP SDK already sends "Wall" on the wire. Plain JsonSerializer sends 2, and step 8's
-    // file uses plain JsonSerializer. On the type, every serializer writes the name.
+    // Plain JsonSerializer sends 2 for Wall, and the save file uses plain JsonSerializer. On the type,
+    // every serializer writes the name: the brief line, the writer's message and the file alike.
     [JsonConverter(typeof(JsonStringEnumConverter))]
     public enum Difficulty { Easy, SomeWork, Wall }
 

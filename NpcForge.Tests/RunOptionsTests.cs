@@ -77,7 +77,7 @@ public class RunOptionsTests
     }
 
     // ADR-009: the five new flags have no default. Left off, they are not in the roll at all, so
-    // the server's dice pick them.
+    // the dice pick them.
     [Theory]
     [InlineData("--tone", "tone", "Comic")]
     [InlineData("--race", "race", "half-orc")]
@@ -265,7 +265,7 @@ public class RunOptionsTests
 
     // Which file a run saves in. A replay and a recording are not real characters, so they go to
     // a fresh temp file; a paid run and --load keep the tracked file, which is null here because the
-    // console leaves the server on its default.
+    // console then opens FileCharacterStore.DefaultPath.
     [Fact]
     public void A_replay_saves_to_a_fresh_temp_file()
     {

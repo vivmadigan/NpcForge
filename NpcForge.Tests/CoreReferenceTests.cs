@@ -27,7 +27,7 @@ public class CoreReferenceTests
     private static readonly string[] AnalyzerSwitches = ["RunAnalyzers", "RunAnalyzersDuringBuild"];
 
     // The one file that may suppress the rule: SkillFiles reads the bundled skills, and it is the core's
-    // one door to the disk (ADR-014, decision 6). It does not exist yet.
+    // one door to the disk (ADR-014, decision 6).
     private const string SuppressionDoor = "SkillFiles.cs";
 
     [Fact]

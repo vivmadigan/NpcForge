@@ -15,23 +15,12 @@
     <PackageReference Include="Microsoft.Extensions.AI" Version="10.10.0" />
     <PackageReference Include="Microsoft.Extensions.AI.OpenAI" Version="10.10.0" />
     <PackageReference Include="Microsoft.Extensions.Configuration.UserSecrets" Version="10.0.12" />
-    <!-- 2.3.0 closes the server's stdin before it waits for the server to exit (SDK pull request 1838).
-         2.2.0 waited out its 5 s shutdown timeout and then killed the server, so every run and every
-         test that started one paid 5 s at the end (epic 9). The server stays on 2.2.0: its project
-         file says why. -->
-    <PackageReference Include="ModelContextProtocol" Version="2.3.1" />
   </ItemGroup>
 
 	<ItemGroup>
-		<!-- Build order only. McpToolSource starts the server's built launcher from its bin folder,
-         so the server has to be built whenever this project is. ReferenceOutputAssembly="false" means
-         no types cross: the two processes still share nothing. -->
-		<ProjectReference Include="..\NpcForge.Server\NpcForge.Server.csproj" ReferenceOutputAssembly="false" />
-	</ItemGroup>
-	
-	<ItemGroup>
-		<!-- The loop, the namer, the writer and the interview live in the core, and so do the skills,
-         which the core's project file copies into this project's bin folder (ADR-014). -->
+		<!-- The dice, the brief, the loop, the namer, the writer, the interview and the save rules live in
+         the core, called in-process, and so do the skills, which the core's project file copies into
+         this project's bin folder (ADR-014). -->
 		<ProjectReference Include="..\NpcForge.Core\NpcForge.Core.csproj" />
 	</ItemGroup>
 

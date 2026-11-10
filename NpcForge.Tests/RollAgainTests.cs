@@ -5,8 +5,8 @@ using System.Text.RegularExpressions;
 
 namespace NpcForge.Tests;
 
-// ADR-013, decisions 3 and 7: "again" rolls a new character for the same answers on the same server,
-// and the spending cap stops a run cleanly. Each test runs the whole app as a process, free, against
+// ADR-013, decisions 3 and 7: "again" rolls a new character for the same answers with the run's one
+// Dice, and the spending cap stops a run cleanly. Each test runs the whole app as a process, free, against
 // a recording or a copy made from one; no fixture is ever written. The save file is checked as exact,
 // the printed lines as text the GM reads (lesson 006).
 [Trait("Category", "Process")]
@@ -89,9 +89,8 @@ public class RollAgainTests : IDisposable
         Assert.Equal(2, Count(run.Stderr, @"^\[skill\] .*[\\/]namer[\\/]SKILL\.md "));
         Assert.Equal(2, Count(run.Stderr, @"^\[skill\] .*[\\/]npc-writer[\\/]SKILL\.md"));
         Assert.Equal(2, run.Stderr.Split(KeepQuestion.Prompt).Length - 1);
-        // Both texts reached stdout. Checked by name, not word for word: ConsoleProcess reads the
-        // child's stdout in the console's code page, so a curly quote comes back as "ÔÇ£". The save
-        // below is checked exactly.
+        // Both texts reached stdout. Checked by name, not word for word: printed lines are text the GM
+        // reads, and the save below is the exact record (lesson 006).
         foreach (var shown in names)
             Assert.Contains(shown[..shown.IndexOf(" (", StringComparison.Ordinal)], run.Stdout);
 
@@ -108,7 +107,7 @@ public class RollAgainTests : IDisposable
 
     // Roadmap epic 4, "A run under a seed rolls again: the second character's dice differ from the
     // first, and the run gives the same two characters every time." Through the app, so a roll again
-    // that started a new server, or re-seeded, would roll the first dice again and the replay would
+    // that built a new Dice, or re-seeded, would roll the first dice again and the replay would
     // stop at the second character's namer.
     [Fact]
     public async Task A_seeded_run_that_rolls_again_gives_the_same_two_characters_every_time()

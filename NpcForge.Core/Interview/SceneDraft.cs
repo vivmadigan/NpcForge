@@ -32,7 +32,7 @@ public sealed record Quoted(string Quote, string Sentence) : Evidence;
 public sealed record Asked : Evidence;
 
 // One recorded field. Value is the GM's text as typed, cut from the scene (a choice's value is the
-// server's spelling).
+// roll's spelling).
 public sealed record Answer(string Value, Label Label, Evidence Evidence);
 
 // The outcome of one record_answer call. Message goes back to the model as the tool's result.
@@ -41,10 +41,10 @@ public sealed record RecordResult(Rejection Reason, string Message)
     public bool Accepted => Reason == Rejection.None;
 }
 
-// One row of the confirmation: every field, in the server's order, recorded or not.
+// One row of the confirmation: every field, in the roll's order, recorded or not.
 public sealed record ConfirmationLine(RollField Field, string? Value, Label Label, Evidence? Evidence);
 
-// What the interview has gathered from the GM's scene. Pure: no model, no server, no console, so
+// What the interview has gathered from the GM's scene. Pure: no model, no dice, no console, so
 // every check has a free test. The interview only ever adds to it through Record.
 public sealed class SceneDraft(string scene, IReadOnlyList<RollField> fields)
 {
@@ -85,7 +85,7 @@ public sealed class SceneDraft(string scene, IReadOnlyList<RollField> fields)
         if (valueWords.Length == 0)
             return Reject(Rejection.EmptyValue, $"the value for {field} is empty.");
 
-        // A choice is stored as the server spells it. Compared as letters only, so "Can't", "for a
+        // A choice is stored as the roll spells it. Compared as letters only, so "Can't", "for a
         // price" and "Some Work" find Cant, ForAPrice and SomeWork.
         string? choice = null;
         if (target.Choices is not null)
@@ -142,7 +142,7 @@ public sealed class SceneDraft(string scene, IReadOnlyList<RollField> fields)
     private string Typed(Words.Sentence sentence, int at, int count) =>
         scene[sentence.Words[at].Start..sentence.Words[at + count - 1].End];
 
-    // The Ask fields nobody has answered yet, in the server's order: what the interview must ask the GM
+    // The Ask fields nobody has answered yet, in the roll's order: what the interview must ask the GM
     // before anything can be confirmed (ADR-010, decision 1).
     public IReadOnlyList<RollField> StillToAsk =>
         [.. fields.Where(f => f.WhenMissing == WhenMissing.Ask && !_answers.ContainsKey(f.Name))];
@@ -163,7 +163,7 @@ public sealed class SceneDraft(string scene, IReadOnlyList<RollField> fields)
         return Accept(field, new Answer(typed.Trim(), Label.MyWords, new Asked()));
     }
 
-    // Every field in the server's order. An answer keeps its label and evidence; a NotGiven field with
+    // Every field in the roll's order. An answer keeps its label and evidence; a NotGiven field with
     // no answer is [not given] with no value; a Roll field is left to the dice (ADR-010, decision 1).
     // An Ask field with no answer is a hole the interview must have filled, so it throws: a confirmation
     // or a roll with a hole cannot be built.
@@ -179,8 +179,8 @@ public sealed class SceneDraft(string scene, IReadOnlyList<RollField> fields)
             }),
     ];
 
-    // roll_character's arguments. A rolled field is left out, so the server's dice pick it; a NotGiven
-    // field with no answer goes as null, the key present, so the server takes it as "not given".
+    // roll_character's arguments. A rolled field is left out, so the dice pick it; a NotGiven
+    // field with no answer goes as null, the key present, so the roll takes it as "not given".
     public Dictionary<string, object?> RollArguments() =>
         Lines()
             .Where(line => line.Label != Label.Rolled)

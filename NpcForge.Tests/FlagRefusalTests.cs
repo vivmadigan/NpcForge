@@ -23,7 +23,7 @@ public class FlagRefusalTests
         Assert.DoesNotContain("[loop]", run.Stderr);
     }
 
-    // ADR-009: the parser takes any text for --tone, so the server's roll is what refuses 7. The run stops
+    // ADR-009: the parser takes any text for --tone, so the roll is what refuses 7. The run stops
     // there, by the field's name, before the writer is called. The replay provider and the dead proxy keep
     // it free; the recording is never read, because no model call is made.
     [Theory]
@@ -40,6 +40,24 @@ public class FlagRefusalTests
 
         Assert.NotEqual(0, run.ExitCode);
         Assert.Contains($"{reason} is not one of its values", run.Stderr);
+        Assert.DoesNotContain("[loop]", run.Stderr);
+        Assert.DoesNotContain("[app] brief", run.Stderr);
+    }
+
+    // ADR-016: a choice the field does not have ends the run with one line that names the field and its
+    // values, exit code 1 and no stack trace. Before, --tone grumpy ended in an unhandled exception.
+    // Program.cs catches the refusal once, around the lab too; LabRunTests holds that the lab lets it out.
+    [Fact]
+    public async Task A_choice_the_roll_does_not_have_stops_the_run_with_one_line_and_exit_1()
+    {
+        var run = await ConsoleProcess.RunAsync(
+            ["--provider", "replay", "--recording", RecordedRun.Fixture, "--tone", "grumpy"], offline: true);
+
+        Assert.Equal(1, run.ExitCode);
+        var lines = run.Stderr.ReplaceLineEndings().Split(Environment.NewLine).ToList();
+        Assert.Contains("[app] not rolled: tone grumpy is not one of its values: Serious, Comic, Heartfelt.", lines);
+        Assert.DoesNotContain("Unhandled exception", run.Stderr);
+        Assert.DoesNotContain(lines, line => line.TrimStart().StartsWith("at "));
         Assert.DoesNotContain("[loop]", run.Stderr);
         Assert.DoesNotContain("[app] brief", run.Stderr);
     }

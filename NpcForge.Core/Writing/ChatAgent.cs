@@ -4,7 +4,7 @@ using System.Text.Json;                 // JsonDocument
 namespace NpcForge;
 
 // Build the loop with the tool source it is given, run it, return the answer. It never
-// knows whether the tools are fake or MCP; that is IToolSource's job. The brief arrives
+// knows whether the tools are a test's fake or the writer's own; that is IToolSource's job. The brief arrives
 // already rolled: rolling is Program.cs's business, not the loop's.
 
 public static class ChatAgent

@@ -1,17 +1,13 @@
 using System.Text.Json;
-using System.Text.Json.Serialization;  // JsonIgnore
 
 namespace NpcForge;
 
 // One saved run. The model writes differently each time, so the name the namer gave and the
 // text are saved beside the brief. The brief stays the JSON it was saved as: an old entry is never passed
 // through CharacterBrief, so a field added to the brief later cannot appear in it (ADR-009).
-// An old save has no name. Null is left out of the file, so an old entry keeps its bytes when
-// the file is written back.
-public sealed record SavedCharacter(
-    JsonElement Brief,
-    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] CharacterName? Name,
-    string Text)
+// An old save has no name, and Name is null. How a store keeps that is the store's own rule: the file
+// leaves the key out, so an old entry keeps its bytes when the file is written back (ADR-015, decision 5).
+public sealed record SavedCharacter(JsonElement Brief, CharacterName? Name, string Text)
 {
     // A new save: the typed brief as the JSON it is kept as, written with the options BriefJson.Of
     // writes the writer's text with (ADR-015, decision 5). The indentation belongs to the file that

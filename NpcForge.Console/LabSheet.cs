@@ -8,7 +8,7 @@ namespace NpcForge;
 public sealed record LabEntry(string Label, int Take, string Skill, string? Text, string? Failure);
 
 // The lab's sheets: pure functions from entries to text, so they are tested with no model and no
-// server. Lab.cs decides what is written; this decides how it reads.
+// dice. Lab.cs decides what is written; this decides how it reads.
 public static class LabSheet
 {
     // A blind sheet names its characters A to Z.

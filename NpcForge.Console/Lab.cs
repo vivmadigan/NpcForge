@@ -10,8 +10,8 @@ public sealed record LabVariant(string Label, string? SkillDir, float? Temperatu
 
 // What --lab says: one axis and the values to compare on it. Parsed in one place so the flag parser
 // can refuse a bad one before any model client is built, and the lab reads the same plan after.
-// A tone plan with no variants means "every tone the server has": the schema says which, and the
-// parser has not seen it, so the lab fills them in.
+// A tone plan with no variants means "every tone the roll has": the schema says which, and the
+// parser does not read it, so the lab fills them in.
 public sealed record LabPlan(string Axis, IReadOnlyList<LabVariant> Variants)
 {
     private static readonly string[] Axes = ["skill", "temperature", "tone"];
@@ -51,7 +51,7 @@ public sealed record LabPlan(string Axis, IReadOnlyList<LabVariant> Variants)
         _ => "temperature=0.2,0.9",
     };
 
-    // Typed names, checked against the schema's tones by the lab once the server is connected.
+    // Typed names, checked against the schema's tones by the lab, before any model call.
     private static LabPlan ToneVariants(string[] names)
     {
         var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -110,7 +110,7 @@ public static class Lab
     private sealed record Planned(LabVariant Variant, int Take, string BriefJson, string SystemText, string SkillLine);
 
     // --score: reads a finished blind lab, asks for a guess per letter, and writes scored.md. It
-    // needs no model, no key and no server, so Program.cs runs it before any of them exist. The
+    // needs no model, no key and no dice, so Program.cs runs it before any of them exist. The
     // dialogue goes to `dialogue` (stderr) and the result to `result` (stdout), like a run.
     public static async Task ScoreAsync(
         string folder, TextReader input, TextWriter dialogue, TextWriter result, CancellationToken ct)
@@ -142,7 +142,7 @@ public static class Lab
         dialogue.WriteLine($"[score] written to {Path.Combine(folder, "scored.md")}");
     }
 
-    // The tone axis, filled in from the schema: no names given means every tone the server has, and a
+    // The tone axis, filled in from the schema: no names given means every tone the roll has, and a
     // name is matched to the schema's own spelling, so --lab tone=comic labels its variant Comic.
     private static List<LabVariant> ToneVariants(LabPlan plan, IReadOnlyList<RollField> fields)
     {
@@ -162,7 +162,7 @@ public static class Lab
     // Returns where the sheet is, with Folder null when the lab stopped before any sheet was written.
     // Whatever the lab throws, a folder it made itself and left empty is removed again.
     public static async Task<LabOutcome> RunAsync(
-        IChatClient client, ChatOptions options, McpToolSource tools, RunOptions run, TextReader input, CancellationToken ct)
+        IChatClient client, ChatOptions options, Dice dice, RunOptions run, TextReader input, CancellationToken ct)
     {
         var plan = run.Lab ?? throw new ArgumentException("Lab.RunAsync needs a --lab run.");
         var blind = run.Mode == "blind";
@@ -175,7 +175,7 @@ public static class Lab
         foreach (var skillPath in skillDirs.Select(dir => Path.Combine(dir, "SKILL.md")))
             if (!File.Exists(skillPath))
                 throw new FileNotFoundException($"The skill {skillPath} is missing.", skillPath);
-        var fields = RollField.ListFrom(tools.SchemaOf("roll_character"));
+        var fields = Dice.Fields;
         ToneFiles.Require(fields, skillDirs);
 
         var variants = plan.Axis == "tone" ? ToneVariants(plan, fields) : plan.Variants;
@@ -192,11 +192,11 @@ public static class Lab
         LabOutcome outcome;
         try
         {
-            outcome = await RunInFolderAsync(client, options, tools, run, input, plan, blind, variants, folder, ct);
+            outcome = await RunInFolderAsync(client, options, dice, run, input, plan, blind, variants, folder, ct);
         }
         catch
         {
-            // A replay mismatch, a 500 from the namer, a crash: none of them leaves the empty folder
+            // A replay mismatch, a 500 from the namer, a refused roll, a crash: none of them leaves the empty folder
             // this call made. A folder with anything in it, or one that was there before, stays.
             RemoveIfMadeAndEmpty(folder, madeFolder);
             throw;
@@ -215,7 +215,7 @@ public static class Lab
     }
 
     private static async Task<LabOutcome> RunInFolderAsync(
-        IChatClient client, ChatOptions options, McpToolSource tools, RunOptions run, TextReader input,
+        IChatClient client, ChatOptions options, Dice dice, RunOptions run, TextReader input,
         LabPlan plan, bool blind, IReadOnlyList<LabVariant> variants, string folder, CancellationToken ct)
     {
         var probe = Path.Combine(folder, $".npcforge-probe-{Guid.NewGuid():N}");
@@ -230,16 +230,16 @@ public static class Lab
             return new LabOutcome(null);    // an old lab's folder is not ours to remove, and it is not empty
         }
 
-        // The roll is free, and the system message needs the brief's tone. The seed is the server's,
-        // so every variant is written from this one brief.
-        var briefJson = await tools.CallDirectAsync("roll_character", run.RollArguments(), ct);
+        // The roll is free, and the system message needs the brief's tone. The dice are the run's,
+        // under its seed, so every variant is written from this one brief.
+        var briefJson = BriefJson.Of(dice.Roll(run.RollArguments()));
 
-        // A tone variant's brief is the same brief with its tone replaced, rolled by the server with
+        // A tone variant's brief is the same brief with its tone replaced, rolled by the dice with
         // every field handed back in: the console never writes a brief, and no die lands differently.
         var briefs = new Dictionary<string, string>();
         foreach (var variant in variants)
             briefs[variant.Label] = variant.Tone is { } tone
-                ? await tools.CallDirectAsync("roll_character", BriefJson.WithField(briefJson, "tone", tone), ct)
+                ? BriefJson.Of(dice.Roll(BriefJson.WithField(briefJson, "tone", tone)))
                 : briefJson;
 
         // Every skill is read now, so an unreadable one stops the lab here and not after the first
@@ -331,7 +331,7 @@ public static class Lab
                 var writer = new WriterInput(item.BriefJson, null, item.Variant.SkillDir ?? WriterInput.DefaultSkillDir, name);
                 try
                 {
-                    var text = (await ChatAgent.WriteAsync(client, variantOptions, tools, writer, ct)).Text;
+                    var text = (await ChatAgent.WriteAsync(client, variantOptions, CharacterRun.WriterTools, writer, ct)).Text;
                     entries.Add(new LabEntry(item.Variant.Label, item.Take, item.SkillLine, text, null));
                 }
                 catch (SpendingCapReachedException)

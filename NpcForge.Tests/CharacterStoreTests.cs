@@ -1,6 +1,5 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
-using NpcForge.Server;
 
 namespace NpcForge.Tests;
 
@@ -149,7 +148,7 @@ public abstract class CharacterStoreTests
 
 public sealed class FileCharacterStoreTests : CharacterStoreTests, IDisposable
 {
-    // A temp file, never NpcForge.Server/characters.json, and a path handed to the store, so no
+    // A temp file, never NpcForge.Console/characters.json, and a path handed to the store, so no
     // NPCFORGE_CHARACTERS is set.
     private readonly string _path = Path.Combine(Path.GetTempPath(), $"npcforge-store-{Guid.NewGuid():N}.json");
 
@@ -157,11 +156,13 @@ public sealed class FileCharacterStoreTests : CharacterStoreTests, IDisposable
 
     protected override ICharacterStore Store { get; }
 
+    // A hand edit, as the owner would make one: the entry's key taken out of the file, which nothing in
+    // the store is told about.
     protected override void Remove(int number)
     {
-        var all = Storage.Load(_path);
-        all.Remove(number);
-        Storage.Save(_path, all);
+        var all = JsonNode.Parse(File.ReadAllText(_path))!.AsObject();
+        all.Remove(number.ToString());
+        File.WriteAllText(_path, all.ToJsonString());
     }
 
     public void Dispose() => File.Delete(_path);

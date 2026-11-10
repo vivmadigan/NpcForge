@@ -3,7 +3,7 @@ using Microsoft.Extensions.AI;
 namespace NpcForge.Tests;
 
 // The whole app as a process, naming a character (ADR-009 decision 4). No fixture holds a namer, so
-// each test first makes its own recording: the real server rolls the brief, and a stand-in model
+// each test first makes its own recording: the real dice roll the brief, and a stand-in model
 // plays the namer and the writer through RecordingChatClient. The app then replays that recording,
 // free and offline, and the test reads what a user sees: the trace, the answer and the save.
 [Trait("Category", "Process")]
@@ -70,18 +70,15 @@ public class NamedRunTests
         {
             var run = RunOptions.Parse(flags);
             var file = Path.Combine(Path.GetTempPath(), $"npcforge-named-{Guid.NewGuid():N}.jsonl");
-            var rollSave = Path.Combine(Path.GetTempPath(), $"npcforge-named-roll-{Guid.NewGuid():N}.json");
 
-            await using var tools = new McpToolSource(rollSave, run.Seed);
-            await tools.ConnectAsync(CancellationToken.None);
-            var brief = await tools.CallDirectAsync("roll_character", run.RollArguments(), CancellationToken.None);
+            var brief = BriefJson.Of(new Dice(run.Seed).Roll(run.RollArguments()));
 
             // The options Program.cs builds, so the replay compares like with like.
             var options = new ChatOptions { ModelId = run.Model, MaxOutputTokens = 5000 };
             var client = new RecordingChatClient(model, file, run.RecordedFlags());
             try
             {
-                await ChatAgent.WriteAsync(client, options, tools, new WriterInput(brief, null, WriterInput.DefaultSkillDir), CancellationToken.None);
+                await ChatAgent.WriteAsync(client, options, CharacterRun.WriterTools, new WriterInput(brief, null, WriterInput.DefaultSkillDir), CancellationToken.None);
             }
             catch (NoNameException)
             {

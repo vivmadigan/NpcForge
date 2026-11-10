@@ -1,8 +1,8 @@
 namespace NpcForge;
 
-// The tone files beside a skill (ADR-009 section 3). The server owns the list of tones, so the
-// console reads it from roll_character's schema and keeps no copy: a tone added on the server is a
-// missing file here until someone writes it, and that stops a run before it is paid for.
+// The tone files beside a skill (ADR-009 section 3). The roll owns the list of tones, so the
+// console reads it from roll_character's schema (Dice.Fields) and keeps no copy: a tone added to the
+// roll is a missing file here until someone writes it, and that stops a run before it is paid for.
 public static class ToneFiles
 {
     // Where a skill folder keeps the file for one tone. The one place the path is built, so the
@@ -28,6 +28,6 @@ public static class ToneFiles
         if (missing.Count > 0)
             throw new InvalidOperationException(
                 $"Tone file missing, so nothing was run: {string.Join(", ", missing)}. " +
-                "Every tone the server rolls needs a file in each skill folder's tones folder.");
+                "Every tone the dice roll needs a file in each skill folder's tones folder.");
     }
 }

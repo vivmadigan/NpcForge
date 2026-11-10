@@ -1,7 +1,7 @@
 namespace NpcForge.Tests;
 
 // --score reads a finished blind lab and calls no model. In process through Lab.ScoreAsync for the
-// dialogue and the sheet, and as the whole app for "needs no key and no server".
+// dialogue and the sheet, and as the whole app for "needs no key and no dice".
 public class LabScoreTests : IDisposable
 {
     private readonly string _folder = Path.Combine(Path.GetTempPath(), $"npcforge-score-{Guid.NewGuid():N}");
@@ -74,11 +74,11 @@ public class LabScoreTests : IDisposable
     }
 
     // The whole app: no API key (the child has none in its user secrets here and a dead proxy), no
-    // server, and the offline stop set. The only things it may do are read the folder and write
+    // dice, and the offline stop set. The only things it may do are read the folder and write
     // scored.md.
     [Fact]
     [Trait("Category", "Process")]
-    public async Task The_app_scores_with_no_key_and_no_server()
+    public async Task The_app_scores_with_no_key_and_no_dice()
     {
         var key = BlindLab();
 
@@ -87,8 +87,8 @@ public class LabScoreTests : IDisposable
         Assert.True(run.ExitCode == 0, run.Stderr);
         Assert.Equal("5 of 6 right", run.Stdout.Trim());
         Assert.True(File.Exists(Path.Combine(_folder, "scored.md")));
-        // No server was started, no key was read and no client was built.
-        Assert.DoesNotContain("[server]", run.Stderr);
+        // No dice were built, no key was read and no client was built.
+        Assert.DoesNotContain("[app] dice", run.Stderr);
         Assert.DoesNotContain("Missing user secret", run.Stderr);
         Assert.DoesNotContain("NPCFORGE_OFFLINE=1 is set", run.Stderr);
     }

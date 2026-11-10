@@ -1,20 +1,16 @@
-using NpcForge.Server;
-
 namespace NpcForge.Tests;
 
-// The owner's save file, guarded through the port. StorageTests holds the same promises today by calling
-// Storage and CharacterTools, which the behavior PR deletes with NpcForge.Server (ADR-014, decision 9), and
-// until then it stays as it is. This file is the guard that replaces StorageTests when the server goes
-// (ADR-014, ADR-015): it drives FileCharacterStore by a path handed to it, with no NPCFORGE_CHARACTERS, so
-// it still holds once the store is the console's. ADR-009: an old entry is written back as the JSON it was
-// saved as, so a field added to the brief later never shows up in it. It runs on a temp copy of the real
-// characters.json, never the original.
+// The owner's save file, guarded through the port. It drives FileCharacterStore by a path handed to it,
+// with no NPCFORGE_CHARACTERS. It replaced StorageTests when the server, whose Storage and CharacterTools
+// those tests called, was retired (ADR-014, ADR-015). ADR-009: an old entry is written back as the JSON it
+// was saved as, so a field added to the brief later never shows up in it. It runs on a temp copy of the
+// real characters.json, never the original.
 public class SaveFileGuardTests
 {
     private static readonly CancellationToken Ct = CancellationToken.None;
 
     private static string RealSaves =>
-        Path.Combine(ConsoleProcess.RepoRoot, "NpcForge.Server", "characters.json");
+        Path.Combine(ConsoleProcess.RepoRoot, "NpcForge.Console", "characters.json");
 
     [Fact]
     public async Task Saving_a_new_character_through_the_store_leaves_every_old_entry_byte_for_byte()
