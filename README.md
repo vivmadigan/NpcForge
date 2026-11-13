@@ -125,7 +125,8 @@ the writer, the interview and the save rules, and the console calls it in-proces
 will. Saving sits behind a store a database can replace, and the MCP server it started with is
 retired. A field the dice cannot read, such as `--tone grumpy`, stops the run with one line naming
 the field and its values. The free tests run in about 25 s, and the part that starts no process in a
-few seconds. Next: the website with logins and a database so friends can use it, and later editing
+few seconds. Next: the website's pages on made-up data, then logins and a database so friends can
+use it, and later editing
 a saved character. See [ROADMAP.md](ROADMAP.md).
 
 ## Out of scope, for now

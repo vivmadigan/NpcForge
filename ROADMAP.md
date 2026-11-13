@@ -35,22 +35,117 @@ Two rules for every epic, now that the Safety net exists:
 
 | # | Epic | In one line |
 | --- | --- | --- |
-| 6 | Friends can use it | A website with logins and a database, deployed |
+| 12 | A front end to click through | Two pages on made-up data, with the look of a forge. No backend yet |
+| 6 | Friends can use it | The front end gets logins, a database and a spending cap, deployed |
 | 11 | Change a saved character | Change a saved character without starting over. For later |
 
-Epics 6 and 11 are drafts: sharpen each one before it starts. Epic 11 waits until after the
+Epic 12 comes first, because its pages decide what epic 6's API has to serve. Epic 6 has choices
+still open, listed in it. Epic 11 is a draft: sharpen it before it starts. It waits until after the
 website.
 
-## 6. Friends can use it (draft)
+## 12. A front end to click through
 
-**Goal.** A few friends can log in to a website, describe a scene, and get and keep their own
-characters.
+**Goal.** A simple front end that matches what the console already does, but is not connected to the
+core yet. Two pages. On the first I describe a scene and the agent replies on the same page: it
+confirms the brief, shows the character, and lets me save or roll again. The second lists my saved
+characters and opens one. It feels like a forge in a dungeon: dark, with red.
 
-**Constraints.** Each person sees only their own characters. Secrets stay out of the repo. Model
-spending is capped, because every friend's run costs me money.
+**Constraints.**
+- No backend, no database, no logins and no model call. The data is made up and lives in the front
+  end, behind one seam shaped like the API epic 6 will build, so epic 6 replaces that seam and not
+  the pages.
+- The made-up data is copied from real runs, so the pages are judged on a full-length sheet: the
+  characters from `NpcForge.Console/characters.json`, and the brief and its labels from
+  `docs/runs/raw/2026-11-08-01-epic4-bakery-roll-again.md`.
+- No file in `NpcForge.Core`, `NpcForge.Console` or `NpcForge.Tests` changes, and `dotnet test`
+  still passes.
+- The pages show what the console shows: the brief's fields marked as my words, inferred, not given
+  or rolled, with the words each one came from; the character sheet; and save, again or leave.
+- The sheet is the model's Markdown. The page renders it as Markdown and never cuts it up or reads
+  meaning out of it (AGENTS.md, "Never parse the model's prose").
+- Simple. Two pages, no more.
+- The look starts from the sketch I picked, `docs/design/epic-12-sketch.html`: a pixel frame, pixel
+  headings and buttons, and the character sheet in a book typeface on parchment, so it stays easy to
+  read aloud. Colours and type are set once, in one place.
+- ADR-014 names a React app. The rest of the toolchain, including what runs the browser test and
+  where that test lives, is settled by a design check and an ADR before any page is built.
 
-**Done when.** A friend can log in on the deployed site, make a character, log out and back in, and
-find it there.
+**Done when.**
+- One command starts it locally (*needs my eyes* too, as it is a new way to start the app).
+- A browser test walks the whole flow on the made-up data: describe a scene, confirm the brief, read
+  the character, roll again, save, open the saved list, open a character. A second run ends with
+  leave and saves nothing.
+- A test shows a saved character's sheet on the page with every word of its text, in order.
+- Each state can be opened directly on the made-up data, and a screenshot of each at phone and
+  desktop width is committed in `docs/design/epic-12/`: the wait while a character is written, the
+  interviewer asking for a missing place or role, the brief turned down, no name found for the dice,
+  the spending cap reached, an empty saved list and a long one.
+- An automated check passes for text contrast on every page, at WCAG AA.
+- `docs/design/epic-12-api-needs.md` lists what each page needs from an API. It is the input to
+  epic 6.
+- How dark, how much red and how much pixel (*needs my eyes*).
+- How each page looks and reads at phone and desktop width (*needs my eyes*).
+
+**Open, mine to decide.** Each has a default, so the work can start.
+- Phones, computers or both. Until I decide, both.
+- Whether anything moves or makes a sound. Until I decide, nothing does.
+- The project's name. Until I decide, NpcForge.
+- Whether the page shows the rolled brief beside the character. The console prints it, and the
+  confirmation does not show rolled values. Until I decide, it does.
+
+**Not in this epic.** Logins, a real API, saving for real, deployment and spending (epic 6).
+
+## 6. Friends can use it
+
+**Goal.** A few friends I invite log in to the website, describe a scene, and get and keep their own
+characters. It stops before it costs me more than a cap I set, with the model vendor's own limit
+behind that.
+
+**Constraints.**
+- Only people I invite can sign up.
+- Each person sees only their own characters.
+- Spending is capped for each person and in total, on the server, with a limit at the model vendor
+  as a backstop.
+- Secrets stay out of the repo.
+- The website's API calls `NpcForge.Core` in-process (ADR-014), and the console keeps working as it
+  does today.
+- The model is sent what the console sends it.
+- The core gains the two entries ADR-014 names: an interview that takes one answer and returns the
+  next question, and a way for a run to report progress. The restructure and behavior rules at the
+  top of this file apply.
+- It serves the pages from epic 12. A page changes only where the real API forces it.
+- A design check sets out the options for each open choice below, I choose, and an ADR records it
+  before anything is built.
+
+**Done when.**
+- The database store passes the same `CharacterStoreTests` as the file store.
+- A test shows two saves at the same moment get different numbers (ADR-015).
+- A test logs in as two people and fails if one can read, list or load the other's character. Show
+  it failing with the owner filter removed.
+- A test shows a run refused, with no model call, once a person's cap or the total cap is reached.
+- A test shows a sign-up by someone not invited is refused.
+- The replay and roll-again tests pass on the unchanged fixtures.
+- A browser test against the site running locally, on a stand-in model, logs in, makes a character,
+  logs out and back in, and finds it.
+- On the deployed site, a test logs in and lists that person's saves, with no model call.
+- A friend makes and keeps a character on their own device with a paid model (*needs my eyes*).
+- The model vendor's billing page after a week of use (*needs my eyes*).
+
+**Open, mine to decide.**
+- Where it is hosted and which database.
+- How friends log in, and who is invited.
+- The cap for each person and in total, the period it covers, and which model friends get.
+- Whether my console saves stay in the file or move to the database.
+- Who opens the hosting and database accounts, and who deploys. Until I decide: I open the accounts
+  and hold the keys, and an agent asks before each deploy, with the command.
+
+**Tasks.**
+- ADR: the open choices, and the API the pages from epic 12 need.
+- The API, the database store and logins, tested locally on a stand-in model.
+- Deploy that, with the invite list and both caps, before a paid model is switched on.
+- Connect the pages. The first paid run by a friend.
+
+**Not in this epic.** Changing a saved character (epic 11). Sharing characters between friends.
 
 ## 11. Change a saved character (draft, for later)
 
