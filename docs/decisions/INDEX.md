@@ -50,7 +50,7 @@ Decision, Why, Consequences.
 - [ADR-014 One core, called in-process, with saves behind a port; the MCP server retires](ADR-014-one-core-called-in-process.md) — accepted 2026-11-08; supersedes ADR-012; three lines amended by ADR-015
 - [ADR-015 A store never gives a save a number one already holds, and the guards outlive the server](ADR-015-store-numbers-and-guards.md) — accepted 2026-11-08
 - [ADR-016 The console calls the core in-process: the roll refuses by name, and the shapes as built](ADR-016-console-calls-the-core.md) — accepted 2026-11-10; supersedes the INDEX lines on starting the server and on traces
-- [ADR-017 The front end is a Vite and React app in `NpcForge.Web`, on made-up data behind one seam](ADR-017-front-end-toolchain-and-seam.md) — accepted 2026-11-14
+- [ADR-017 The front end is a Vite and React app in `NpcForge.Web`, on made-up data behind one seam](ADR-017-front-end-toolchain-and-seam.md) — accepted 2026-11-14; amends the INDEX line on tests
 
 ADR-004 was reserved for the server layers by a plan that no longer exists, and was never written.
 Older records mention plan versions and `PLAN.md`; those are in git at commit `cd20b60`.

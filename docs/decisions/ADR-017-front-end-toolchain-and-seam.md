@@ -79,8 +79,8 @@ What runs the browser test, and where:
   the contrast and the screenshots. Chosen.
 
 How the sheet is rendered:
-- **`marked` or `markdown-it`, a sanitizer, and `dangerouslySetInnerHTML`.** Two packages and an HTML
-  sink, for what one package does without the sink.
+- **`marked` or `markdown-it`, a sanitizer, and `dangerouslySetInnerHTML`.** Two packages and a way
+  to put raw HTML on the page, for what one package does without it.
 - **`react-markdown` with no plugins.** Chosen, and proven on the real saves.
 
 How a state is opened directly:
@@ -160,9 +160,11 @@ name is NpcForge. The rolled brief is shown beside the character.
    ES2022, `module` ESNext, `moduleResolution` bundler, `skipLibCheck`, `resolveJsonModule` and
    `"types": ["vite/client"]`, and includes `src`, `tests` and `playwright.config.ts`.
 
-   `saves.json` is a file copy, never retyped, because eight sheets end lines with two spaces that
-   Markdown reads as a line break and the word test cannot see one dropped. It is imported with
-   `with { type: 'json' }`. It stays at these 16 saves when the owner saves more.
+   `saves.json` is the file as it stands at commit `e3ac16e`, which holds 16 saves
+   (`git show e3ac16e:NpcForge.Console/characters.json`). It is a file copy, never retyped, because
+   eight sheets end lines with two spaces that Markdown reads as a line break, and the word test
+   cannot see one dropped. It is imported with `with { type: 'json' }`. It stays at these 16 saves
+   when the owner saves more.
 
    No folder under `NpcForge.Web/` is named `bin`, `obj`, `out`, `log`, `logs`, `debug`, `release`,
    `publish` or `artifacts`, because the root `.gitignore` would hide it. `git check-ignore -v <path>`
@@ -177,12 +179,12 @@ name is NpcForge. The rolled brief is shown beside the character.
    browser. `NpcForge.Tests` and `dotnet test` do not change, and `dotnet test` never starts Node.
 
 3. **The seam is `src/api.ts`**, which holds its types and six async functions. It is the only place
-   a page gets data. The types are what a page needs, not a wire format. In epic 12 the bodies read
-   the made-up data. In epic 6 the same signatures call `NpcForge.Api` and parse its JSON into the
-   same types. The sketch below gives the signatures only.
+   a page gets data. The types are what a page needs, not the JSON the API will send. In epic 12
+   the bodies read the made-up data. In epic 6 the same signatures call `NpcForge.Api` and parse its
+   JSON into the same types. The sketch below gives the signatures only.
 
    ```ts
-   // Ids are opaque. A page passes one back and never reads it.
+   // A page passes an id back and never reads it.
    export type InterviewId = string;
    export type DraftId = string;
 
@@ -193,9 +195,10 @@ name is NpcForge. The rolled brief is shown beside the character.
    // scene carries the GM's words and the sentence they came from. An answer the GM typed when asked
    // has no quote, and the console shows it as "typed when asked" (ADR-010, decision 4). A rolled
    // field shows no value before the yes.
+   export type Quoted = { quote: string; sentence: string };
    export type ConfirmField =
-     | { field: string; label: 'my words' | 'inferred'; value: string;
-         from: { quote: string; sentence: string } | 'typed when asked' }
+     | { field: string; label: 'my words'; value: string; from: Quoted | 'typed when asked' }
+     | { field: string; label: 'inferred'; value: string; from: Quoted }
      | { field: string; label: 'not given' | 'rolled'; note: string };
 
    export type InterviewStep =
@@ -262,10 +265,11 @@ name is NpcForge. The rolled brief is shown beside the character.
    one table of named states, typed against those unions, so a state that no longer fits its page
    fails `tsc`. Each entry holds the path it opens on, such as `/`, `/saved` or `/saved/9`, and the
    state's value, so the table alone gives a state's address. `main.tsx` reads `?state=<name>` and
-   gives that value to the page as its starting state. A name the table lacks shows "No state named <name>", not the default page. The table holds
-   at least the seven states the epic names: the wait while a character is written, the interviewer
-   asking for a missing place or role, the brief turned down, no name found for the dice, the
-   spending cap reached, an empty saved list and a long one. `states.spec.ts` takes its list from
+   gives that value to the page as its starting state. A name the table lacks, or one opened on
+   another path than its own, shows "No state named <name>" and not the default page. The table
+   holds at least the seven states the epic names: the wait while a character is written, the
+   interviewer asking for a missing place or role, the brief turned down, no name found for the
+   dice, the spending cap reached, an empty saved list and a long one. `states.spec.ts` takes its list from
    the table's keys, so a new state is checked and photographed with no second list to edit.
    `npm run screenshots` writes `docs/design/epic-12/<state>-<phone|desktop>.png`, full page, after
    the fonts have loaded. `npm test` never rewrites those files.
@@ -289,8 +293,8 @@ name is NpcForge. The rolled brief is shown beside the character.
    ```
 
    `start` is for a person. `dev` is the same server for Playwright, which must not install or open
-   a browser tab on every test run. `--strictPort` makes Vite stop with an error when port 5173 is
-   taken, so the app is never on some other port than the one this record and the tests name.
+   a browser tab on every test run. With `--strictPort`, Vite stops with an error when port 5173 is
+   taken. Without it Vite would pick another port, and the tests would look for the app on 5173.
 
 ## Why
 
@@ -300,9 +304,9 @@ name is NpcForge. The rolled brief is shown beside the character.
   parsed into the page's types in one file).
 - **Outcomes as values.** The cap, a missing name and a question are each a `kind` the page must
   draw, so each state the epic lists is a case the compiler knows (principle-model-the-domain).
-- **States as values of the page, not of the made-up data.** They are typed against the page, they
-  open by address, and they still work after epic 6 replaces the seam, when the cap and the missing
-  name cannot be reached on a real API without a stand-in model.
+- **States as values of the page, not of the made-up data.** They are typed against the page and
+  open by address. They also still work after epic 6 replaces the seam. On a real API the cap and
+  the missing name cannot be reached without a stand-in model.
 - **One runner, in the front end's folder.** The test sits beside the code it tests and costs
   `dotnet test` nothing (principle-subtract-before-you-add).
 - **The renderer chosen on evidence.** The every-word check ran on the real saves before the choice
@@ -326,7 +330,6 @@ Each has a default, so the build can start. All are taste, so none is decided he
   Default: leave it, and judge it in the first screenshots.
 - **A way to start it from Visual Studio or VS Code.** Default: none. The terminal command is the
   one way.
-
 - **Whether the named states and the made-up data outlive epic 6.** Epic 6's design check decides.
 
 ## Consequences
