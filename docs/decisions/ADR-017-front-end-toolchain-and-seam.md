@@ -2,9 +2,9 @@
 
 - **Status:** accepted
 - **Date:** 2026-11-14
-- **Supersedes:** nothing. It fills in what ADR-014 left open when it named "a React app", and it
-  adds a second free test suite beside the INDEX line "Tests: xUnit, free", which stands for the
-  .NET code.
+- **Supersedes:** no record. It fills in what ADR-014 left open when it named "a React app". It
+  amends the INDEX line on tests, which named xUnit alone and now names the front end's own free
+  suite beside it.
 
 ## Context
 
@@ -30,7 +30,9 @@ the designs rested on. They showed:
   saves in `NpcForge.Console/characters.json` and the newest sheet from
   `docs/runs/raw/2026-11-08-01-epic4-bakery-roll-again.md`. The words on the page equalled the words
   of the source, in order, for all 17 (word pattern `[\p{L}\p{N}]+`). A gap such as
-  `[who keeps stealing the croissants]` stayed plain text, and raw HTML came out escaped.
+  `[who keeps stealing the croissants]` stayed plain text, and raw HTML came out escaped. The same
+  check then ran in a real browser on the 16 saves at both widths and passed 32 of 32. With only a
+  sheet's first paragraph rendered it failed and named the missing words.
 - **The contrast check works, and the sketch fails it once.** `@axe-core/playwright` 4.14.0 under
   `@playwright/test` 1.65.0 flagged the sketch's `SAVED: 16` colour, `#8a6a55` on `#120a0a`, at
   3.98:1 against the 4.5:1 that WCAG AA asks of small text. It did so at phone and desktop width,
@@ -39,7 +41,12 @@ the designs rested on. They showed:
 - **The smallest toolchain runs.** Vite 8.3.8 served a React 19.3.1 and TypeScript 7.0.2 app with no
   `vite.config.ts` and no React plugin. Playwright started that dev server itself, opened a deep path
   (`/saved/3`), and passed at both widths. A font bundled from `@fontsource` loaded, and the page
-  made no request to another host. `tsc --noEmit` passed over the app and the tests.
+  made no request to another host. `tsc --noEmit` passed over the app and the tests with the compiler
+  options in decision 1, and failed inside Playwright's own type files with `strict` and `jsx` alone.
+- **A JSON file needs an import attribute.** Playwright refused `import saves from './saves.json'`
+  in a test until it read `with { type: 'json' }`. Vite and `tsc` accept the same line.
+- **IM Fell English has one weight.** Its `@fontsource` package ships 400 and 400 italic only. Press
+  Start 2P ships 400 only.
 - **The start command.** `npm start` runs a `prestart` script first, also through
   `npm --prefix <folder> start`. `npm install` on a folder already installed took 2 to 3 seconds and
   worked offline.
@@ -47,7 +54,7 @@ the designs rested on. They showed:
   `--grep-invert`, and wrote its image outside the project folder.
 - **What git ignores.** The root `.gitignore` ignores `node_modules/`. It does not ignore Playwright's
   `test-results/`, which appears on every run, or `dist/`. It ignores any folder named `bin`, `obj`,
-  `out`, `log`, `logs`, `debug`, `release`, `publish` or `artifacts`, at any depth.
+  `out`, `log`, `logs`, `debug`, `release`, `publish` or `artifacts`, at any depth, among others.
 
 ## Options considered
 
@@ -104,6 +111,10 @@ Smaller choices, and what lost:
 
 ## Decision
 
+The epic's four defaults hold until the owner decides otherwise. The pages work at phone and
+desktop width. Nothing moves or makes a sound, so the wait is a still screen with no spinner. The
+name is NpcForge. The rolled brief is shown beside the character.
+
 1. **The toolchain.** A Vite 8, React 19 and TypeScript 7 app in `NpcForge.Web/` at the repo root,
    with npm. The name follows `NpcForge.Console` and epic 6's `NpcForge.Api`. The folder holds no
    `.csproj` and is not in `NpcForge.slnx`. TypeScript is strict and only checks: `tsc --noEmit`.
@@ -123,7 +134,7 @@ Smaller choices, and what lost:
    NpcForge.Web/
      package.json, package-lock.json
      .gitignore            test-results/, playwright-report/, dist/
-     tsconfig.json         strict; "jsx": "react-jsx", which Vite reads
+     tsconfig.json         the compiler options listed under this map
      playwright.config.ts  starts `npm run dev`; two projects, phone and desktop
      index.html
      src/
@@ -136,7 +147,7 @@ Smaller choices, and what lost:
        ForgePage.tsx       page 1 and its ForgeState
        SavedPage.tsx       page 2 and its SavedState
        madeUp/
-         saves.ts          the 16 saves, copied from NpcForge.Console/characters.json
+         saves.json        the 16 saves: NpcForge.Console/characters.json, copied byte for byte
          bakery.ts         the bakery run: its scene, 19 labelled fields and three characters
          states.ts         every named state of both pages (decision 6)
      tests/
@@ -145,14 +156,25 @@ Smaller choices, and what lost:
        states.spec.ts      each named state: the contrast check, and its screenshot
    ```
 
+   `tsconfig.json` sets `strict`, `noEmit`, `"jsx": "react-jsx"` (which Vite reads), `target`
+   ES2022, `module` ESNext, `moduleResolution` bundler, `skipLibCheck`, `resolveJsonModule` and
+   `"types": ["vite/client"]`, and includes `src`, `tests` and `playwright.config.ts`.
+
+   `saves.json` is a file copy, never retyped, because eight sheets end lines with two spaces that
+   Markdown reads as a line break and the word test cannot see one dropped. It is imported with
+   `with { type: 'json' }`. It stays at these 16 saves when the owner saves more.
+
    No folder under `NpcForge.Web/` is named `bin`, `obj`, `out`, `log`, `logs`, `debug`, `release`,
-   `publish` or `artifacts`, because the root `.gitignore` would hide it.
+   `publish` or `artifacts`, because the root `.gitignore` would hide it. `git check-ignore -v <path>`
+   shows whether a new folder is hidden.
 
 2. **The browser test** is Playwright Test, in `NpcForge.Web/tests/`, on Chromium only. Two projects
    set the widths: `phone` at 390 by 844 and `desktop` at 1280 by 800. Its `webServer` runs
    `npm run dev` and reuses a server already on the port. `npm test` runs `tsc --noEmit` and then
-   every test but the screenshots. It is free: no network and no model. `NpcForge.Tests` and
-   `dotnet test` do not change, and `dotnet test` never starts Node.
+   every test but the screenshots. The tests are free: they call no model and no other host. The
+   flow test's second run ends with leave and then finds the saved list still at 16. `npm test`
+   needs the packages installed, by `npm start` or `npm install`, and its first run downloads the
+   browser. `NpcForge.Tests` and `dotnet test` do not change, and `dotnet test` never starts Node.
 
 3. **The seam is `src/api.ts`**, which holds its types and six async functions. It is the only place
    a page gets data. The types are what a page needs, not a wire format. In epic 12 the bodies read
@@ -167,10 +189,13 @@ Smaller choices, and what lost:
    // The spending cap, at any model call. Nothing was saved.
    export type Stopped = { kind: 'stopped'; reason: string };
 
-   // One brief field as the confirmation shows it, in the order sent. A recorded field carries the
-   // GM's words. A rolled field shows no value before the yes.
+   // One brief field as the confirmation shows it, in the order sent. A field recorded from the
+   // scene carries the GM's words and the sentence they came from. An answer the GM typed when asked
+   // has no quote, and the console shows it as "typed when asked" (ADR-010, decision 4). A rolled
+   // field shows no value before the yes.
    export type ConfirmField =
-     | { field: string; label: 'my words' | 'inferred'; value: string; quote: string; sentence: string }
+     | { field: string; label: 'my words' | 'inferred'; value: string;
+         from: { quote: string; sentence: string } | 'typed when asked' }
      | { field: string; label: 'not given' | 'rolled'; note: string };
 
    export type InterviewStep =
@@ -209,7 +234,7 @@ Smaller choices, and what lost:
      and whether a run streams or is polled is epic 6's choice.
    - The made-up `startInterview` returns the bakery confirmation for any scene and never reads the
      scene. `rollAndWrite` returns the bakery run's three characters in turn.
-   - The made-up saves are the 16 in `madeUp/saves.ts`, plus any new save in `sessionStorage`, which
+   - The made-up saves are the 16 in `madeUp/saves.json`, plus any new save in `sessionStorage`, which
      only `api.ts` writes. So a new save survives the page load of a plain link, as it would on a
      server, and each Playwright test starts with a fresh one.
    - `docs/design/epic-12-api-needs.md`, which the epic asks for, is written from this file: one
@@ -219,23 +244,25 @@ Smaller choices, and what lost:
    plugins, no `components` and no options. The page never splits, searches or trims it, and its
    look comes from CSS under the sheet's container. The name above the sheet comes from `name`, never
    from the text, and a save without one shows `(no name)` as `--list` does (AGENTS.md, "Never parse
-   the model's prose"). `sheet.spec.ts` opens each of the 16 saves and compares two word lists, the
-   page's text and the saved text, each split by `[\p{L}\p{N}]+`. Markdown's own marks are not
-   letters, so the lists are equal only when every word is on the page, in order, with none added.
+   the model's prose"). `sheet.spec.ts` opens each of the 16 saves and compares two word lists, each
+   split by `[\p{L}\p{N}]+`: the text inside the sheet's own container, which holds the rendered
+   Markdown and nothing else, and the saved text. Markdown's own marks are not letters, so the lists
+   are equal only when every word is on the page, in order, with none added.
 
 5. **Colours and type are set in `src/tokens.css`**, as custom properties on `:root`: every colour
    from the sketch named by its role, the three typefaces and the type sizes. No other file holds a
    colour, a font family or a font size; `app.css` uses `var(--...)`. The three typefaces come from
    the `@fontsource` packages, imported once in `main.tsx`, so Vite serves them from the app's own
    address. The values start as the sketch's, with one change the contrast check forces: the dim
-   text colour `#8a6a55` becomes lighter (`#a08068` passed in the spike).
+   text colour `#8a6a55` becomes `#a08068`, which passed in the spike.
 
 6. **Each state is a named value, and the app stays at two pages.** Each page holds one value of a
    union type and draws from it: `ForgeState` for the scene page at `/`, and `SavedState` for the
    saved page at `/saved` and, with one character open, `/saved/<number>`. `madeUp/states.ts` is the
    one table of named states, typed against those unions, so a state that no longer fits its page
-   fails `tsc`. `main.tsx` reads `?state=<name>` and gives that value to the page as its starting
-   state. A name the table lacks shows "No state named <name>", not the default page. The table holds
+   fails `tsc`. Each entry holds the path it opens on, such as `/`, `/saved` or `/saved/9`, and the
+   state's value, so the table alone gives a state's address. `main.tsx` reads `?state=<name>` and
+   gives that value to the page as its starting state. A name the table lacks shows "No state named <name>", not the default page. The table holds
    at least the seven states the epic names: the wait while a character is written, the interviewer
    asking for a missing place or role, the brief turned down, no name found for the dice, the
    spending cap reached, an empty saved list and a long one. `states.spec.ts` takes its list from
@@ -262,8 +289,8 @@ Smaller choices, and what lost:
    ```
 
    `start` is for a person. `dev` is the same server for Playwright, which must not install or open
-   a browser tab on every test run. `--strictPort` stops Vite moving to another port, where a test
-   could reuse some other server.
+   a browser tab on every test run. `--strictPort` makes Vite stop with an error when port 5173 is
+   taken, so the app is never on some other port than the one this record and the tests name.
 
 ## Why
 
@@ -290,7 +317,7 @@ Smaller choices, and what lost:
 
 Each has a default, so the build can start. All are taste, so none is decided here.
 
-- **How light the dim text is.** It must pass AA. Default: the darkest value that passes.
+- **How light the dim text is.** It must pass AA, which starts near `#95725c`. Default: `#a08068`.
 - **How a brief field's name reads.** Default: as the console prints it, such as `playersWant`. Plain
   words would be a second list of the fields, or a label the API sends in epic 6.
 - **What "a long saved list" is.** Default: the 16 real saves. A longer list would hold saves the
@@ -299,7 +326,7 @@ Each has a default, so the build can start. All are taste, so none is decided he
   Default: leave it, and judge it in the first screenshots.
 - **A way to start it from Visual Studio or VS Code.** Default: none. The terminal command is the
   one way.
-- **The folder's name.** Default: `NpcForge.Web`. The other candidate was `web/`.
+
 - **Whether the named states and the made-up data outlive epic 6.** Epic 6's design check decides.
 
 ## Consequences
@@ -308,8 +335,10 @@ Each has a default, so the build can start. All are taste, so none is decided he
   `NpcForge.Web/` covers the pages. A change to the pages is proved by the second, and neither starts
   the other.
 - **Node is now needed to work on the pages**, at a version Vite 8 accepts: 20.19 or later, or 22.12
-  or later. The first `npm test` downloads Playwright's Chromium, about 123 MB, to the user's profile.
-  The design check's spike has already done so on the owner's machine.
+  or later. The first `npm test` downloads Playwright's Chromium to the user's profile, about 740 MB
+  on disk. The design check's spike has already done so on the owner's machine.
+- **Text sits on flat colours.** axe cannot judge text over an image or a gradient, and the check
+  fails what it cannot judge. A textured parchment behind the sheet would need that rule revisited.
 - **One sketch colour changes**, and the contrast check will name any other pair that fails once real
   pages exist. *Needs the owner's eyes*, with how dark, how red and how pixel it is.
 - **`NpcForge.Web/.gitignore` is new.** The root `.gitignore` is not edited.
@@ -319,6 +348,6 @@ Each has a default, so the build can start. All are taste, so none is decided he
   may have to report progress, a made-up store to delete, and path addresses (`/saved/3`) that its
   server must answer with the app's `index.html`. A page changes only where the real API forces it.
 - **First to build:** `NpcForge.Web/` with its `package.json` and `tsconfig.json`, `src/api.ts` with
-  `listSaves` and `loadSave` over `madeUp/saves.ts`, a bare `SavedPage`, and `sheet.spec.ts`, shown
+  `listSaves` and `loadSave` over `madeUp/saves.json`, a bare `SavedPage`, and `sheet.spec.ts`, shown
   failing with only a sheet's first paragraph rendered and then passing. That one slice proves the
   toolchain, the seam and the sheet together.
