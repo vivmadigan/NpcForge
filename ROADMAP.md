@@ -136,6 +136,8 @@ behind that.
 - How friends log in, and who is invited.
 - The cap for each person and in total, the period it covers, and which model friends get.
 - Whether my console saves stay in the file or move to the database.
+- Whether Aspire starts the API, the database and the front end together on my machine, with its
+  dashboard for traces. It adds projects to the solution, and it bears on where the site is hosted.
 - Who opens the hosting and database accounts, and who deploys. Until I decide: I open the accounts
   and hold the keys, and an agent asks before each deploy, with the command.
 
