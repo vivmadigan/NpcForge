@@ -73,7 +73,7 @@ test('a name the table lacks shows "No state named" and not the default page', a
 
 test('a real name opened on another path than its own shows the same', async ({ page }) => {
   // Taken from the table, so a renamed state cannot leave this passing on a name that is gone.
-  const [name] = Object.entries(namedStates).find(([, { path }]) => path !== '/saved')!;
+  const name = Object.keys(namedStates).find((key) => namedStates[key].path !== '/saved')!;
   await page.goto(`/saved?state=${name}`);
   await expect(page.getByText(`No state named ${name}`)).toBeVisible();
   await expect(page.getByRole('heading', { name: 'SAVED CHARACTERS' })).toHaveCount(0);

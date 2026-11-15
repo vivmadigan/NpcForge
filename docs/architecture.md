@@ -594,9 +594,9 @@ The pages have their own free suite. `npm --prefix NpcForge.Web test` runs `tsc 
 Playwright at phone (390 by 844) and desktop (1280 by 800) width. `sheet.spec.ts` opens each of the
 16 saves from the list and checks that the sheet holds every word of the saved text, in order, and
 that the shown name is the saved one or `(no name)`. `states.spec.ts` takes its list from the
-table's keys. For each state at both widths it checks that the state opened, by what a user sees
-where the spec describes that state, then runs axe's `color-contrast` rule. A result axe cannot
-judge fails the test like a violation does. The first run downloads Chromium.
+table's keys. For each state at both widths it checks that the state opened, and what a user sees
+there for each state its `seen` map describes. It then runs axe's `color-contrast` rule. A result
+axe cannot judge fails the test like a violation does. The first run downloads Chromium.
 
 `npm --prefix NpcForge.Web run screenshots` runs the tests that `npm test` skips. They write
 `docs/design/epic-12/<state>-<phone|desktop>.png`, full page, for every state, to look at and not to
