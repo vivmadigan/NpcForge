@@ -1,5 +1,8 @@
+import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
 import { namedStates } from '../src/madeUp/states';
+
+type AxeResults = Awaited<ReturnType<AxeBuilder['analyze']>>;
 
 // What a user sees when the state has opened, written from the requirement and not read back from
 // the table. A state with no entry here still has to show something other than "No state named".
@@ -28,12 +31,30 @@ async function open(page: Page, path: string, name: string) {
   await expect(page.getByRole('link', { name: 'NPCFORGE', exact: true })).toBeVisible();
   await expect(page.getByText('No state named')).toHaveCount(0);
   await seen[name]?.(page);
+  // A font that has not loaded changes the contrast axe measures.
+  await page.evaluate(() => document.fonts.ready);
+}
+
+// ADR-017 decision 7: a result axe cannot judge fails like a violation, and each line names the
+// element and the colours so a failure can be acted on.
+function findings(results: AxeResults): string[] {
+  const lines = (rules: AxeResults['violations'], verdict: string) =>
+    rules.flatMap((rule) =>
+      rule.nodes.map((node) => {
+        const why = [...node.any, ...node.all, ...node.none].map((check) => check.message).join(' ');
+        return `${verdict}: ${node.target.join(' ')} ${node.html.slice(0, 100)}\n    ${why}`;
+      }),
+    );
+  return [...lines(results.violations, 'violation'), ...lines(results.incomplete, 'could not judge')];
 }
 
 for (const [name, { path }] of Object.entries(namedStates)) {
-  test(`${name} opens`, async ({ page }) => {
+  test(`${name} opens and its text has AA contrast`, async ({ page }) => {
     await open(page, path, name);
+    const results = await new AxeBuilder({ page }).withRules(['color-contrast']).analyze();
+    expect(findings(results)).toEqual([]);
   });
+
 }
 
 test('a name the table lacks shows "No state named" and not the default page', async ({ page }) => {
