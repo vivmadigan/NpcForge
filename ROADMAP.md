@@ -66,7 +66,7 @@ made. The character keeps its parchment, with save, roll again and leave at the 
   the page never cuts them out of prose (AGENTS.md, "The model never guesses" and "Never parse the
   model's prose").
 - A scene that does not say what the players want still says so on the confirmation (ADR-010).
-- The confirmation is sentences. It shows no field name as the console prints it, such as
+- The confirmation is sentences. It shows no joined field name as the console prints it, such as
   `playersWant`, no label such as `[inferred]`, and nothing for a field the dice will pick. A value
   inferred from my words reads the same as one I said.
 - The sheet is still the model's Markdown, rendered whole.
@@ -82,8 +82,9 @@ made. The character keeps its parchment, with save, roll again and leave at the 
   seam for it, and where its sentences are made once epic 6 has an API.
 - That ADR also records what this epic changes, for the website only. In ADR-007 and ADR-010
   decision 4: the confirmation drops its labels, its quotes and its rolled fields. In ADR-017: the
-  confirmation's shape at the seam, how a field's name reads, that the pages now move (a fade and a
-  flame), that the rolled brief is no longer beside the character, and where the screenshots go.
+  confirmation's shape at the seam, what the made-up interview answers and how long it takes, how a
+  field's name reads, that the pages now move (a fade and a flame), that the rolled brief is no
+  longer beside the character, and where the screenshots go.
 
 **Done when.**
 - The browser tests walk the whole flow, and the run that leaves, on the new pages.
