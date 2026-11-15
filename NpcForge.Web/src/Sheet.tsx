@@ -27,7 +27,7 @@ export function Sheet({
           <Markdown>{sheet}</Markdown>
         </section>
       </div>
-      <div className="side">
+      <div className={actions ? 'side side-actions' : 'side'}>
         {actions}
         <aside className="brief" aria-label="Brief">
           <h2>BRIEF</h2>

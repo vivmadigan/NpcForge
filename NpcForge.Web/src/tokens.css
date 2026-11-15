@@ -1,7 +1,8 @@
 /* ADR-017 decision 5: every colour, typeface and type size lives here, named by its role. app.css
    reads them through var(--...). The values are the sketch's (docs/design/epic-12-sketch.html), with
    one change: the dim text was #8a6a55, which fails AA contrast on the frame. --frame-shadow and
-   --parchment-quote are new. */
+   --parchment-quote are new, as is everything from the main button down, which the forge page
+   added: the sketch's SAVE button, the wall, the text boxes and the pixel art. */
 :root {
   --page-bg: #0a0606;
   --frame-bg: #120a0a;
@@ -21,6 +22,36 @@
   --ink-heading: #8f2415;
   --parchment-edge: #b3401f;
 
+  /* The sketch's SAVE button: one main action on each step. */
+  --main-bg: #c8321e;
+  --main-text: #fff3e0;
+  --main-edge: #ff7a4d;
+  --button-shadow: #000000;
+  --focus: #ffd75e;
+
+  /* The text boxes: a well cut into the forge. */
+  --well-bg: #0a0606;
+
+  /* The dungeon wall behind the frame. Never under text, and darker than the frame. */
+  --wall-stone: #150d0c;
+  --wall-stone-lit: #1d1311;
+  --wall-mortar: #070404;
+
+  /* The pixel art. The flame is the accent and the glow the sheet's heading red, so the forge's
+     red changes with the page's. */
+  --px-mortar: var(--page-bg);
+  --px-stone: #4a3c37;
+  --px-stone-lit: #66534b;
+  --px-glow: var(--ink-heading);
+  --px-flame: var(--accent);
+  --px-flame-hot: #ffb347;
+  --px-flame-core: #ffe9a8;
+  --px-iron-dark: #2e2b30;
+  --px-iron: #6e6a72;
+  --px-iron-lit: #b4afb6;
+  --px-die: var(--text);
+  --px-pip: var(--frame-bg);
+
   --font-pixel: 'Press Start 2P', monospace;
   --font-book: 'IM Fell English', serif;
   --font-text: 'Crimson Text', serif;
@@ -30,6 +61,7 @@
   --size-pixel: 0.75rem;
   --size-pixel-heading: 1rem;
   --size-text: 1.0625rem;
+  --size-note: 0.9375rem;
   --size-sheet: 1.125rem;
   --size-title: 1.375rem;
 }

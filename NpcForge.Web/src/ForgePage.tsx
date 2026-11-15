@@ -11,7 +11,9 @@ import {
 } from './api';
 import { Confirmation } from './Confirmation';
 import { Frame } from './Frame';
+import { SceneForm } from './SceneForm';
 import { Sheet } from './Sheet';
+import { forge, Sprite } from './Sprite';
 
 type Written = Extract<RunResult, { kind: 'written' }>;
 
@@ -31,16 +33,6 @@ export type ForgeState =
   | { kind: 'no-name'; scene: string; interview: InterviewId; reason: string }
   | { kind: 'stopped'; scene: string; reason: string } // the spending cap
   | { kind: 'saved'; scene: string; interview: InterviewId; number: number };
-
-// Page copy, not made-up data: the bakery run's scene, so a friend sees what a good one looks like.
-const exampleScene =
-  'The party bursts into a tiny bakery where a goblin baker is furious that someone keeps stealing ' +
-  'his croissants. It’s a silly session, play it for laughs.';
-
-// The console's words wherever the page says the same thing (NpcForge.Core, SceneInterview).
-const greeting =
-  'Describe the scene in one go: where the players are, who they meet, what they want from that ' +
-  'person, and anything you already know about them.';
 
 function afterInterview(scene: string, step: InterviewStep): ForgeState {
   switch (step.kind) {
@@ -103,54 +95,18 @@ export function ForgePage({
     setState({ kind: 'saved', scene, interview, number });
   }
 
-
   function draw(): ReactNode {
     switch (state.kind) {
       case 'describe':
       case 'turned-down':
       case 'left': {
-        const { scene } = state;
         return (
-          <form
-            onSubmit={(event) => {
-              event.preventDefault();
-              if (scene.trim() !== '') send(scene.trim());
-            }}
-          >
-            <h1 className="page-title">DESCRIBE THE SCENE</h1>
-            {state.kind === 'turned-down' && (
-              <p className="notice">
-                Not rolled. You turned the brief down, so nothing was rolled. Your scene is still in the
-                box: change it and send it again.
-              </p>
-            )}
-            {state.kind === 'left' && (
-              <p className="notice">
-                Not saved. You left the character, so nothing was saved. Your scene is still in the box:
-                change it and send it again.
-              </p>
-            )}
-            <label className="instruction" htmlFor="scene">
-              {greeting}
-            </label>
-            <textarea
-              id="scene"
-              className="scene-box"
-              rows={6}
-              value={scene}
-              onChange={(event) => setState({ ...state, scene: event.target.value })}
-            />
-            <button className="button button-main" type="submit" disabled={scene.trim() === ''}>
-              SEND THE SCENE
-            </button>
-            <div className="example">
-              <h2 className="example-title">AN EXAMPLE</h2>
-              <p>{exampleScene}</p>
-              <button className="button" type="button" onClick={() => setState({ ...state, scene: exampleScene })}>
-                USE THIS EXAMPLE
-              </button>
-            </div>
-          </form>
+          <SceneForm
+            scene={state.scene}
+            after={state.kind === 'describe' ? null : state.kind}
+            onScene={(scene) => setState({ ...state, scene })}
+            onSend={send}
+          />
         );
       }
       case 'reading':
@@ -213,6 +169,7 @@ export function ForgePage({
           <>
             <ScenePanel scene={state.scene} />
             <div className="forge">
+              <Sprite art={forge} scale={6} className="forge-art" />
               <h1 className="page-title">AT THE FORGE</h1>
               {/* The console's order: the brief, then the name, then the writer. Still text, as
                   nothing on the page moves (the epic's default). */}
@@ -303,11 +260,11 @@ export function ForgePage({
               <button className="button" type="button" onClick={() => roll(scene, interview)}>
                 ROLL ANOTHER
               </button>
-              <p className="hint">New dice, same scene.</p>
               <a className="button" href="/">
                 NEW SCENE
               </a>
             </div>
+            <p className="hint">Roll another: new dice, same scene.</p>
           </>
         );
       }

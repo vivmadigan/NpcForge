@@ -1,4 +1,5 @@
 import type { ConfirmField } from './api';
+import { die, Sprite } from './Sprite';
 
 // Every field in the order sent, never regrouped (ADR-017 decision 3). A field with the GM's words
 // is drawn large with where they came from, and a field with no value is one quiet line, so the eye
@@ -36,5 +37,10 @@ export function Confirmation({ fields }: { fields: ConfirmField[] }) {
 // Each label has its own shape as well as its own words, so the four tell apart at a glance and not
 // by colour alone.
 function Label({ label }: { label: ConfirmField['label'] }) {
-  return <span className={`label label-${label.replace(' ', '-')}`}>{label}</span>;
+  return (
+    <span className={`label label-${label.replace(' ', '-')}`}>
+      {label === 'rolled' && <Sprite art={die} scale={2} />}
+      {label}
+    </span>
+  );
 }

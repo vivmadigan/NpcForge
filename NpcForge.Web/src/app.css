@@ -5,6 +5,9 @@
 }
 
 body {
+  /* The wall behind the frame spans the whole page, not just the window. */
+  position: relative;
+  min-height: 100vh;
   margin: 0;
   padding: 0.75rem;
   background: var(--page-bg);
@@ -43,6 +46,11 @@ a:focus-visible {
   padding: 0.8rem 0;
   color: var(--accent);
   text-decoration: none;
+}
+.bar a.bar-home {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.625rem;
 }
 .bar a.bar-saved {
   color: var(--text-dim);
@@ -198,6 +206,324 @@ a:focus-visible {
   color: var(--panel-text);
 }
 
+/* The dungeon wall: behind the frame, the height of the page, never under text. */
+.wall {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  width: 100%;
+  height: 100%;
+}
+.wall-stone {
+  fill: var(--wall-stone);
+}
+.wall-stone-lit {
+  fill: var(--wall-stone-lit);
+}
+.wall-mortar {
+  fill: var(--wall-mortar);
+}
+
+/* The pixel art's colours, one class for each character of a sprite map (Sprite.tsx). */
+.px-mortar {
+  fill: var(--px-mortar);
+}
+.px-stone {
+  fill: var(--px-stone);
+}
+.px-stone-lit {
+  fill: var(--px-stone-lit);
+}
+.px-glow {
+  fill: var(--px-glow);
+}
+.px-flame {
+  fill: var(--px-flame);
+}
+.px-flame-hot {
+  fill: var(--px-flame-hot);
+}
+.px-flame-core {
+  fill: var(--px-flame-core);
+}
+.px-iron-dark {
+  fill: var(--px-iron-dark);
+}
+.px-iron {
+  fill: var(--px-iron);
+}
+.px-iron-lit {
+  fill: var(--px-iron-lit);
+}
+.px-die {
+  fill: var(--px-die);
+}
+.px-pip {
+  fill: var(--px-pip);
+}
+
+/* The forge page. Focus moves to each new step from the button that has gone; the step itself
+   needs no ring. */
+.step:focus {
+  outline: none;
+}
+
+/* Chunky 8-bit controls: hard borders and a hard shadow, as the sketch's SAVE and ROLL AGAIN. At
+   least 44px tall, for a thumb. */
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2.75rem;
+  padding: 0.75rem 1rem;
+  background: var(--panel-bg);
+  border: 3px solid var(--panel-edge);
+  box-shadow: 4px 4px 0 var(--button-shadow);
+  color: var(--text);
+  font-family: var(--font-pixel);
+  font-size: var(--size-pixel);
+  line-height: 1.5;
+  text-align: center;
+  text-decoration: none;
+  cursor: pointer;
+}
+.button:hover {
+  border-color: var(--accent);
+}
+.button-main {
+  background: var(--main-bg);
+  border-color: var(--main-edge);
+  color: var(--main-text);
+}
+.button-main:hover {
+  border-color: var(--main-text);
+}
+.button:disabled {
+  background: var(--frame-bg);
+  border-style: dashed;
+  border-color: var(--panel-edge);
+  box-shadow: none;
+  color: var(--text-dim);
+  cursor: not-allowed;
+}
+.button:focus-visible,
+.scene-box:focus-visible,
+.answer-box:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 3px;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin: 1rem 0;
+}
+/* On a phone the step's buttons run the full width, under the thumb. */
+.actions .button,
+form > .button {
+  flex: 1 1 100%;
+  width: 100%;
+}
+
+.notice {
+  padding: 0.75rem 1rem;
+  background: var(--panel-bg);
+  border: 2px solid var(--accent);
+  color: var(--text);
+}
+
+.instruction,
+.question {
+  display: block;
+  margin: 0.5rem 0;
+}
+/* The question is the step: it reads as large as a confirmed value. */
+.question {
+  font-size: var(--size-title);
+  line-height: 1.3;
+}
+
+/* A well cut into the forge: lit from above, so the top and left edges are the dark ones. */
+.scene-box,
+.answer-box {
+  display: block;
+  width: 100%;
+  margin: 0.5rem 0 1.25rem;
+  padding: 0.75rem;
+  background: var(--well-bg);
+  border: 3px solid;
+  border-color: var(--button-shadow) var(--panel-edge) var(--panel-edge) var(--button-shadow);
+  color: var(--text);
+  font-family: var(--font-text);
+  font-size: var(--size-text);
+  line-height: 1.5;
+  resize: vertical;
+}
+
+.example {
+  margin-top: 1.5rem;
+  padding: 0 1rem 1rem;
+  border: 2px dashed var(--panel-edge);
+}
+.example p {
+  margin: 0.5rem 0 1rem;
+  color: var(--panel-text);
+}
+.example-title,
+.scene-panel-title {
+  margin: 0.75rem 0 0.5rem;
+  color: var(--accent);
+  font-family: var(--font-pixel);
+  font-size: var(--size-pixel-small);
+  font-weight: normal;
+  line-height: 1.5;
+}
+
+.scene-panel {
+  margin: 0.5rem 0 1rem;
+  padding: 0 1rem 0.75rem;
+  background: var(--panel-bg);
+  border: 2px solid var(--panel-edge);
+}
+.scene-panel p {
+  margin: 0;
+  color: var(--panel-text);
+}
+
+/* The confirmation. Every field keeps its place; a field with the GM's words is a lit card, and a
+   field with no value is one quiet line. */
+.fields {
+  display: grid;
+  gap: 0.25rem;
+  margin: 1rem 0;
+  padding: 0;
+  list-style: none;
+}
+.field {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  column-gap: 0.75rem;
+  row-gap: 0.25rem;
+}
+.field-told {
+  margin: 0.5rem 0;
+  padding: 0.75rem 1rem;
+  background: var(--panel-bg);
+  border: 2px solid var(--panel-edge);
+  border-left: 8px solid var(--accent);
+}
+.field-quiet {
+  padding: 0.375rem 0 0.375rem 1rem;
+}
+.field-name {
+  color: var(--text-dim);
+  font-family: var(--font-pixel);
+  font-size: var(--size-pixel-small);
+  /* Press Start 2P draws "fi" as one cramped cell, which misprints "difficulty". */
+  font-variant-ligatures: none;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+.field-told .field-name {
+  color: var(--text);
+}
+.field-value {
+  grid-column: 1 / -1;
+  color: var(--text);
+  font-size: var(--size-title);
+  line-height: 1.25;
+}
+.field-from {
+  grid-column: 1 / -1;
+  color: var(--panel-text);
+}
+.field-note {
+  grid-column: 1 / -1;
+  color: var(--text-dim);
+  font-size: var(--size-note);
+  line-height: 1.4;
+}
+
+/* The four labels differ in shape as well as words: solid, outlined, dashed, and a die. */
+.label {
+  display: inline-flex;
+  align-items: center;
+  justify-self: start;
+  gap: 0.375rem;
+  padding: 0.25rem 0.5rem;
+  border: 2px solid transparent;
+  font-family: var(--font-pixel);
+  font-size: var(--size-pixel-small);
+  line-height: 1.5;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.label-my-words {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--frame-bg);
+}
+.label-inferred {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.label-not-given {
+  border-style: dashed;
+  border-color: var(--text-dim);
+  color: var(--text-dim);
+}
+.label-rolled {
+  padding-left: 0;
+  color: var(--text-dim);
+}
+
+.ask {
+  margin: 1.5rem 0 0;
+  font-size: var(--size-title);
+}
+.hint {
+  margin: -0.5rem 0 0;
+  color: var(--text-dim);
+  font-size: var(--size-note);
+}
+
+/* The wait: a still forge. Nothing on it moves (the epic's default). */
+.forge {
+  text-align: center;
+}
+.forge-art {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  margin: 1.5rem auto 0;
+}
+.forge-steps {
+  display: inline-block;
+  margin: 0 0 0.5rem;
+  padding-left: 1.75rem;
+  text-align: left;
+}
+.forge-steps li {
+  margin: 0.25rem 0;
+}
+
+/* Save, again and leave, at the top of the side column above the brief. */
+.keep {
+  display: grid;
+  gap: 0.75rem;
+  padding: 0 1rem 1rem;
+  background: var(--panel-bg);
+  border: 2px solid var(--panel-edge);
+}
+.keep .ask {
+  margin-top: 0.75rem;
+}
+.keep .button {
+  width: 100%;
+}
+
 @media (min-width: 48rem) {
   .row {
     grid-template-columns: 3rem 16rem 1fr;
@@ -218,5 +544,33 @@ a:focus-visible {
   .side {
     flex: none;
     width: 16rem;
+  }
+  .actions .button,
+  form > .button {
+    flex: none;
+    width: auto;
+  }
+  /* The names, labels and values line up in three columns, so the eye can run down any one. */
+  .field {
+    grid-template-columns: 10rem 8rem 1fr;
+  }
+  .field-value,
+  .field-from,
+  .field-note {
+    grid-column: 3;
+  }
+  .field-told .field-value {
+    grid-row: 1;
+  }
+  .forge-art {
+    width: 352px;
+  }
+  /* The side column stays in view while the sheet scrolls, so a GM can roll again without
+     scrolling back. It sticks as one block, so nothing sticky ever sits over text. Its brief does
+     not scroll inside it: axe cannot judge text clipped by a scroll box, so the end of a long brief
+     comes into view with the end of the sheet. */
+  .side-actions {
+    position: sticky;
+    top: 0.75rem;
   }
 }
