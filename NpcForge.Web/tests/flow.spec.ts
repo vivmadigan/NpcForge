@@ -49,7 +49,7 @@ async function describeAndConfirm(page: Page) {
   await expect(savedCount(page)).toHaveText('SAVED CHARACTERS 16');
   await expectContrast(page);
 
-  await page.getByRole('textbox', { name: /^Describe the scene in one go/ }).fill(scene);
+  await page.getByRole('textbox', { name: 'DESCRIBE YOUR SCENE' }).fill(scene);
   await page.getByRole('button', { name: 'SEND THE SCENE' }).click();
   await expect(page.getByText('Here is the character so far. Nothing is rolled until you say yes.')).toBeVisible();
   await expect(page.getByRole('region', { name: 'Your scene' })).toContainText(scene);
@@ -90,7 +90,7 @@ test('a second run that ends with leave saves nothing', async ({ page }) => {
 
   await page.getByRole('button', { name: 'LEAVE' }).click();
   await expect(page.getByText('Not saved.')).toBeVisible();
-  await expect(page.getByRole('textbox', { name: /^Describe the scene/ })).toHaveValue(scene);
+  await expect(page.getByRole('textbox', { name: 'DESCRIBE YOUR SCENE' })).toHaveValue(scene);
   await expectContrast(page);
 
   await page.goto('/saved');
@@ -100,12 +100,12 @@ test('a second run that ends with leave saves nothing', async ({ page }) => {
 
 test('turning the brief down rolls nothing and leaves the scene in the box', async ({ page }) => {
   await page.goto('/');
-  await page.getByRole('textbox', { name: /^Describe the scene in one go/ }).fill(scene);
+  await page.getByRole('textbox', { name: 'DESCRIBE YOUR SCENE' }).fill(scene);
   await page.getByRole('button', { name: 'SEND THE SCENE' }).click();
   await page.getByRole('button', { name: 'TURN IT DOWN' }).click();
 
   await expect(page.getByText('Not rolled.')).toBeVisible();
-  await expect(page.getByRole('textbox', { name: /^Describe the scene/ })).toHaveValue(scene);
+  await expect(page.getByRole('textbox', { name: 'DESCRIBE YOUR SCENE' })).toHaveValue(scene);
   await expect(page.getByRole('region', { name: 'Character sheet' })).toHaveCount(0);
   await expectContrast(page);
 });
@@ -122,7 +122,7 @@ test('after no name, change the scene puts it back in the box', async ({ page })
   await page.goto('/?state=forge-no-name');
   const shown = await page.getByRole('region', { name: 'Your scene' }).getByRole('paragraph').innerText();
   await page.getByRole('button', { name: 'CHANGE THE SCENE' }).click();
-  await expect(page.getByRole('textbox', { name: /^Describe the scene/ })).toHaveValue(shown);
+  await expect(page.getByRole('textbox', { name: 'DESCRIBE YOUR SCENE' })).toHaveValue(shown);
   await expect(page.getByRole('button', { name: 'SEND THE SCENE' })).toBeEnabled();
 });
 
@@ -130,5 +130,14 @@ test('after no name, roll again writes a character', async ({ page }) => {
   await page.goto('/?state=forge-no-name');
   await page.getByRole('button', { name: 'ROLL AGAIN' }).click();
   await expectCharacter(page, 'AldoBun Sourdough', aldoBun.sheet);
+  await expectContrast(page);
+});
+
+test('the example link puts a scene in the box, ready to send', async ({ page }) => {
+  await page.goto('/');
+  await expect(page.getByRole('button', { name: 'SEND THE SCENE' })).toBeDisabled();
+  await page.getByRole('button', { name: 'or try the bakery example' }).click();
+  await expect(page.getByRole('textbox', { name: 'DESCRIBE YOUR SCENE' })).toHaveValue(/tiny bakery/);
+  await expect(page.getByRole('button', { name: 'SEND THE SCENE' })).toBeEnabled();
   await expectContrast(page);
 });

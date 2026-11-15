@@ -396,21 +396,39 @@ a {
 .button-main:hover {
   --edge: var(--main-text);
 }
+/* The sketch's disabled button: the same button, faded, so the main action keeps its red before it
+   can be pressed. */
 .button:disabled {
-  --edge: var(--frame-shadow);
-  background: var(--frame-bg);
-  box-shadow:
-    0 -4px 0 0 var(--edge),
-    0 4px 0 0 var(--edge),
-    -4px 0 0 0 var(--edge),
-    4px 0 0 0 var(--edge);
-  color: var(--text-dim);
+  opacity: 0.45;
   cursor: not-allowed;
+}
+.button:disabled:hover {
+  --edge: var(--panel-edge);
+}
+.button-main:disabled:hover {
+  --edge: var(--button-shadow);
+}
+
+/* The sketch's quiet second action, beside the main button: a link in the flame's colour. As tall
+   as a button, for a thumb. */
+.plain {
+  display: inline-flex;
+  align-items: center;
+  min-height: 2.75rem;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--px-flame-hot);
+  font-family: var(--font-text);
+  font-size: var(--size-text);
+  text-decoration: underline;
+  cursor: pointer;
 }
 
 .actions {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   gap: 1.25rem;
   margin: 1.25rem 4px;
 }
@@ -455,18 +473,8 @@ form > .button {
   resize: vertical;
 }
 
-.example {
-  margin-top: 1.5rem;
-  padding: 0 1rem 1rem;
-  border: 2px dashed var(--panel-edge);
-}
-.example p {
-  margin: 0.5rem 0 1rem;
-  color: var(--panel-text);
-}
-.example-title,
 .scene-panel-title {
-  margin: 0.75rem 0 0.5rem;
+  margin: 0 0 0.5rem;
   color: var(--accent);
   font-family: var(--font-pixel);
   font-size: var(--size-pixel-small);
@@ -477,7 +485,7 @@ form > .button {
 /* The scene, in a well cut into the panel. */
 .scene-panel {
   margin: 0 0 1.25rem;
-  padding: 0 1rem 0.75rem;
+  padding: 0.75rem 1rem;
   background: var(--well-bg);
 }
 .panel > .scene-panel:last-child {

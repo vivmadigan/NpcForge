@@ -30,8 +30,8 @@ const seen: Record<string, (page: Page) => Promise<void>> = {
     await expect(page.getByText('No save numbered 99.')).toBeVisible();
   },
   'forge-describe': async (page) => {
-    await expect(page.getByRole('heading', { name: 'DESCRIBE THE SCENE' })).toBeVisible();
-    await expect(page.getByRole('textbox', { name: /^Describe the scene in one go/ })).toHaveValue('');
+    await expect(page.getByRole('heading', { name: 'DESCRIBE YOUR SCENE' })).toBeVisible();
+    await expect(page.getByRole('textbox', { name: 'DESCRIBE YOUR SCENE' })).toHaveValue('');
     // The main button does nothing until the box has text.
     await expect(page.getByRole('button', { name: 'SEND THE SCENE' })).toBeDisabled();
   },
@@ -53,7 +53,7 @@ const seen: Record<string, (page: Page) => Promise<void>> = {
   },
   'forge-turned-down': async (page) => {
     await expect(page.getByText('Not rolled.')).toBeVisible();
-    await expect(page.getByRole('textbox', { name: /^Describe the scene/ })).toHaveValue(bakeryScene);
+    await expect(page.getByRole('textbox', { name: 'DESCRIBE YOUR SCENE' })).toHaveValue(bakeryScene);
   },
   'forge-writing': async (page) => {
     await sceneShown(page, bakeryScene);
@@ -90,7 +90,7 @@ const seen: Record<string, (page: Page) => Promise<void>> = {
   },
   'forge-left': async (page) => {
     await expect(page.getByText('Not saved.')).toBeVisible();
-    await expect(page.getByRole('textbox', { name: /^Describe the scene/ })).toHaveValue(bakeryScene);
+    await expect(page.getByRole('textbox', { name: 'DESCRIBE YOUR SCENE' })).toHaveValue(bakeryScene);
   },
 };
 
