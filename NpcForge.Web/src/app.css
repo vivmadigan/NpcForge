@@ -182,7 +182,7 @@ a:focus-visible {
   color: var(--text-dim);
   font-family: var(--font-pixel);
   font-size: var(--size-pixel-small);
-  /* With ligatures on, the "ffi" in "difficulty" was drawn as one cramped cell. */
+  /* Press Start 2P draws "fi" as one cramped cell, which misprints "difficulty". */
   font-variant-ligatures: none;
   line-height: 1.5;
   overflow-wrap: anywhere;

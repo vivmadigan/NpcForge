@@ -11,8 +11,8 @@ export type SavedState =
   | { kind: 'open'; character: SavedCharacter }
   | { kind: 'missing'; number: number }; // no save under this number
 
-// `number` is the one in the path, or null for the list. `saved` is the bar's count, read once in
-// main.tsx. `start` opens a named state without calling the seam.
+// `number` is the one in the path, or null for the list. `saved` is the bar's count. `start` opens
+// a named state without calling the seam.
 export function SavedPage({
   number,
   saved,

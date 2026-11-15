@@ -16,8 +16,7 @@ export function Frame({ saved, children }: { saved: number | null; children: Rea
   );
 }
 
-// The bar's count, for a page whose own state does not hold the list. main.tsx reads it once and
-// hands it down. It is a seam call of its own, so a page opened on a named state still shows it
+// The bar's count. A seam call of its own, so a page opened on a named state still shows it
 // (ADR-017 decision 6). Null until it arrives.
 export function useSavedCount(): number | null {
   const [count, setCount] = useState<number | null>(null);
