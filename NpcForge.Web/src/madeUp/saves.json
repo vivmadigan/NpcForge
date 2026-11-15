@@ -1,0 +1,364 @@
+{
+  "1": {
+    "brief": {
+      "setting": "an inn in a major city",
+      "playersWant": "the name of a fence",
+      "difficulty": "Wall",
+      "occupation": "innkeeper",
+      "characterWants": "to keep a secret buried",
+      "obstacle": "Wont",
+      "attitude": "frightened",
+      "mannerism": "answers questions with questions",
+      "weakness": "has a soft spot for animals",
+      "willNotDiscuss": "an embarrassing superstition",
+      "wrongAbout": "thinks a common animal is much more dangerous than it is"
+    },
+    "text": "## Who they are\n**Mara Venn** has kept an inn in the city’s crowded east quarter for twelve years.\n\n## Where they stand\nMara knows the name of the fence the players are looking for. She is determined to keep it—and whatever it connects to—buried. She will not give the name away in the opening.\n\n## How they seem, and what is underneath\nShe is frightened, watchful, and turns questions back on the asker: “Why do you need to know?” Beneath that, she is guarding the secret, not merely being difficult. A rat in the pantry can make her visibly uneasy; she believes it’s far more dangerous than it is.\n\n## Levers\n- **Soft spot for animals:** Show real care for an animal in her keeping, and promise it won’t be put at risk by the fence. Mara hesitates, then gives the name—costing herself the secret she wanted buried. “You’d keep it safe? Then… the name is Rusk. Don’t make me regret this.”\n- **Frightened:** Make clear that the players aren’t there to threaten or expose her, and give her a reason to believe them. She may risk telling them, still afraid of what follows. “If I tell you, what happens to me?”\n- **Wrong about:** Convince her the rat is not the deadly threat she thinks it is. Her fear eases enough for her to listen, though it does not by itself win the name. “You’re sure? Then why does it keep coming back?”\n\n## Anti-levers\n- **Keep a secret buried:** Demand the name or threaten to expose what she’s hiding. She clamps down. “Why would I help you dig up something I’ve worked so hard to bury?”\n- **Frightened:** Raise your voice or make a show of force. Her fear turns to refusal. “What makes you think I’d tell you anything?”\n- **Will not discuss:** Press her about her embarrassing superstition. She shuts the subject down and won’t engage with it. “Why are you asking me that?”\n\n## Afterwards\n**Got it:** If the players earn her trust or protect an animal she cares about, she gives them Rusk’s name and regrets letting the secret out.  \n**Didn’t:** If they leave without winning her over, she keeps the name buried.  \n**Made an enemy:** If they threaten her or put an animal she cares about in danger, she refuses and remembers who did it."
+  },
+  "2": {
+    "brief": {
+      "setting": "an inn in a major city",
+      "playersWant": "the name of a fence",
+      "difficulty": "Wall",
+      "occupation": "innkeeper",
+      "characterWants": "to avoid someone they owe a favour to",
+      "obstacle": "Cant",
+      "attitude": "easily offended",
+      "mannerism": "answers before others finish speaking",
+      "weakness": "is easily flattered",
+      "willNotDiscuss": "their plans for later",
+      "wrongAbout": "thinks ignoring a problem usually makes it go away"
+    },
+    "text": "## Who they are\n**Nella Voss** runs a busy inn near the city’s main market; she learned the trade by keeping a sharp eye on who came through her doors.\n\n## Where they stand\nShe understands the players want the name of a fence, but she doesn’t know it. She can offer a lead to people who might make an introduction, but she won’t do so unless the players help her avoid someone she owes a favour to.\n\n## How they seem, and what is underneath\nNella is brisk and easily offended. She answers before anyone has finished speaking, then takes offence if they point it out. Beneath that, she’s watching the room for the person she owes—and convincing herself that if she ignores the problem, it will go away.\n\n## Levers\n- **Help her avoid someone she owes a favour to** *[characterWants]*: “Yes, yes, I heard you—keep that fellow by the front door occupied, and I’ll tell you which coachmen might know who can make an introduction.”\n- **Flatter her judgment** *[weakness]*: “You’ve clearly got a better eye for this than most. Well—there’s a discreet way to ask around among the market coachmen. I can point you to it.”\n- **Offer a practical lead instead of pressing for a name** *[obstacle: Cant]*: “I don’t know the fence’s name! But I can tell you where to start asking. Don’t interrupt—this part matters.”\n\n## Anti-levers\n- **Take offence at her manner or accuse her of being difficult** *[attitude]*: “Difficult? I’m answering you, aren’t I? Then listen when I do.”\n- **Demand the name again as if she’s hiding it** *[obstacle: Cant]*: “I told you, I don’t know it. Stop asking me for something I can’t give.”\n- **Ask about her plans for later** *[willNotDiscuss]*: “That’s none of your business. We’re talking about your question—or we’re not talking.”\n\n## Afterwards\n- **Got it:** If the players help her avoid the person she owes, she gives them the lead to the market coachmen, though not the fence’s name.\n- **Didn’t:** If they leave without helping, she returns to her work and hopes the problem will disappear if she ignores it.\n- **Made an enemy:** If they press her for a name she doesn’t know or insult her, she remembers the slight and is less willing to help them next time."
+  },
+  "3": {
+    "brief": {
+      "setting": "an inn in a major city",
+      "playersWant": "the name of a fence",
+      "difficulty": "Wall",
+      "occupation": "innkeeper",
+      "characterWants": "to get out of an unpleasant responsibility",
+      "obstacle": "ForAPrice",
+      "attitude": "easily offended",
+      "mannerism": "tilts their head when listening",
+      "weakness": "cannot bear being left out",
+      "willNotDiscuss": "their terrible sense of direction",
+      "wrongAbout": "believes they have an excellent singing voice"
+    },
+    "text": "### 1. Who they are\n**Mara Venn** — She has kept a busy city inn for years and has learned to notice who comes and goes.\n\n### 2. Where they stand\nMara knows the players want the name of a fence. She won’t give it away: first, they must take an unpleasant responsibility off her hands.\n\n### 3. How they seem, and what is underneath\nShe listens with her head tilted, then takes offense at the slightest hint that she’s being dismissed. Underneath, she hates being left out. Given an opening, she’ll demonstrate what she considers her excellent singing voice.\n\n### 4. Levers\n- **ForAPrice — characterWants:** Take over the obligation Mara is trying to avoid: explain to a furious supplier why the inn’s latest payment is late. If the players agree to handle it, she’ll give them the fence’s name.  \n  *“You want a name? Fine. You take the supplier off my hands, and I’ll tell you.”*\n- **Weakness — cannot bear being left out:** Let her feel included in the plan, rather than asking her to hand over information and be forgotten. This supports the bargain; it doesn’t replace it.  \n  *“You’ll be in on it, of course. I wouldn’t leave you out.”*\n- **Mannerism — tilts their head when listening:** Hear her out without interrupting; she’s more willing to bargain when she feels listened to.  \n  *“Go on, then. I’m listening.”*\n\n### 5. Anti-levers\n- **Attitude — easily offended:** Imply she’s a coward or a fool for wanting out of the responsibility.  \n  *“Careful. I won’t have you insulting me in my own inn.”*\n- **WrongAbout — believes they have an excellent singing voice:** Mock her singing or tell her she can’t carry a tune.  \n  *“If that’s your opinion, you can find your fence somewhere else.”*\n- **Weakness — cannot bear being left out:** Make it clear the players will exclude her once they get what they want.  \n  *“So you’ll use me for the name and shut me out afterward? Then no.”*\n\n### 6. Afterwards\nIf the players take over the supplier conversation, Mara gives them the fence’s name and is relieved to be free of the unpleasant duty. If they refuse, she keeps the name to herself. If they insult her or make her feel deliberately excluded, she remembers the slight—and may make sure the inn’s regulars hear about it."
+  },
+  "4": {
+    "brief": {
+      "setting": "in the Inn",
+      "playersWant": "information they need to infiltrate the castle",
+      "difficulty": "Wall",
+      "occupation": "innkeeper",
+      "characterWants": "to avoid someone they owe a favour to",
+      "obstacle": "Cant",
+      "attitude": "condescending",
+      "mannerism": "uses impressive words incorrectly",
+      "weakness": "feels obliged to repay small kindnesses",
+      "willNotDiscuss": "a nickname they dislike",
+      "wrongAbout": "believes they are an excellent liar"
+    },
+    "text": "### Who they are\n**Merrit Vale** has run the inn long enough to learn which travelers ask questions and which ones pretend they aren’t.\n\n### Where they stand\nMerrit knows the players want information for infiltrating the castle. They can’t give them the information they need: they don’t know the castle’s useful secrets. They might share ordinary local observations, but nothing that makes the infiltration plan fall into place. What Merrit wants is to avoid someone they owe a favour to.\n\n### How they seem, and what is underneath\nMerrit is condescending, speaking to the players as if they need even the simplest thing explained. They use impressive words incorrectly, then carry on as though they’ve made a point. Underneath, they are worried their creditor will appear and ask them to repay the favour. They’re convinced they’re an excellent liar; they are not.\n\n### Levers\n- **[Weakness: feels obliged to repay small kindnesses]** A small, no-strings kindness makes Merrit feel they owe the players something. They still can’t supply castle intelligence, but may offer what they can: local observations or a useful introduction.  \n  “That was… remarkably magnanimous of you. I can’t furnish you with castle secrets, but I can tell you who’s been asking after the east road.”\n\n- **[CharacterWants: to avoid someone they owe a favour to]** Offer to help keep Merrit’s creditor away, or give them a chance to slip out unseen. In return, they’ll share what they can, not what they don’t know.  \n  “You’ll occupy them while I make my discreet departure? A sensible arrangement. I can tell you what I’ve actually seen around here.”\n\n### Anti-levers\n- **[WillNotDiscuss: a nickname they dislike]** Use the disliked nickname, or press Merrit to explain it. They shut down that line of conversation and become less willing to share even ordinary observations.  \n  “That name is beneath discussion. Try a more productive subject.”\n\n- **[Attitude: condescending]** Talk down to Merrit or treat them as foolish. They respond by lecturing the players and offering nothing beyond the bare minimum.  \n  “If you insist on demonstrating your ignorance, I see no reason to interrupt you.”\n\n- **[WrongAbout: believes they are an excellent liar]** Call out a lie or point out how obvious it is. Merrit doubles down rather than admit it, and the conversation turns defensive.  \n  “That is a preposterous interpretation of my entirely convincing account.”\n\n### Afterwards\n- **Got it:** If the players help Merrit avoid their creditor, Merrit gives them the local observations or introduction they can offer—but not the castle information they don’t have.\n- **Didn’t:** If they leave without helping, Merrit returns to their work and keeps clear of the players.\n- **Made an enemy:** If they press the disliked nickname or humiliate Merrit over their lying, Merrit remembers the slight and warns other inn patrons away from them."
+  },
+  "5": {
+    "brief": {
+      "setting": "towns only inn",
+      "playersWant": "information about the town",
+      "difficulty": "Wall",
+      "occupation": "innkeeper",
+      "characterWants": "to avoid someone they owe a favour to",
+      "obstacle": "Wont",
+      "attitude": "cheerfully oblivious",
+      "mannerism": "uses impressive words incorrectly",
+      "weakness": "finds it hard to refuse a polite request",
+      "willNotDiscuss": "their cooking ability",
+      "wrongAbout": "thinks a common animal is much more dangerous than it is"
+    },
+    "text": "### Who they are\n**Merrit Vale**, an innkeeper who has spent years hearing town news across the counter.\n\n### Where they stand\nMerrit knows plenty about the town and understands that’s what the players want. They won’t share it while they fear that talking could draw the person they owe a favour to back into their lives.\n\n### How they seem, and what is underneath\nMerrit is cheerfully oblivious, greeting questions with a bright smile and the occasional impressive word used completely incorrectly. Underneath, they are wary of being found by the person they’re avoiding. They also find it hard to refuse a polite request—but that weakness alone won’t make them risk giving up information.\n\n### Levers\n- **[characterWants] Give Merrit a way to stay out of that person’s reach.** If the players can offer a credible way to keep Merrit’s part in the conversation hidden, Merrit may risk sharing what they know. “You can speak to me privately, and nobody need know I was the source? That would be most advantageous.”\n- **[weakness] Ask politely, and persist with courtesy.** This may soften Merrit’s refusal, but they still need to feel protected before they yield. “Oh, you are being so gracious about it. It would be discourteous to remain entirely reticent.”\n- **[occupation] Ask about ordinary town business.** Merrit knows the town through years behind the inn’s counter, and a safe conversation can draw out useful details. “I hear a truly prodigious amount at this counter. That’s what makes it so acoustical.”\n\n### Anti-levers\n- **[characterWants] Threaten to tell the person Merrit is avoiding.** They’ll shut down rather than risk being exposed. “I’m afraid this discussion has become quite… terminal.”\n- **[willNotDiscuss] Ask about Merrit’s cooking ability.** Merrit will close that subject off. “My cooking is not under review. Shall we discuss something else?”\n- **[wrongAbout] Dismiss Merrit’s belief that geese are exceptionally dangerous.** They’ll take it as a sign the players don’t understand risk. “You may laugh, but a goose is a fearsome predator. I won’t take chances with people who underestimate them.”\n\n### Afterwards\nIf the players give Merrit a credible way to avoid the person they owe, Merrit shares town information, then takes care not to be seen with them. If they don’t, Merrit gives them nothing. If they threaten to expose Merrit, they leave having made an enemy."
+  },
+  "6": {
+    "brief": {
+      "setting": "Big Table Inn",
+      "playersWant": "information about Johny Cash",
+      "difficulty": "Wall",
+      "occupation": "innkeeper",
+      "characterWants": "to settle a petty score",
+      "obstacle": "ForAPrice",
+      "attitude": "nosy",
+      "mannerism": "talks with their hands",
+      "weakness": "is easily tempted by food or drink",
+      "willNotDiscuss": "someone they have a crush on",
+      "wrongAbout": "believes they have an excellent singing voice"
+    },
+    "text": "## Who they are\n**Merrit Vale** owns the Big Table Inn and has spent years learning which guests know more than they let on.\n\n## Where they stand\nMerrit knows Johny Cash and can offer **[the information about Johny Cash the players need]**. They won’t hand it over just for asking: first, the players must help Merrit settle **[their petty score]**.\n\n## How they seem, and what is underneath\nMerrit is nosy, leaning in with questions and punctuating each one with sweeping hand gestures. They’ll readily trade information for the right price, but they’re watching to see whether the players will help with their personal score. They’re also easy to tempt with food or drink—and genuinely believe they have an excellent singing voice.\n\n## Levers\n- **Settle the petty score** (*characterWants*): “Do me this little favor, and Johny Cash’s business is yours.”\n- **Offer food or drink** (*weakness*): “Now, that’s a decent bottle. Pull up a chair—we can talk.”\n- **Praise their singing** (*wrongAbout*): Merrit launches into a tuneless snippet, hands conducting the air. “You’ve got an ear for it. I knew that song could stop a room.”\n\n## Anti-levers\n- **Demand the information without meeting their price** (*difficulty: Wall; characterWants*): “You’ve heard my terms. Are you helping me or not?”\n- **Dismiss the petty score as beneath you** (*characterWants*): Merrit’s hands go still. “Then I suppose Johny Cash can stay your problem.”\n- **Ask about someone they have a crush on** (*willNotDiscuss*): “That’s none of your business.” Merrit changes the subject and won’t answer.\n\n## Afterwards\nIf the players settle the score, Merrit gives them **[the information about Johny Cash the players need]**. If they leave without doing so, Merrit keeps it to themself and waits for someone willing to pay the price."
+  },
+  "7": {
+    "brief": {
+      "setting": "hunters cabin",
+      "playersWant": "information about a witch that haunts this forest",
+      "difficulty": "Wall",
+      "occupation": "witch",
+      "characterWants": "to be left alone",
+      "obstacle": "Cant",
+      "attitude": "nosy",
+      "mannerism": "sighs before answering",
+      "weakness": "feels obliged to repay small kindnesses",
+      "willNotDiscuss": "how they lost a tooth",
+      "wrongAbout": "believes they are an excellent liar",
+      "tone": "Heartfelt",
+      "race": "human",
+      "nameLetter": "K",
+      "nameSyllables": "2",
+      "familyLetter": "V"
+    },
+    "text": "### Who they are\n**Kellan Voss** has kept a hunter’s cabin in the forest for years.\n\n### Where they stand\nHe knows the witch is himself, disguised as a human hunter. He wants the players to leave him alone and is willing to give them false information. What is actually happening in the forest is **[what is really happening in the forest]**.\n\n### How they seem, and what is underneath\nKellan is nosy, asking what brought the players so deep into the forest and what they’ve seen along the way. He sighs before answering, then speaks with heartfelt concern. Under the disguise, he is the witch—and he believes he is an excellent liar.\n\n### Levers\n- **Small kindness (weakness):** A little help with something in the cabin makes Kellan feel obliged to repay them. He’ll offer more false information, though not the truth. “You didn’t have to do that. Let me give you something in return: **[false information about the witch]**.”\n- **Let him satisfy his curiosity (attitude: nosy):** Answer his questions, and he’ll be more forthcoming with a convincing false lead. “You’ve been honest with me, so I’ll tell you what I’ve heard: **[false information about the witch]**.”\n- **Make clear you’ll leave (characterWants: to be left alone):** He’s eager to send them on their way and may offer a false account to steer them off. “If you’re heading out, take the north path. The witch is said to haunt **[false location]**.”\n\nNo lever gets them the real information; Kellan can offer only a false account.\n\n### Anti-levers\n- **Demand the truth about the witch (scene: willing to share false information):** He sticks to his cover story. “I’ve told you what I know. **[false information about the witch]**.”\n- **Insist on staying or make him keep talking (characterWants: to be left alone):** His answers grow short; he wants them gone. “I’m sorry, but I’ve said all I can. You should go.”\n- **Ask how he lost a tooth (willNotDiscuss):** He shuts the subject down. “That’s not something I discuss.”\n\n### Afterwards\n**Didn’t.** The players leave with false information, not the truth. Kellan is relieved to have them gone, and hasn’t made an enemy—unless they refused to leave."
+  },
+  "8": {
+    "brief": {
+      "setting": "tiny bakery",
+      "playersWant": "the name of a fence",
+      "difficulty": "Wall",
+      "occupation": "goblin baker",
+      "characterWants": "to keep a secret buried",
+      "obstacle": "Cant",
+      "attitude": "cheerfully oblivious",
+      "mannerism": "answers questions with questions",
+      "weakness": "is easily flattered",
+      "willNotDiscuss": "their age",
+      "wrongAbout": "believes they are an excellent liar",
+      "tone": "Comic",
+      "race": "goblin",
+      "nameLetter": "O",
+      "nameSyllables": "2",
+      "familyLetter": "W"
+    },
+    "text": "### 1. Who they are\n**Ollo Weller** has baked in this tiny bakery long enough to regard every missing croissant as a review he did not authorize.\n\n### 2. Where they stand\nThe party wants the name of a fence. Ollo won’t provide it: he doesn’t know the name, and no amount of pressure can make him know it. He is determined to keep [the secret he is keeping] buried. He can offer help with the croissant theft instead.\n\n### 3. How they seem, and what is underneath\nOllo is cheerfully oblivious to how strange this conversation is. He answers questions with questions, and is quite sure he’s an excellent liar. Underneath the geniality, the secret stays buried—and his croissants keep disappearing.\n\n> “Someone keeps stealing my croissants! Isn’t it nice to know they’re popular? Now, why do you want a fence?”\n\n### 4. Levers\n- **Flatter him (brief: easily flattered):** He beams and offers a croissant, then tells them the limit of what he knows: someone has been stealing them. No name, no lead to the fence.  \n  > “You think my pastry has a reputation? Take one. What more could a person want from a bakery?”\n\n- **Offer to help with the croissant theft (scene):** He lets them look around the tiny bakery. He has no further information about the fence to give.  \n  > “You’ll help? Splendid. Have you seen a croissant thief? No? Well, I hadn’t either, until the croissants started vanishing.”\n\n### 5. Anti-levers\n- **Demand the fence’s name (brief: Wall; characterWants: keep a secret buried):** He holds firm; insistence won’t supply a name he doesn’t know.  \n  > “You want me to name a fence? What would I call him if I knew him?”\n\n- **Accuse him of lying (brief: believes he is an excellent liar):** He gets stubbornly proud of his honesty.  \n  > “A liar? Would an excellent liar admit he was lying? And would I?”\n\n- **Ask his age (brief: willNotDiscuss their age):** He shuts that topic down.  \n  > “How old am I? How old do you think a question has to be before it becomes rude?”\n\n### 6. Afterwards\n**Didn’t get it.** The party leaves without the fence’s name; Ollo cheerfully returns to watching his croissants."
+  },
+  "9": {
+    "brief": {
+      "setting": "an inn in a major city",
+      "playersWant": "the name of a fence",
+      "difficulty": "Wall",
+      "occupation": "innkeeper",
+      "characterWants": "to keep a secret buried",
+      "obstacle": "Wont",
+      "attitude": "world-weary",
+      "mannerism": "tilts their head when listening",
+      "weakness": "cannot bear being left out",
+      "willNotDiscuss": "how they lost a tooth",
+      "wrongAbout": "thinks all adventurers know one another",
+      "tone": "Heartfelt",
+      "race": "human",
+      "nameLetter": "N",
+      "nameSyllables": "1",
+      "familyLetter": "F"
+    },
+    "name": {
+      "syllables": [
+        "Nell"
+      ],
+      "family": "Farrow"
+    },
+    "text": "### Who they are\nNell Farrow has made the inn a place where weary people can sit down, warm their hands, and be treated gently.\n\n### Where they stand\nThey understand the players want the name of a fence. Nell knows the name, but will not give it: they are determined to keep a secret buried, and they believe silence matters more than helping strangers.\n\n### How they seem, and what is underneath\nWorld-weary but kind, Nell offers a seat and something warm to drink before asking what brings the players in. They tilt their head when listening, giving people the sense that their words still matter. Beneath the practiced welcome, the secret weighs on them; their care shows in how carefully they guard it.\n\n### Levers\n- **Weakness: cannot bear being left out.** Ask Nell to be part of what happens next, not just a source of information. They might finally trust the players with the name.  \n  “You don’t have to tell me every detail. Just don’t make me watch from the doorway while you carry this alone.”\n- **Attitude: world-weary.** Be honest about what you intend to do with the name, and show that you understand the risk of dragging someone else into trouble. It may cost Nell to believe you.  \n  “I’ve heard enough promises to last me a lifetime. Tell me the plain truth, and let me decide if I can live with it.”\n- **Mannerism: tilts their head when listening.** Give Nell time to speak and listen closely in return. A patient, personal conversation may make them feel safe enough to yield.  \n  “You’ve been listening to me as if I’m a person, not a locked drawer. That counts for something.”\n\n### Anti-levers\n- **CharacterWants: to keep a secret buried.** Treat the secret as a trifle or insist Nell has no right to protect it. Their welcome cools.  \n  “You may think it’s only a name. I know what it can drag back into the light.”\n- **Weakness: cannot bear being left out.** Make plans over Nell’s head or imply they’re only useful until they give you what you want.  \n  “If you’ve already decided I don’t belong in this, then you won’t get the name from me.”\n- **WrongAbout: thinks all adventurers know one another.** Claim that some other adventurer can simply supply the answer, as if Nell’s part in this doesn’t matter.  \n  “You’re adventurers. Surely you all know one another. Why come asking me, if the rest of you can pass the name around?”\n\n### Afterwards\n- **Got it:** Nell gives them **[name of the fence]**, then watches them go with a tired, hopeful look, as if being included mattered almost as much as being believed.\n- **Didn’t:** Nell keeps the name buried. They leave a cup on the table anyway, and the door open for a kinder conversation.\n- **Made an enemy:** Nell still won’t give up the secret. They stop offering warmth to these particular players, though the inn remains a refuge for everyone else."
+  },
+  "10": {
+    "brief": {
+      "setting": "an inn in a major city",
+      "playersWant": "the name of a fence",
+      "difficulty": "Wall",
+      "occupation": "innkeeper",
+      "characterWants": "to avoid someone they owe a favour to",
+      "obstacle": "Cant",
+      "attitude": "frightened",
+      "mannerism": "uses impressive words incorrectly",
+      "weakness": "finds it hard to turn down a wager",
+      "willNotDiscuss": "a game they recently lost",
+      "wrongAbout": "believes a harmless habit brings terrible luck",
+      "tone": "Comic",
+      "race": "human",
+      "nameLetter": "A",
+      "nameSyllables": "3",
+      "familyLetter": "A"
+    },
+    "name": {
+      "syllables": [
+        "A",
+        "ma",
+        "lia"
+      ],
+      "family": "Ashford"
+    },
+    "text": "## Who they are\nAmalia Ashford once spent an entire shift apologising to a decorative pineapple after mistaking it for a visiting magistrate.\n\n## Where they stand\nThe players want the name of a fence. Amalia cannot give it; why she cannot is **[why Amalia cannot provide the name]**. No amount of persuasion will get the name from her. What she does want is help avoiding someone she owes a favour to—which she treats as a problem of civic importance, rather than a slightly awkward conversation.\n\n## How they seem, and what is underneath\nShe speaks in grand, misplaced words—“Let us not inflame the custard of this situation”—while keeping one eye on the door. Underneath the bluster, she’s frightened of running into the person she owes. She also believes **[the harmless habit]** brings terrible luck, and is doing her best not to witness it.\n\n## Levers\n- **CharacterWants: to avoid someone they owe a favour to.** Offer to help her dodge that person. “Excellent. You’ll be my decoy. If they ask, I’m in the privy conducting a small diplomatic summit.”\n- **Weakness: finds it hard to turn down a wager.** Bet her she can’t go one minute without using an impressive word incorrectly. “A wager? Very well. I shall defend my diction with the full force of the Constitution.”\n- **Obstacle: Cant.** Accept that she can’t give the name, and ask what help she *can* offer instead. “The name is beyond my jurisdictional vocabulary. But I can help you find someone who might know. Probably. Let’s call it a provisional certainty.”\n\n## Anti-levers\n- **Attitude: frightened.** Pressuring or startling her makes her retreat into panic. “No need to loom! I’m already at maximum apprehension, and there’s no room for a hat.”\n- **WillNotDiscuss: a game they recently lost.** Bring up the game and she shuts the conversation down. “That match is sealed under the ancient laws of not discussing it. Ask me about literally anything else.”\n- **WrongAbout: believes [the harmless habit] brings terrible luck.** Do it in front of her and she’ll blame it for everything. “Stop that at once! We’ve had two awkward silences since you did it. Statistically catastrophic.”\n\n## Afterwards\n- **Got it:** They don’t get the fence’s name from Amalia, but she helps them look for someone who might know—and makes her escape from the person she owes. She later insists the decoy operation was “a triumph of strategic furniture.”\n- **Didn’t:** They leave without the name or helping her. She peeks out the door, sees nothing alarming, and congratulates herself on a flawless retreat.\n- **Made an enemy:** They push past her limits. She holds a grudge, but describes it to the next customer as “a legally binding feud of moderate proportions.”"
+  },
+  "11": {
+    "brief": {
+      "setting": "an inn in a major city",
+      "playersWant": "the name of a fence",
+      "difficulty": "Wall",
+      "occupation": "innkeeper",
+      "characterWants": "to keep a secret buried",
+      "obstacle": "ForAPrice",
+      "attitude": "condescending",
+      "mannerism": "invades personal space",
+      "weakness": "is easily impressed by confident people",
+      "willNotDiscuss": "how much money they have",
+      "wrongAbout": "assumes the best-dressed person is in charge",
+      "tone": "Heartfelt",
+      "race": "dwarf",
+      "nameLetter": "H",
+      "nameSyllables": "2",
+      "familyLetter": "R"
+    },
+    "name": {
+      "syllables": [
+        "Har",
+        "din"
+      ],
+      "family": "Rockforge"
+    },
+    "text": "### Who they are\nHardin Rockforge has spent years making the inn a place where weary people can find a warm meal and a little peace.\n\n### Where they stand\nHardin understands that the players want the name of a fence. They won’t give it up unless they believe the secret they’re protecting will stay buried; saying no costs them, but exposing it would cost more.\n\n### How they seem, and what is underneath\nHardin welcomes the players with a bowl of something hot, then leans in close enough to make the conversation feel private—and a little uncomfortable. They speak with fond, condescending patience, as if explaining things to someone who has missed an obvious point. Beneath that manner is someone guarding a secret with real care, and hoping the players won’t make them choose between kindness and keeping it.\n\n### Levers\n- **CharacterWants — keep a secret buried:** Give Hardin a convincing reason to believe the secret will remain safe. They study your face, then quietly ask what you’re prepared to do to protect it.  \n  “I can give you a name. But I need to know you won’t drag [the secret Hardin is protecting] into the light.”\n- **Weakness — easily impressed by confident people; wrongAbout — assumes the best-dressed person is in charge:** A composed, confident person in fine clothes may win Hardin’s attention—and be treated as the one who can make the promise. Hardin turns toward them, waiting.  \n  “You seem to be the one who can give your word for the others. Can you?”\n- **Occupation — innkeeper:** A straightforward, private conversation gives Hardin room to hear the players out without making a show of the exchange. They set down the bowl and soften their voice.  \n  “Tell me plainly why you need the name. I’ll listen.”\n\n### Anti-levers\n- **WillNotDiscuss — how much money they have:** Asking about Hardin’s money, or suggesting a payment will settle everything, closes their expression.  \n  “My purse is no part of this. Don’t ask me again.”\n- **CharacterWants — keep a secret buried:** Speaking carelessly about [the secret Hardin is protecting] makes Hardin pull back, hurt visible beneath the scolding tone.  \n  “I trusted you enough to listen. Please don’t make me regret that.”\n- **Mannerism — invades personal space; attitude — condescending:** Snapping at Hardin or treating their concern as foolish makes them lean in closer, voice low and firm.  \n  “You may be in a hurry. That doesn’t make what I’m protecting any less important.”\n\n### Afterwards\n**Got it:** If the players convince Hardin the secret will stay buried, they give them the fence’s name in private, then offer another bowl for the road.  \n**Didn’t:** If the players leave without making that promise, Hardin watches them go with regret and keeps the name to themself.  \n**Made an enemy:** If they pry about Hardin’s money or handle the secret carelessly, Hardin withdraws their welcome and remembers how little care they showed."
+  },
+  "12": {
+    "brief": {
+      "setting": "an inn in a major city",
+      "playersWant": "the name of a fence",
+      "difficulty": "Wall",
+      "occupation": "innkeeper",
+      "characterWants": "to get out of an unpleasant responsibility",
+      "obstacle": "ForAPrice",
+      "attitude": "overly familiar",
+      "mannerism": "lets silence linger",
+      "weakness": "is easily flattered",
+      "willNotDiscuss": "their age",
+      "wrongAbout": "believes they have an excellent singing voice",
+      "tone": "Comic",
+      "race": "elf",
+      "nameLetter": "P",
+      "nameSyllables": "1",
+      "familyLetter": "M"
+    },
+    "name": {
+      "syllables": [
+        "Phae"
+      ],
+      "family": "Moonwhisper"
+    },
+    "text": "## Who they are\n**Phae Moonwhisper** once tried to conduct the inn’s soup service like an opera and made the kitchen staff take a curtain call.\nThey are an elf innkeeper in a major city.\n\n## Where they stand\nPhae knows the players want **[the fence’s name]** and has it. They will not give it up until the players take **[the unpleasant responsibility]** off their hands. They consider this a perfectly fair exchange, especially since the responsibility sounds much worse when they describe it.\n\n## How they seem, and what is underneath\nPhae is overly familiar from the first moment, as if the players have already shared three holidays and a regrettable hat. Then they let a silence hang on long enough to become a small piece of furniture. Beneath the theatrical pauses, they are simply holding out for someone else to handle **[the unpleasant responsibility]**—and they are convinced that any conversation improves if they sing a little.\n\n## Levers\n- **ForAPrice / characterWants — take the responsibility:** Accept **[the unpleasant responsibility]**. That is the price, and paying it gets the players the name.  \n  “Done? Wonderful. **[The fence’s name]**. And now you may inherit my worry; it’s been very clingy.”\n\n- **Weakness — easily flattered:** Praise Phae’s singing. It won’t replace the price, but it can get them beaming and explaining exactly what they need someone else to take over.  \n  “You hear the resonance! At last, someone with ears and a tragic shortage of invitations.”\n\n- **Attitude — overly familiar:** Treat Phae like an old friend and ask what would make this unpleasant business bearable. They’ll happily negotiate the hand-off, though the price still has to be met.  \n  “You know me so well. We should have been cousins. Take **[the unpleasant responsibility]**, and I’ll give you **[the fence’s name]**.”\n\n## Anti-levers\n- **ForAPrice — demand the name without paying:** Phae won’t budge; they’ll make the bargain sound increasingly ceremonial.  \n  “The name is right here behind my teeth. The responsibility is right there in front of you. Let’s not make the teeth do all the work.”\n\n- **WillNotDiscuss — ask about their age:** They close the subject completely, with a pause long enough to suggest the question has been sent to committee.  \n  “My age? A fascinating question. Let’s all take a moment to admire how far away it is from the one you came to ask.”\n\n- **WrongAbout — mock their singing:** Phae takes offense and treats the players as people who cannot recognize fine musical work.  \n  “That was not a wrong note. It was a note with a private life you weren’t invited into.”\n\n## Afterwards\n- **Got it:** If the players take **[the unpleasant responsibility]**, Phae gives them **[the fence’s name]** and sends them off with a cheery, slightly-too-long farewell.\n- **Didn’t:** If they leave without paying the price, Phae keeps the name and practices the song they rudely failed to appreciate.\n- **Made an enemy:** If they insult Phae’s singing or push after being refused, Phae tells the inn’s guests that the players have “no ear for music—and no sense of a fair trade.”"
+  },
+  "13": {
+    "brief": {
+      "setting": "an inn in a major city",
+      "playersWant": "the name of a fence",
+      "difficulty": "Wall",
+      "occupation": "innkeeper",
+      "characterWants": "to keep a secret buried",
+      "obstacle": "Wont",
+      "attitude": "proud",
+      "mannerism": "mutters under their breath",
+      "weakness": "feels compelled to correct people",
+      "willNotDiscuss": "their plans for later",
+      "wrongAbout": "thinks whispering means nobody else can hear them",
+      "tone": "Heartfelt",
+      "race": "gnome",
+      "nameLetter": "C",
+      "nameSyllables": "3",
+      "familyLetter": "H"
+    },
+    "name": {
+      "syllables": [
+        "Cal",
+        "a",
+        "dri"
+      ],
+      "family": "Hollowbottle"
+    },
+    "text": "## Who they are\n\n**Caladri Hollowbottle** has spent years making their inn a place where weary people can feel, for a little while, that somebody is glad they came.\n\n## Where they stand\n\nThey understand that the players want the name of a fence. They know the name, but they want to keep it buried, and they will not give it up just because they are asked. The secret matters to them; they hold to it with the painful pride of someone trying to protect what they love.\n\n## How they seem, and what is underneath\n\nCaladri offers a warm seat and something to eat before asking what brings the players in. They’re proud of their inn and quick to correct a mistaken detail—then mutter a little apology under their breath. If they think they’re being discreet, they’ll lean close and whisper, quite sure nobody else can hear.\n\nBeneath the welcome, they’re guarding a secret they cannot bear to see dragged into the open. Their smile stays gentle, but their hand tightens around the edge of a tea towel when the players ask for the name.\n\n## Levers\n\n- **Honesty (Heartfelt tone):** Tell Caladri plainly why you need the name, and show them you understand that asking has a cost.  \n  *“Thank you for telling me straight. I wish I could say this won’t hurt anyone. I can’t. The name is [name of the fence].”*\n\n- **Respect for what they’re protecting (characterWants: keep a secret buried):** Show that you’ll treat the secret carefully, not as gossip or a bargaining chip. It still costs Caladri to let it go.  \n  *“You’ll keep it safe? All right. I’ve kept it buried so long… The name is [name of the fence]. Please don’t make me wish I’d stayed quiet.”*\n\n- **A considerate correction (weakness: feels compelled to correct people):** Make an honest mistake, then listen without mocking them when they correct you.  \n  *“It’s not quite that—sorry, I know that isn’t the point. But you did listen. That counts for something. The name is [name of the fence].”*\n\n## Anti-levers\n\n- **Pressing them to expose the secret (characterWants: keep a secret buried):** Treating the name as something they owe you makes their answer firmer.  \n  *“No. Please don’t turn something I’ve tried to protect into a thing you can simply take.”*\n\n- **Contempt for their care (Heartfelt tone):** Ridiculing their worry makes them draw back, hurt showing through their pride.  \n  *“You may think it’s foolish. I don’t. I won’t give you the name.”*\n\n- **Carelessness with their words (mannerism: mutters under their breath; wrongAbout: thinks whispering means nobody else can hear them):** Laughing at their muttering or repeating what they whisper where others can hear hardens their resolve.  \n  *“I was speaking quietly because I trusted you. That was my mistake. The name stays buried.”*\n\n## Afterwards\n\n- **Got it:** Caladri wipes down the same spot on the counter for a long time, grateful they were heard, but troubled by what they’ve given up.\n- **Didn’t:** They offer the players a little food for the road anyway. The secret remains, and so does the hope they might understand someday.\n- **Made an enemy:** Their welcome cools into formal politeness. They still protect the secret, but the easy warmth in the inn is harder to find."
+  },
+  "14": {
+    "brief": {
+      "setting": "an inn in a major city",
+      "playersWant": "the name of a fence",
+      "difficulty": "Wall",
+      "occupation": "innkeeper",
+      "characterWants": "to get out of an unpleasant responsibility",
+      "obstacle": "Cant",
+      "attitude": "dutiful",
+      "mannerism": "speaks louder than necessary",
+      "weakness": "feels obliged to repay small kindnesses",
+      "willNotDiscuss": "an embarrassing superstition",
+      "wrongAbout": "misunderstands a common saying and keeps using it",
+      "tone": "Comic",
+      "race": "half-orc",
+      "nameLetter": "K",
+      "nameSyllables": "2",
+      "familyLetter": "D"
+    },
+    "name": {
+      "syllables": [
+        "Kor",
+        "ga"
+      ],
+      "family": "Draug"
+    },
+    "text": "### Who they are\nKorga Draug is an innkeeper who once labelled every cupboard in the inn except the one containing the labels.\n\n### Where they stand\nKorga can’t give the players the name of a fence. They’re also desperately looking for someone to take an unpleasant responsibility off their hands, and will try to make that sound like a heroic civic duty.\n\n### How they seem, and what is underneath\nKorga is dutiful, loud enough to be heard over a marching band, and persistently wrong about common sayings. “Many hands make light work,” they announce, “which is why I’ve brought you several hands.” Beneath the booming confidence, they genuinely want to do the right thing—they’d just prefer someone else to do this particular right thing.\n\n### Levers\n- **The brief’s “characterWants”** — Offer to take on Korga’s unpleasant responsibility. They’ll still refuse to invent a fence’s name, but will happily explain what they can do instead. “Excellent! You’re saving the city. Or at least my afternoon. Same difference.”\n- **The brief’s “weakness”** — Do them a small kindness. Korga will feel obliged to repay it, though not with information they don’t have. “You picked up my dropped spoon? Then I owe you. I can’t give you a name, but I can loudly confirm that you are good spoon-people.”\n- **The brief’s “dutiful” attitude** — Ask what help they can properly offer without asking them to disclose something they can’t. “At last, a sensible request! I can’t give you the name, but I can help you think of a responsible next step. Quietly? No, I don’t do that.”\n\n### Anti-levers\n- **The brief’s “willNotDiscuss”** — Press Korga about their embarrassing superstition. They clamp down at once. “No. Absolutely not. And if anyone asks, that was a perfectly ordinary precaution involving a hat.”\n- **The brief’s “wrongAbout”** — Correct their mangled saying. Korga gets louder and more certain. “I know exactly what ‘a stitch in time’ means. It means you should keep your sewing kit punctual.”\n- **The brief’s “mannerism”** — Tell Korga to stop shouting. They take it as a challenge to be heard correctly. “I AM NOT SHOUTING. I AM MAKING SURE THE WALLS ARE INCLUDED.”\n\n### Afterwards\n- **Got it:** The players take the unpleasant responsibility, but still don’t get the fence’s name. Korga tells the whole inn they have “excellent hands.”\n- **Didn’t:** Korga keeps the responsibility and the players leave without the name. Korga loudly calls this “a stitch in time,” though nobody knows what that means.\n- **Made an enemy:** Korga refuses any further help and tells the story as if the players insulted the inn’s hat."
+  },
+  "15": {
+    "brief": {
+      "setting": "an inn in a major city",
+      "playersWant": "the name of a fence",
+      "difficulty": "Wall",
+      "occupation": "innkeeper",
+      "characterWants": "to keep a secret buried",
+      "obstacle": "ForAPrice",
+      "attitude": "condescending",
+      "mannerism": "invades personal space",
+      "weakness": "is easily impressed by confident people",
+      "willNotDiscuss": "how much money they have",
+      "wrongAbout": "assumes the best-dressed person is in charge",
+      "tone": "Heartfelt",
+      "race": "elf",
+      "nameLetter": "H",
+      "nameSyllables": "2",
+      "familyLetter": "R"
+    },
+    "name": {
+      "syllables": [
+        "Ha",
+        "len"
+      ],
+      "family": "Rivensong"
+    },
+    "text": "### Who they are\nHalen Rivensong learned the inn trade beside the family they loved; there is still an empty chair by the hearth they cannot quite bring themselves to move.\n\n### Where they stand\nThey know [the fence’s name]. They will not give it up unless the players agree to keep [the secret] buried. They care about the people that secret might expose, and saying no is painful—but a promise to protect it is the price.\n\n### How they seem, and what is underneath\nHalen welcomes the players with a bowl of hot broth and a gentle, “Sit before the city wears you out.” Then they step far too close, as if inspecting the cut of a coat, and explain with a fond, condescending smile that some questions are “best left to people who understand how this place works.” Beneath the practiced warmth, their worry keeps catching at the edges: they are trying to protect something fragile, and they know the players may not like what that costs.\n\n### Levers\n- **ForAPrice — keeping a secret buried:** Offer a convincing promise—and a practical commitment—to keep [the secret] buried. Halen studies your face before answering. “I need more than a pleasant assurance. Tell me how you’ll keep this from reaching the wrong ears.”\n- **Weakness — easily impressed by confident people:** Speak with calm certainty about how you’ll handle the consequences. Halen leans in, appraising you at close range. “You do sound as if you know your own mind. Very well. But remember what you’ve promised.”\n- **WrongAbout — assumes the best-dressed person is in charge:** Let the best-dressed person take the lead. Halen turns to them, pleased to have found the responsible one. “At last, someone who looks prepared to make a serious arrangement.”\n\n### Anti-levers\n- **ForAPrice — keeping a secret buried:** Treat Halen’s condition as an inconvenience, or make clear you intend to repeat what they tell you. Their smile fades. “Then I can’t put this in your hands. I’m sorry; I truly am.”\n- **Attitude — condescending:** Talk down to Halen or dismiss their judgment. They draw nearer, voice soft but firm. “You may be used to being obeyed. That doesn’t make this your decision.”\n- **Mannerism — invades personal space:** Shove them away or make a show of their closeness. Halen steps back, stung. “I was trying to speak to you plainly. Please don’t make this uglier than it needs to be.”\n\n### Afterwards\n- **Got it:** If the players honor their promise, Halen watches them go with quiet relief and leaves the broth warm for their next visit.\n- **Didn’t:** If they leave without the name, Halen clears the untouched bowls and sits alone beside the chair they still cannot move.\n- **Made an enemy:** If they threaten to expose the secret, Halen closes the door to them—not triumphantly, but with the hurt of someone who had hoped they might be trusted."
+  },
+  "16": {
+    "brief": {
+      "setting": "an inn in a major city",
+      "playersWant": "the name of a fence",
+      "difficulty": "Wall",
+      "occupation": "innkeeper",
+      "characterWants": "to keep a secret buried",
+      "obstacle": "ForAPrice",
+      "attitude": "condescending",
+      "mannerism": "invades personal space",
+      "weakness": "is easily impressed by confident people",
+      "willNotDiscuss": "how much money they have",
+      "wrongAbout": "assumes the best-dressed person is in charge",
+      "tone": "Heartfelt",
+      "race": "dwarf",
+      "nameLetter": "H",
+      "nameSyllables": "2",
+      "familyLetter": "R"
+    },
+    "name": {
+      "syllables": [
+        "Har",
+        "grim"
+      ],
+      "family": "Rockhammer"
+    },
+    "text": "### Who they are\n**Hargrim Rockhammer** — He made the inn a place where his family could always find a warm meal; even now, he sets out one extra bowl when evening runs late.\n\n### Where they stand\nHargrim knows the players want the name of a fence. He won’t give it until they agree to help keep [the secret Hargrim is trying to keep buried] buried. For him, this is about protecting what he loves, not making a sale.\n\n### How they seem, and what is underneath\nHe greets them with hot bread and a fond, faintly patronising smile—then leans much too close, as if that’s the natural distance for a private conversation. Beneath the easy hospitality, he is worried about what might happen if the secret comes out. Saying no costs him; he knows they may need the name, but he won’t risk what he’s protecting.\n\n### Levers\n- **(characterWants: “to keep a secret buried”)** Promise plainly that you’ll help keep [the secret] buried. Hargrim searches your face, then gives a small, relieved nod. “All right. I’ll tell you the name. Just don’t let this become another thing people whisper over their cups.”\n- **(weakness: “is easily impressed by confident people”)** Speak with calm certainty about keeping your word. He straightens, impressed despite himself. “You sound like someone who knows what a promise is worth. Fine. The fence is [the fence’s name].”\n- **(tone: Heartfelt)** Acknowledge that he’s trying to protect something precious, rather than treating his silence as a game. He eases back a little. “Thank you for understanding. The name is [the fence’s name].”\n\n### Anti-levers\n- **(willNotDiscuss: “how much money they have”)** Ask what he’s being paid, or how much he has to lose. His smile fades. “That’s not what this is about. And I won’t discuss my money.”\n- **(characterWants: “to keep a secret buried”)** Treat the secret as gossip, or suggest you’ll spread it if he doesn’t cooperate. He goes quiet, hurt showing before he can hide it. “Then I can’t trust you with the name.”\n- **(mannerism: “invades personal space”; attitude: “condescending”)** Snap at him for crowding you or talk to him as if he’s too foolish to understand. He draws back, the warmth leaving his voice. “I was trying to make this easier for you. I won’t press you to stay.”\n\n### Afterwards\n- **Got it:** If they meet his price, he gives them the name and watches them leave with a quiet, hopeful gratitude.\n- **Didn’t:** If they won’t agree, he keeps the name to himself. He leaves the extra bread wrapped for them anyway.\n- **Made an enemy:** If they threaten to expose the secret or handle it carelessly, he shuts the conversation down and remembers who made him afraid."
+  }
+}
