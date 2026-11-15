@@ -27,22 +27,55 @@ started as a second process; ADR-016 records the switch.
 
 ## The website's pages
 
-`NpcForge.Web` is epic 12, in progress. It has no backend. It holds a Vite 8, React 19 and
+`NpcForge.Web` holds the website's two pages (epic 12). It has no backend until epic 6, and
+`docs/design/epic-12-api-needs.md` lists what the pages need from one. It is a Vite 8, React 19 and
 TypeScript 7 app, and `npm --prefix NpcForge.Web start` serves it at `http://localhost:5173`. Its
 pages get data only through `src/api.ts`, whose bodies read made-up data, so epic 6 can replace the
 bodies and leave the pages (ADR-017). The folder is not in `NpcForge.slnx`, so `dotnet build` and
 `dotnet test` never start Node.
 
-So far there is one page: the saved list at `/saved` and one save at `/saved/<number>`, over the 16
-saves in `src/madeUp/saves.json`, which is `NpcForge.Console/characters.json` as it stood at commit
-`e3ac16e`. `Sheet.tsx` hands a saved sheet to `react-markdown` whole and never reads its meaning.
-The brief shows beside the sheet, or below it on a phone, each field named as the console prints
-it. The top bar counts the saves on every page. Colours, typefaces and type sizes are set once, in
-`src/tokens.css`. `/` shows a placeholder until the scene page is built.
+There are two pages. The forge page at `/` is where a GM describes a scene and gets a character.
+The saved page lists the saves at `/saved` and opens one at `/saved/<number>`. The top bar counts
+the saves on every page. Colours, typefaces and type sizes are set once, in `src/tokens.css`, and
+the pixel art is drawn in code from character maps in `src/Sprite.tsx`.
 
-A saved-page state can be opened by name, on its own path:
+The forge page holds one `ForgeState` and draws it with one switch. One step replaces the last on
+the same page, and the GM's scene stays in a panel above every step after the first. It is not a
+chat log. The steps follow the console: the scene in one go, a question when the scene names no
+place or role, the confirmation, the wait while a character is written, then the character with
+save, roll again and leave. The confirmation shows every field in the order sent: a field with the
+GM's words (`my words`, `inferred`) as a card with its quote and sentence, a field with no value
+(`not given`, `rolled`) as one quiet line. Turning the brief down and leaving send nothing and put
+the scene back in the box. No name for the dice and the spending cap each say the console's
+message and that nothing was saved. The page's words are the console's wherever it says the same
+thing.
+
+The made-up run is the bakery run, `docs/runs/raw/2026-11-08-01-epic4-bakery-roll-again.md`, in
+`src/madeUp/bakery.ts`: its scene, its 19 confirmation fields and its three characters, cut from
+the run file by a script so the sheets keep their lines that end in two spaces. Any scene gets the
+bakery confirmation, and roll again gives the run's three characters in turn after a one-second
+wait. A save goes to `sessionStorage` as number 17 and on, read and written only by `api.ts`, so
+it reaches the saved page through a plain link and each test starts with none.
+
+The saved page reads the 16 saves in `src/madeUp/saves.json`, which is
+`NpcForge.Console/characters.json` as it stood at commit `e3ac16e`, plus any save from the forge.
+`Sheet.tsx` hands a sheet to `react-markdown` whole and never reads its meaning, on both pages. The
+brief shows beside the sheet, or below it on a phone, each field named as the console prints it.
+
+Each state can be opened by name, on its own path:
 
 ```
+/?state=forge-describe               the empty scene box and its example
+/?state=forge-reading                waiting on the interviewer
+/?state=forge-question               the interviewer asking for a missing role
+/?state=forge-confirm                the bakery confirmation, 19 fields
+/?state=forge-turned-down            the brief turned down: the scene back in the box
+/?state=forge-writing                the wait while a character is written: the still forge
+/?state=forge-written                AldoBun Sourdough, with save, roll again and leave
+/?state=forge-no-name                no name followed the dice
+/?state=forge-cap                    the spending cap reached
+/?state=forge-saved                  saved as 17
+/?state=forge-left                   a character left: the scene back in the box
 /saved?state=saved-empty             a list with no saves
 /saved?state=saved-long              the 16 saves
 /saved/13?state=saved-open           save 13 open
@@ -51,9 +84,12 @@ A saved-page state can be opened by name, on its own path:
 ```
 
 `src/madeUp/states.ts` is the one table of them. Each entry holds the path it opens on and a
-`SavedState` value, so a state that no longer fits its page fails `tsc`. `main.tsx` looks the name
-up and hands the value to the page. A name the table lacks, or one opened on another path than its
-own, shows "No state named <name>".
+`ForgeState` or `SavedState` value, so a state that no longer fits its page fails `tsc`. `main.tsx`
+looks the name up and hands the value to its page. A name the table lacks, or one opened on another
+path than its own, shows "No state named <name>". An opened state still works: from
+`forge-question` an answer leads to the confirmation, and from `forge-no-name` roll again writes a
+character. Opening a named state saves nothing, so `forge-saved` says "Saved as 17." under a bar
+that still counts 16.
 
 ## One run, end to end
 
@@ -591,12 +627,18 @@ A test that asserts on `Tool failed:` must give arguments that would otherwise s
 for the wrong reason (lesson 004).
 
 The pages have their own free suite. `npm --prefix NpcForge.Web test` runs `tsc --noEmit`, then
-Playwright at phone (390 by 844) and desktop (1280 by 800) width. `sheet.spec.ts` opens each of the
-16 saves from the list and checks that the sheet holds every word of the saved text, in order, and
-that the shown name is the saved one or `(no name)`. `states.spec.ts` takes its list from the
-table's keys. For each state at both widths it checks that the state opened, and what a user sees
-there for each state its `seen` map describes. It then runs axe's `color-contrast` rule. A result
-axe cannot judge fails the test like a violation does. The first run downloads Chromium.
+Playwright at phone (390 by 844) and desktop (1280 by 800) width. `flow.spec.ts` walks the whole
+flow: it describes a scene, confirms the brief, reads the first character, rolls again and reads the
+second, saves, sees the bar reach 17, opens the list of 17 and the new save. Each character is read
+word for word against the made-up sheet. A second run ends with leave and finds the list still at
+16. Shorter tests turn the brief down, answer a question, and roll again or change the scene after
+no name. A data test holds each made-up sheet to the run file, byte for byte. `sheet.spec.ts` opens
+each of the 16 saves from the list and checks that the sheet holds every word of the saved text, in order, and that
+the shown name is the saved one or `(no name)`. `states.spec.ts` takes its list from the table's
+keys. For each state at both widths it checks that the state opened, and what a user sees there for
+each state its `seen` map describes. Both run axe's `color-contrast` rule through
+`tests/contrast.ts`: on every state, and after each step of the flow. A result axe cannot judge
+fails the test like a violation does. The first run downloads Chromium.
 
 `npm --prefix NpcForge.Web run screenshots` runs the tests that `npm test` skips. They write
 `docs/design/epic-12/<state>-<phone|desktop>.png`, full page, for every state, to look at and not to
@@ -654,3 +696,4 @@ agents and named, not numbered.
 | Faster tests (epic 9) | The free suite went from 12 m 19 s to about a minute with all 455 tests kept: a server closes at once on MCP 2.3.1, starts from its launcher, and the fast part runs on its own in 5 s | |
 | Save what I like (epic 4) | Saving is the GM's choice after each character; `again` rolls new dice for the same scene on the same server, so a seeded run repeats; `--list` finds a save and `--load` opens it; the cap stops a run cleanly. The bakery scene rolled again twice and saved the third | |
 | Ready to grow (epic 5) | One core, `NpcForge.Core`, called in-process by the console; saves behind `ICharacterStore`, with a file store and an in-memory store passing the same tests; the MCP server retired, with the replay and roll-again recordings passing unchanged and `--list` and `--load` printing what they printed | |
+| A front end to click through (epic 12) | The website's two pages run on made-up data behind one seam, `src/api.ts`; browser tests walk the whole flow and a run that leaves, read every word of every sheet, and pass AA contrast on all 16 named states at phone and desktop width | |

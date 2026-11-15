@@ -35,65 +35,12 @@ Two rules for every epic, now that the Safety net exists:
 
 | # | Epic | In one line |
 | --- | --- | --- |
-| 12 | A front end to click through | Two pages on made-up data, with the look of a forge. No backend yet |
 | 6 | Friends can use it | The front end gets logins, a database and a spending cap, deployed |
 | 11 | Change a saved character | Change a saved character without starting over. For later |
 
-Epic 12 comes first, because its pages decide what epic 6's API has to serve. Epic 6 has choices
-still open, listed in it. Epic 11 is a draft: sharpen it before it starts. It waits until after the
-website.
-
-## 12. A front end to click through
-
-**Goal.** A simple front end that matches what the console already does, but is not connected to the
-core yet. Two pages. On the first I describe a scene and the agent replies on the same page: it
-confirms the brief, shows the character, and lets me save or roll again. The second lists my saved
-characters and opens one. It feels like a forge in a dungeon: dark, with red.
-
-**Constraints.**
-- No backend, no database, no logins and no model call. The data is made up and lives in the front
-  end, behind one seam shaped like the API epic 6 will build, so epic 6 replaces that seam and not
-  the pages.
-- The made-up data is copied from real runs, so the pages are judged on a full-length sheet: the
-  characters from `NpcForge.Console/characters.json`, and the brief and its labels from
-  `docs/runs/raw/2026-11-08-01-epic4-bakery-roll-again.md`.
-- No file in `NpcForge.Core`, `NpcForge.Console` or `NpcForge.Tests` changes, and `dotnet test`
-  still passes.
-- The pages show what the console shows: the brief's fields marked as my words, inferred, not given
-  or rolled, with the words each one came from; the character sheet; and save, again or leave.
-- The sheet is the model's Markdown. The page renders it as Markdown and never cuts it up or reads
-  meaning out of it (AGENTS.md, "Never parse the model's prose").
-- Simple. Two pages, no more.
-- The look starts from the sketch I picked, `docs/design/epic-12-sketch.html`: a pixel frame, pixel
-  headings and buttons, and the character sheet in a book typeface on parchment, so it stays easy to
-  read aloud. Colours and type are set once, in one place.
-- ADR-014 names a React app. The rest of the toolchain, including what runs the browser test and
-  where that test lives, is settled by a design check and an ADR before any page is built.
-
-**Done when.**
-- One command starts it locally (*needs my eyes* too, as it is a new way to start the app).
-- A browser test walks the whole flow on the made-up data: describe a scene, confirm the brief, read
-  the character, roll again, save, open the saved list, open a character. A second run ends with
-  leave and saves nothing.
-- A test shows a saved character's sheet on the page with every word of its text, in order.
-- Each state can be opened directly on the made-up data, and a screenshot of each at phone and
-  desktop width is committed in `docs/design/epic-12/`: the wait while a character is written, the
-  interviewer asking for a missing place or role, the brief turned down, no name found for the dice,
-  the spending cap reached, an empty saved list and a long one.
-- An automated check passes for text contrast on every page, at WCAG AA.
-- `docs/design/epic-12-api-needs.md` lists what each page needs from an API. It is the input to
-  epic 6.
-- How dark, how much red and how much pixel (*needs my eyes*).
-- How each page looks and reads at phone and desktop width (*needs my eyes*).
-
-**Open, mine to decide.** Each has a default, so the work can start.
-- Phones, computers or both. Until I decide, both.
-- Whether anything moves or makes a sound. Until I decide, nothing does.
-- The project's name. Until I decide, NpcForge.
-- Whether the page shows the rolled brief beside the character. The console prints it, and the
-  confirmation does not show rolled values. Until I decide, it does.
-
-**Not in this epic.** Logins, a real API, saving for real, deployment and spending (epic 6).
+Epic 6 comes next. Its pages exist, on made-up data, and `docs/design/epic-12-api-needs.md` lists
+what they need from its API. Epic 6 has choices still open, listed in it. Epic 11 is a draft:
+sharpen it before it starts. It waits until after the website.
 
 ## 6. Friends can use it
 
@@ -142,7 +89,8 @@ behind that.
   and hold the keys, and an agent asks before each deploy, with the command.
 
 **Tasks.**
-- ADR: the open choices, and the API the pages from epic 12 need.
+- ADR: the open choices, and the API the pages from epic 12 need
+  (`docs/design/epic-12-api-needs.md`).
 - The API, the database store and logins, tested locally on a stand-in model.
 - Deploy that, with the invite list and both caps, before a paid model is switched on.
 - Connect the pages. The first paid run by a friend.
@@ -227,3 +175,12 @@ that rewrites the character calls the model, so its checks are paid.
   is retired. The replay and roll-again tests pass on the unchanged fixtures, a seeded run gives the
   same brief and character, `--list` and `--load` print what they printed, and a field the dice
   cannot read stops the run with one line. See ADR-014, ADR-015, ADR-016 and lesson 017.
+- **A front end to click through** (epic 12, 2026-11-15). `NpcForge.Web` holds the website's two
+  pages on made-up data, with no backend. On the forge page a GM describes a scene, confirms the
+  brief, reads the character and saves it, rolls again or leaves; the saved page lists the saves and
+  opens one. A page gets data only through the six functions of `src/api.ts`, which epic 6
+  replaces. Free browser tests walk the whole flow and a run that leaves, read every word of every
+  sheet, and check text contrast at AA on all 16 named states at phone and desktop width, with a
+  screenshot of each in `docs/design/epic-12/`. The four defaults held: phones and computers,
+  nothing moves, the name NpcForge, and the rolled brief beside the character. See ADR-017, lessons
+  018 to 020 and `docs/design/epic-12-api-needs.md`.

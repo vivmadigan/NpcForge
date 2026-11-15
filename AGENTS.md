@@ -167,6 +167,7 @@ npm --prefix NpcForge.Web run screenshots          # free: rewrites docs/design/
 | `docs/decisions/` | ADRs. `INDEX.md` is the live list of every decision |
 | `docs/lessons/` | Problems that took a dead end. `INDEX.md` is loaded into every session |
 | `docs/runs/` | Records of paid runs: the evidence for anything about model behaviour |
+| `docs/design/` | The website's sketch, a screenshot of each page state, and what the pages need from an API |
 | `docs/pstack.md` | How to use the pstack workflow plugin in this repo |
 | `.agents/playbooks/` | NpcForge's changes to pstack's playbooks |
 | `.claude/skills/verify/` | How an agent drives the app and proves a change, for free |
