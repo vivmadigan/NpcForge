@@ -72,7 +72,14 @@ test('a name the table lacks shows "No state named" and not the default page', a
 });
 
 test('a real name opened on another path than its own shows the same', async ({ page }) => {
-  await page.goto('/saved?state=saved-open');
-  await expect(page.getByText('No state named saved-open')).toBeVisible();
+  // Taken from the table, so a renamed state cannot leave this passing on a name that is gone.
+  const [name] = Object.entries(namedStates).find(([, { path }]) => path !== '/saved')!;
+  await page.goto(`/saved?state=${name}`);
+  await expect(page.getByText(`No state named ${name}`)).toBeVisible();
   await expect(page.getByRole('heading', { name: 'SAVED CHARACTERS' })).toHaveCount(0);
+});
+
+// `seen` is optional for a state, so a renamed state would lose its entry without a word.
+test('every state the spec describes is in the table', () => {
+  expect(Object.keys(seen).filter((name) => !Object.hasOwn(namedStates, name))).toEqual([]);
 });
