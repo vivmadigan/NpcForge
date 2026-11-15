@@ -565,12 +565,4 @@ form > .button {
   .forge-art {
     width: 352px;
   }
-  /* The side column stays in view while the sheet scrolls, so a GM can roll again without
-     scrolling back. It sticks as one block, so nothing sticky ever sits over text. Its brief does
-     not scroll inside it: axe cannot judge text clipped by a scroll box, so the end of a long brief
-     comes into view with the end of the sheet. */
-  .side-actions {
-    position: sticky;
-    top: 0.75rem;
-  }
 }

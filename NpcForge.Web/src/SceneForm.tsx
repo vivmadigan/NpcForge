@@ -35,14 +35,14 @@ export function SceneForm({
       <h1 className="page-title">DESCRIBE THE SCENE</h1>
       {after === 'turned-down' && (
         <p className="notice">
-          Not rolled. You turned the brief down, so nothing was rolled. Your scene is still in the box:
-          change it and send it again.
+          Not rolled. You turned the brief down. Your scene is still in the box, so you can change it
+          and send it again.
         </p>
       )}
       {after === 'left' && (
         <p className="notice">
-          Not saved. You left the character, so nothing was saved. Your scene is still in the box:
-          change it and send it again.
+          Not saved. You left the character. Your scene is still in the box, so you can change it and
+          send it again.
         </p>
       )}
       <label className="instruction" htmlFor="scene">

@@ -7,7 +7,9 @@ import type { BriefEntry } from './api';
 // model's prose"; ADR-017 decision 4). The name comes from `name`, never from the text.
 //
 // `actions`, on the forge page, sit at the top of the side column above the brief: under the sheet
-// on a phone, and in view beside it at desktop width while the sheet scrolls.
+// on a phone, and beside the sheet's first lines at desktop width. They do not follow the scroll.
+// A side column taller than the window sticks for half the sheet only, and a brief that scrolls
+// inside it fails the contrast check, which cannot judge text a scroll box clips (lesson 019).
 export function Sheet({
   name,
   brief,
@@ -27,7 +29,7 @@ export function Sheet({
           <Markdown>{sheet}</Markdown>
         </section>
       </div>
-      <div className={actions ? 'side side-actions' : 'side'}>
+      <div className="side">
         {actions}
         <aside className="brief" aria-label="Brief">
           <h2>BRIEF</h2>
