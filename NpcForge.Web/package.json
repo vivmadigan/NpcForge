@@ -1,0 +1,30 @@
+{
+  "name": "npcforge-web",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "prestart": "npm install --no-audit --no-fund",
+    "start": "vite --port 5173 --strictPort --open",
+    "dev": "vite --port 5173 --strictPort",
+    "pretest": "playwright install chromium",
+    "test": "tsc --noEmit && playwright test --grep-invert @screenshots",
+    "screenshots": "playwright test --grep @screenshots"
+  },
+  "dependencies": {
+    "@fontsource/crimson-text": "^5.3.0",
+    "@fontsource/im-fell-english": "^5.3.0",
+    "@fontsource/press-start-2p": "^5.3.0",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "react-markdown": "^10.1.0"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "^4.14.0",
+    "@playwright/test": "^1.65.1",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.8"
+  }
+}

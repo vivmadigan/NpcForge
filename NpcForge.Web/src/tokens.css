@@ -1,0 +1,35 @@
+/* ADR-017 decision 5: every colour, typeface and type size lives here, named by its role. app.css
+   reads them through var(--...). The values are the sketch's (docs/design/epic-12-sketch.html), with
+   one change: the dim text was #8a6a55, which fails AA contrast on the frame. --frame-shadow and
+   --parchment-quote are new. */
+:root {
+  --page-bg: #0a0606;
+  --frame-bg: #120a0a;
+  --frame-edge: #5a1a14;
+  --frame-shadow: #2a0d0a;
+  --text: #e8dccb;
+  --text-dim: #a08068;
+  --accent: #ff5a36;
+
+  --panel-bg: #1e1110;
+  --panel-edge: #7a2a1c;
+  --panel-text: #b9a898;
+
+  --parchment: #eadfc8;
+  --parchment-quote: #dccfb2;
+  --ink: #2a1a12;
+  --ink-heading: #8f2415;
+  --parchment-edge: #b3401f;
+
+  --font-pixel: 'Press Start 2P', monospace;
+  --font-book: 'IM Fell English', serif;
+  --font-text: 'Crimson Text', serif;
+
+  /* Press Start 2P is never below 10px and never body text. */
+  --size-pixel-small: 0.625rem;
+  --size-pixel: 0.75rem;
+  --size-pixel-heading: 1rem;
+  --size-text: 1.0625rem;
+  --size-sheet: 1.125rem;
+  --size-title: 1.375rem;
+}

@@ -12,6 +12,8 @@ NpcForge.slnx
 ├── NpcForge.Console   the app: flags, the model clients, record and replay, the lab, the file store
 │                      and the owner's characters.json
 └── NpcForge.Tests     xUnit, free: fake models, the real dice and tools, and the whole app against a recording
+
+NpcForge.Web           the website's pages, outside the solution: Vite, React and TypeScript, with npm
 ```
 
 One process. The console calls the core in-process and hands it what lives outside it: an
@@ -19,8 +21,24 @@ One process. The console calls the core in-process and hands it what lives outsi
 Inside the core, folders follow the domain: `Brief`, `Interview`, `Writing`, `Loop`, `Saves`.
 `CoreReferenceTests` and the core's `BannedSymbols.txt` hold the boundary: the core references only
 .NET and Microsoft.Extensions.AI.Abstractions, writes only traces to the console, and reads no file but
-the bundled skills, through `SkillFiles`. Until epic 5 the dice and the saves lived in an MCP server
-that the console started as a second process; ADR-016 records the switch.
+the bundled skills, through `SkillFiles`. `NpcForge.Web` does not call the core yet (see "The
+website's pages"). Until epic 5 the dice and the saves lived in an MCP server that the console
+started as a second process; ADR-016 records the switch.
+
+## The website's pages
+
+`NpcForge.Web` is epic 12, in progress. It has no backend. It holds a Vite 8, React 19 and
+TypeScript 7 app, and `npm --prefix NpcForge.Web start` serves it at `http://localhost:5173`. Its
+pages get data only through `src/api.ts`, whose bodies read made-up data, so epic 6 can replace the
+bodies and leave the pages (ADR-017). The folder is not in `NpcForge.slnx`, so `dotnet build` and
+`dotnet test` never start Node.
+
+So far there is one page: the saved list at `/saved` and one save at `/saved/<number>`, over the 16
+saves in `src/madeUp/saves.json`, which is `NpcForge.Console/characters.json` as it stood at commit
+`e3ac16e`. `Sheet.tsx` hands a saved sheet to `react-markdown` whole and never reads its meaning.
+The brief shows beside the sheet, or below it on a phone, each field named as the console prints
+it. The top bar counts the saves on every page. Colours, typefaces and type sizes are set once, in
+`src/tokens.css`. `/` shows a placeholder until the scene page is built.
 
 ## One run, end to end
 
@@ -556,6 +574,11 @@ process-wide `Console.Error`.
 
 A test that asserts on `Tool failed:` must give arguments that would otherwise succeed, or it passes
 for the wrong reason (lesson 004).
+
+The pages have their own free suite. `npm --prefix NpcForge.Web test` runs `tsc --noEmit`, then
+Playwright at phone (390 by 844) and desktop (1280 by 800) width. `sheet.spec.ts` opens each of the
+16 saves from the list and checks that the sheet holds every word of the saved text, in order, and
+that the shown name is the saved one or `(no name)`. The first run downloads Chromium.
 
 ## Behaviour worth knowing
 
