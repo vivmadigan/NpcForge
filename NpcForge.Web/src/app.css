@@ -23,7 +23,7 @@ a:focus-visible {
 }
 
 .frame {
-  max-width: 56rem;
+  max-width: 52rem;
   margin: 0 auto;
   padding: 1rem;
   background: var(--frame-bg);
