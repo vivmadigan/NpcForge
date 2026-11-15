@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { listSaves, loadSave, type ListedCharacter, type SavedCharacter } from './api';
-import { Frame, useSavedCount } from './Frame';
+import { Frame } from './Frame';
 import { Sheet } from './Sheet';
 
 // The page holds one of these and draws from it with one switch (principle-model-the-domain). Each
@@ -11,11 +11,18 @@ export type SavedState =
   | { kind: 'open'; character: SavedCharacter }
   | { kind: 'missing'; number: number }; // no save under this number
 
-// `number` is the one in the path, or null for the list. `start` opens a named state without
-// calling the seam.
-export function SavedPage({ number, start }: { number: number | null; start?: SavedState }) {
+// `number` is the one in the path, or null for the list. `saved` is the bar's count, read once in
+// main.tsx. `start` opens a named state without calling the seam.
+export function SavedPage({
+  number,
+  saved,
+  start,
+}: {
+  number: number | null;
+  saved: number | null;
+  start?: SavedState;
+}) {
   const [state, setState] = useState<SavedState>(start ?? { kind: 'loading' });
-  const count = useSavedCount();
 
   useEffect(() => {
     if (start) return;
@@ -31,12 +38,12 @@ export function SavedPage({ number, start }: { number: number | null; start?: Sa
   switch (state.kind) {
     case 'loading':
       return (
-        <Frame saved={count}>
+        <Frame saved={saved}>
           <p>Reading the saves.</p>
         </Frame>
       );
     case 'list':
-      // The list's own length, not the seam's count, so an empty list shows SAVED: 0.
+      // The list's own length, not the count handed in, so an empty list shows SAVED: 0.
       return (
         <Frame saved={state.saves.length}>
           <h1 className="page-title">SAVED CHARACTERS</h1>
@@ -61,7 +68,7 @@ export function SavedPage({ number, start }: { number: number | null; start?: Sa
       );
     case 'open':
       return (
-        <Frame saved={count}>
+        <Frame saved={saved}>
           <a className="back" href="/saved">
             BACK TO SAVED
           </a>
@@ -70,7 +77,7 @@ export function SavedPage({ number, start }: { number: number | null; start?: Sa
       );
     case 'missing':
       return (
-        <Frame saved={count}>
+        <Frame saved={saved}>
           <p>No save numbered {state.number}.</p>
           <a className="back" href="/saved">
             BACK TO SAVED

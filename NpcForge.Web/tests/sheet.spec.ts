@@ -23,6 +23,10 @@ for (const [number, save] of Object.entries(saves)) {
     await expect(sheet).toBeVisible();
     expect(words(await sheet.innerText())).toEqual(words(save.text));
 
+    // The words alone would pass on the raw text with its marks showing. Every saved sheet has
+    // six headings, so a sheet drawn as Markdown shows six.
+    await expect(sheet.getByRole('heading')).toHaveCount(6);
+
     const name = save.name ? `${save.name.syllables.join('')} ${save.name.family}` : '(no name)';
     await expect(page.getByRole('heading', { level: 1 })).toHaveText(name);
 

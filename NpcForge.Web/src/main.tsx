@@ -10,11 +10,12 @@ import { SavedPage } from './SavedPage';
 
 // Two pages and one number in the path, so no router (ADR-017, "Smaller choices").
 function Page() {
+  // Read once here and handed down, so one place owns the bar's count.
   const count = useSavedCount();
   const path = location.pathname;
   const opened = path.match(/^\/saved\/(\d+)$/);
-  if (path === '/saved') return <SavedPage number={null} />;
-  if (opened) return <SavedPage number={Number(opened[1])} />;
+  if (path === '/saved') return <SavedPage number={null} saved={count} />;
+  if (opened) return <SavedPage number={Number(opened[1])} saved={count} />;
   if (path === '/') {
     return (
       <Frame saved={count}>

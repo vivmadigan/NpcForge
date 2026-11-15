@@ -36,7 +36,7 @@ bodies and leave the pages (ADR-017). The folder is not in `NpcForge.slnx`, so `
 So far there is one page: the saved list at `/saved` and one save at `/saved/<number>`, over the 16
 saves in `src/madeUp/saves.json`, which is `NpcForge.Console/characters.json` as it stood at commit
 `e3ac16e`. `Sheet.tsx` hands a saved sheet to `react-markdown` whole and never reads its meaning.
-The brief shows beside the sheet, each field named as the console prints it. The top bar counts the
+The brief shows beside the sheet, or below it on a phone, each field named as the console prints it. The top bar counts the
 saves on every page. Colours, typefaces and type sizes are set once, in `src/tokens.css`. `/` shows
 a placeholder until the scene page is built.
 
