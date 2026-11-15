@@ -68,8 +68,8 @@ with the answer. The types are in `api.ts` and are not repeated here. A state na
 
 ## Not calls
 
-Turning the brief down and leaving a character send nothing, as in the console. The page puts the
-scene back in the box.
+Turning the brief down and leaving a character send nothing, as in the console. Nor does changing
+the scene after no name followed the dice. Each puts the scene back in the box.
 
 ## What the build found, for epic 6 to decide
 
@@ -92,7 +92,7 @@ scene back in the box.
 - **The page draws no failure but the cap and the missing name.** A dropped connection, a request
   from someone not logged in, and a save the store refuses have no state on either page.
 - **`no-name` carries a brief the page does not show.** The page says what happened and offers roll
-  again.
+  again or a change of scene.
 - **The cap's message is shown as sent**, between "Stopped:" and "Nothing was saved." So the API
   sends the message alone.
 - **A brief field's name is shown as sent**, such as `playersWant`, and a note such as "nothing

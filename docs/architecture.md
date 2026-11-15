@@ -88,7 +88,7 @@ Each state can be opened by name, on its own path:
 looks the name up and hands the value to its page. A name the table lacks, or one opened on another
 path than its own, shows "No state named <name>". An opened state still works: from
 `forge-question` an answer leads to the confirmation, and from `forge-no-name` roll again writes a
-character. A named state calls no seam function, so `forge-saved` says "Saved as 17." under a bar
+character. Opening a named state saves nothing, so `forge-saved` says "Saved as 17." under a bar
 that still counts 16.
 
 ## One run, end to end
@@ -631,8 +631,8 @@ Playwright at phone (390 by 844) and desktop (1280 by 800) width. `flow.spec.ts`
 flow: it describes a scene, confirms the brief, reads the first character, rolls again and reads the
 second, saves, sees the bar reach 17, opens the list of 17 and the new save. Each character is read
 word for word against the made-up sheet. A second run ends with leave and finds the list still at
-16. Shorter tests turn the brief down, answer a question and roll again after no name, and a data
-test holds each made-up sheet to the run file, byte for byte. `sheet.spec.ts` opens each of the 16
+16. Shorter tests turn the brief down, answer a question, and roll again or change the scene after
+no name. A data test holds each made-up sheet to the run file, byte for byte. `sheet.spec.ts` opens each of the 16
 saves from the list and checks that the sheet holds every word of the saved text, in order, and that
 the shown name is the saved one or `(no name)`. `states.spec.ts` takes its list from the table's
 keys. For each state at both widths it checks that the state opened, and what a user sees there for

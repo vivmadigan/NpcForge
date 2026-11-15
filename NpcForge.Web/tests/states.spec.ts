@@ -75,6 +75,7 @@ const seen: Record<string, (page: Page) => Promise<void>> = {
     await expect(page.getByText('Not written: no name followed the dice (K, 2, V)')).toBeVisible();
     await expect(page.getByText('Nothing was saved.')).toBeVisible();
     await expect(page.getByRole('button', { name: 'ROLL AGAIN' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'CHANGE THE SCENE' })).toBeVisible();
   },
   'forge-cap': async (page) => {
     await expect(page.getByText(/^Stopped: Spending cap reached: .* Nothing was saved\.$/)).toBeVisible();
