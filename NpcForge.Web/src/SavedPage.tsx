@@ -11,7 +11,7 @@ export type SavedState =
   | { kind: 'open'; character: SavedCharacter }
   | { kind: 'missing'; number: number }; // no save under this number
 
-// `number` is the one in the path, or null for the list. `saved` is the bar's count. `start` opens
+// `number` is the one in the path, or null for the list. `saved` is the header's count. `start` opens
 // a named state without calling the seam. The return type has no `undefined` in it, so a state
 // with no case in the switch fails tsc.
 export function SavedPage({
@@ -39,43 +39,47 @@ export function SavedPage({
   switch (state.kind) {
     case 'loading':
       return (
-        <Frame saved={saved}>
-          <p>Reading the saves.</p>
+        <Frame saved={saved} here="saved">
+          <div className="panel">
+            <p>Reading the saves.</p>
+          </div>
         </Frame>
       );
     case 'list':
-      // The list's own length, not the count handed in, so an empty list shows SAVED: 0.
+      // The list's own length, not the count handed in, so an empty list shows a count of 0.
       return (
-        <Frame saved={state.saves.length}>
-          <h1 className="page-title">SAVED CHARACTERS</h1>
-          {state.saves.length === 0 ? (
-            <>
-              <p>Nothing saved yet.</p>
-              <a className="button" href="/">
-                FORGE A CHARACTER
-              </a>
-            </>
-          ) : (
-            <ul className="saved-list">
-              {state.saves.map(({ number, name, occupation, setting }) => (
-                <li key={number}>
-                  <a className="row" href={`/saved/${number}`}>
-                    <span className="row-number">{number}</span>
-                    <span className="row-name">{name ?? '(no name)'}</span>
-                    <span className="row-detail">
-                      {occupation ?? '[not given]'}, {setting ?? '[not given]'}
-                    </span>
-                  </a>
-                </li>
-              ))}
-            </ul>
-          )}
+        <Frame saved={state.saves.length} here="saved">
+          <div className="panel">
+            <h1 className="page-title">SAVED CHARACTERS</h1>
+            {state.saves.length === 0 ? (
+              <>
+                <p>Nothing saved yet.</p>
+                <a className="button" href="/">
+                  FORGE A CHARACTER
+                </a>
+              </>
+            ) : (
+              <ul className="saved-list">
+                {state.saves.map(({ number, name, occupation, setting }) => (
+                  <li key={number}>
+                    <a className="row" href={`/saved/${number}`}>
+                      <span className="row-number">{number}</span>
+                      <span className="row-name">{name ?? '(no name)'}</span>
+                      <span className="row-detail">
+                        {occupation ?? '[not given]'}, {setting ?? '[not given]'}
+                      </span>
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
         </Frame>
       );
     case 'open':
       return (
-        <Frame saved={saved}>
-          <a className="back" href="/saved">
+        <Frame saved={saved} here="saved" wide>
+          <a className="button back" href="/saved">
             BACK TO SAVED
           </a>
           <Sheet name={state.character.name} brief={state.character.brief} sheet={state.character.sheet} />
@@ -83,11 +87,13 @@ export function SavedPage({
       );
     case 'missing':
       return (
-        <Frame saved={saved}>
-          <p>No save numbered {state.number}.</p>
-          <a className="back" href="/saved">
-            BACK TO SAVED
-          </a>
+        <Frame saved={saved} here="saved">
+          <div className="panel">
+            <p>No save numbered {state.number}.</p>
+            <a className="button back" href="/saved">
+              BACK TO SAVED
+            </a>
+          </div>
         </Frame>
       );
   }

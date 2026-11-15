@@ -32,7 +32,7 @@ export function SceneForm({
         if (ready) onSend(scene.trim());
       }}
     >
-      <h1 className="page-title">DESCRIBE THE SCENE</h1>
+      <h2 className="page-title">DESCRIBE THE SCENE</h2>
       {after === 'turned-down' && (
         <p className="notice">
           Not rolled. You turned the brief down. Your scene is still in the box, so you can change it

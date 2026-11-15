@@ -1,8 +1,9 @@
 // The forge's pixel art, drawn in code: each sprite is a map of characters, one per pixel, and each
 // character names a colour class whose colour is a token (ADR-017 decision 5). No image files.
 
-// What each character in a map paints. A dot is empty.
-const paint: Record<string, string> = {
+// What each character in a map paints: a class whose colour is the token named `--` plus the class
+// (the cavern draws the forge on a canvas, where it reads that token). A dot is empty.
+export const paint: Record<string, string> = {
   k: 'px-mortar',
   s: 'px-stone',
   S: 'px-stone-lit',
@@ -49,7 +50,7 @@ export const forge = [
   '.kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk.',
 ];
 
-// A small anvil, by the bar's name.
+// A small anvil, by the header's name.
 export const anvil = [
   '.kkkkkkkkk...',
   'kLLLLLLLLLkkk',

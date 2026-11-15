@@ -46,7 +46,7 @@ const savedCount = (page: Page) => page.getByRole('navigation').getByRole('link'
 
 async function describeAndConfirm(page: Page) {
   await page.goto('/');
-  await expect(savedCount(page)).toHaveText('SAVED: 16');
+  await expect(savedCount(page)).toHaveText('SAVED CHARACTERS 16');
   await expectContrast(page);
 
   await page.getByRole('textbox', { name: /^Describe the scene in one go/ }).fill(scene);
@@ -72,7 +72,7 @@ test('the whole flow: describe, confirm, read, roll again, save, open the list, 
 
   await page.getByRole('button', { name: 'SAVE', exact: true }).click();
   await expect(page.getByText('Saved as 17.')).toBeVisible();
-  await expect(savedCount(page)).toHaveText('SAVED: 17');
+  await expect(savedCount(page)).toHaveText('SAVED CHARACTERS 17');
   await expectContrast(page);
 
   await page.getByRole('link', { name: 'OPEN THE SAVED LIST' }).click();
@@ -81,7 +81,7 @@ test('the whole flow: describe, confirm, read, roll again, save, open the list, 
 
   await page.getByRole('link', { name: /^17 / }).click();
   await expectCharacter(page, 'Snort Wafflewick', snort.sheet);
-  await expect(savedCount(page)).toHaveText('SAVED: 17');
+  await expect(savedCount(page)).toHaveText('SAVED CHARACTERS 17');
   await expectContrast(page);
 });
 
@@ -95,7 +95,7 @@ test('a second run that ends with leave saves nothing', async ({ page }) => {
 
   await page.goto('/saved');
   await expect(page.getByRole('list').getByRole('link')).toHaveCount(16);
-  await expect(savedCount(page)).toHaveText('SAVED: 16');
+  await expect(savedCount(page)).toHaveText('SAVED CHARACTERS 16');
 });
 
 test('turning the brief down rolls nothing and leaves the scene in the box', async ({ page }) => {

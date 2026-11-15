@@ -12,7 +12,7 @@ async function sceneShown(page: Page, scene: string) {
 // the table. A state with no entry here still has to show something other than "No state named".
 const seen: Record<string, (page: Page) => Promise<void>> = {
   'saved-empty': async (page) => {
-    await expect(page.getByRole('link', { name: 'SAVED: 0' })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'SAVED CHARACTERS 0' })).toBeVisible();
     await expect(page.getByText('Nothing saved yet.')).toBeVisible();
     await expect(page.getByRole('link', { name: 'FORGE A CHARACTER' })).toHaveAttribute('href', '/');
   },
@@ -96,7 +96,7 @@ const seen: Record<string, (page: Page) => Promise<void>> = {
 
 async function open(page: Page, path: string, name: string) {
   await page.goto(`${path}?state=${name}`);
-  await expect(page.getByRole('link', { name: 'NPCFORGE', exact: true })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'NPC FORGE', exact: true })).toBeVisible();
   await expect(page.getByText('No state named')).toHaveCount(0);
   await seen[name]?.(page);
   // A font that has not loaded changes the picture.
