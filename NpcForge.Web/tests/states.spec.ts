@@ -31,7 +31,7 @@ async function open(page: Page, path: string, name: string) {
   await expect(page.getByRole('link', { name: 'NPCFORGE', exact: true })).toBeVisible();
   await expect(page.getByText('No state named')).toHaveCount(0);
   await seen[name]?.(page);
-  // A font that has not loaded changes the contrast axe measures.
+  // A font that has not loaded changes both the contrast axe measures and the picture.
   await page.evaluate(() => document.fonts.ready);
 }
 
@@ -55,6 +55,14 @@ for (const [name, { path }] of Object.entries(namedStates)) {
     expect(findings(results)).toEqual([]);
   });
 
+  test(`${name} screenshot`, { tag: '@screenshots' }, async ({ page }, testInfo) => {
+    await open(page, path, name);
+    // The folder is relative to NpcForge.Web/, where Playwright runs.
+    await page.screenshot({
+      path: `../docs/design/epic-12/${name}-${testInfo.project.name}.png`,
+      fullPage: true,
+    });
+  });
 }
 
 test('a name the table lacks shows "No state named" and not the default page', async ({ page }) => {
