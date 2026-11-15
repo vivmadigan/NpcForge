@@ -25,5 +25,8 @@ for (const [number, save] of Object.entries(saves)) {
 
     const name = save.name ? `${save.name.syllables.join('')} ${save.name.family}` : '(no name)';
     await expect(page.getByRole('heading', { level: 1 })).toHaveText(name);
+
+    // The bar counts the saves on a page that does not hold the list.
+    await expect(page.getByRole('link', { name: 'SAVED: 16' })).toBeVisible();
   });
 }

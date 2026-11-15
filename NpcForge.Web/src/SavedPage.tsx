@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { listSaves, loadSave, type ListedCharacter, type SavedCharacter } from './api';
-import { Frame } from './Frame';
+import { Frame, useSavedCount } from './Frame';
 import { Sheet } from './Sheet';
 
 // The page holds one of these and draws from it with one switch (principle-model-the-domain). Each
@@ -15,6 +15,7 @@ export type SavedState =
 // calling the seam.
 export function SavedPage({ number, start }: { number: number | null; start?: SavedState }) {
   const [state, setState] = useState<SavedState>(start ?? { kind: 'loading' });
+  const count = useSavedCount();
 
   useEffect(() => {
     if (start) return;
@@ -30,11 +31,12 @@ export function SavedPage({ number, start }: { number: number | null; start?: Sa
   switch (state.kind) {
     case 'loading':
       return (
-        <Frame saved={null}>
+        <Frame saved={count}>
           <p>Reading the saves.</p>
         </Frame>
       );
     case 'list':
+      // The list's own length, not the seam's count, so an empty list shows SAVED: 0.
       return (
         <Frame saved={state.saves.length}>
           <h1 className="page-title">SAVED CHARACTERS</h1>
@@ -59,7 +61,7 @@ export function SavedPage({ number, start }: { number: number | null; start?: Sa
       );
     case 'open':
       return (
-        <Frame saved={null}>
+        <Frame saved={count}>
           <a className="back" href="/saved">
             BACK TO SAVED
           </a>
@@ -68,7 +70,7 @@ export function SavedPage({ number, start }: { number: number | null; start?: Sa
       );
     case 'missing':
       return (
-        <Frame saved={null}>
+        <Frame saved={count}>
           <p>No save numbered {state.number}.</p>
           <a className="back" href="/saved">
             BACK TO SAVED
