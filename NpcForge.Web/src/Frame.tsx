@@ -17,11 +17,12 @@ export function Frame({ saved, children }: { saved: number | null; children: Rea
 }
 
 // The bar's count. A seam call of its own, so a page opened on a named state still shows it
-// (ADR-017 decision 6). Null until it arrives.
-export function useSavedCount(): number | null {
+// (ADR-017 decision 6). Null until it arrives. `recount` asks again, after the forge page saves.
+export function useSavedCount(): { count: number | null; recount: () => void } {
   const [count, setCount] = useState<number | null>(null);
-  useEffect(() => {
+  const recount = () => {
     listSaves().then((saves) => setCount(saves.length));
-  }, []);
-  return count;
+  };
+  useEffect(recount, []);
+  return { count, recount };
 }

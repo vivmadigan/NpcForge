@@ -5,6 +5,7 @@ import '@fontsource/im-fell-english/400-italic.css';
 import '@fontsource/crimson-text';
 import './tokens.css';
 import './app.css';
+import { ForgePage } from './ForgePage';
 import { Frame, useSavedCount } from './Frame';
 import { SavedPage } from './SavedPage';
 import { namedStates } from './madeUp/states';
@@ -12,7 +13,7 @@ import { namedStates } from './madeUp/states';
 // Two pages and one number in the path, so no router (ADR-017, "Smaller choices").
 function Page() {
   // Read once here and handed down, so one place owns the bar's count.
-  const count = useSavedCount();
+  const { count, recount } = useSavedCount();
   const path = location.pathname;
 
   // ?state=<name> opens a page on a named value from the table (ADR-017 decision 6). A name the
@@ -28,17 +29,11 @@ function Page() {
   }
 
   const opened = path.match(/^\/saved\/(\d+)$/);
-  if (path === '/saved') return <SavedPage number={null} saved={count} start={named?.state} />;
-  if (opened) return <SavedPage number={Number(opened[1])} saved={count} start={named?.state} />;
+  const savedStart = named?.page === 'saved' ? named.state : undefined;
+  if (path === '/saved') return <SavedPage number={null} saved={count} start={savedStart} />;
+  if (opened) return <SavedPage number={Number(opened[1])} saved={count} start={savedStart} />;
   if (path === '/') {
-    return (
-      <Frame saved={count}>
-        <p>The forge page comes next.</p>
-        <a className="back" href="/saved">
-          OPEN THE SAVED CHARACTERS
-        </a>
-      </Frame>
-    );
+    return <ForgePage saved={count} recount={recount} start={named?.page === 'forge' ? named.state : undefined} />;
   }
   return (
     <Frame saved={count}>

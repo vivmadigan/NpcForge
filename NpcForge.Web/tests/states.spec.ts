@@ -1,8 +1,12 @@
-import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
+import { bakeryScene } from '../src/madeUp/bakery';
 import { namedStates } from '../src/madeUp/states';
+import { contrastFindings } from './contrast';
 
-type AxeResults = Awaited<ReturnType<AxeBuilder['analyze']>>;
+// Every step after the first keeps the GM's scene above it.
+async function sceneShown(page: Page, scene: string) {
+  await expect(page.getByRole('region', { name: 'Your scene' })).toContainText(scene);
+}
 
 // What a user sees when the state has opened, written from the requirement and not read back from
 // the table. A state with no entry here still has to show something other than "No state named".
@@ -24,6 +28,68 @@ const seen: Record<string, (page: Page) => Promise<void>> = {
   'saved-missing': async (page) => {
     await expect(page.getByText('No save numbered 99.')).toBeVisible();
   },
+  'forge-describe': async (page) => {
+    await expect(page.getByRole('heading', { name: 'DESCRIBE THE SCENE' })).toBeVisible();
+    await expect(page.getByRole('textbox', { name: /^Describe the scene in one go/ })).toHaveValue('');
+    // The main button does nothing until the box has text.
+    await expect(page.getByRole('button', { name: 'SEND THE SCENE' })).toBeDisabled();
+  },
+  'forge-reading': async (page) => {
+    await sceneShown(page, bakeryScene);
+    await expect(page.getByText('The interviewer is reading your scene')).toBeVisible();
+  },
+  'forge-question': async (page) => {
+    await sceneShown(page, 'someone is furious that the croissants keep vanishing');
+    await expect(page.getByText('Your scene does not say this, and the dice cannot pick it:')).toBeVisible();
+    await expect(page.getByRole('textbox', { name: 'occupation Who the character is, such as innkeeper or farmer' })).toBeVisible();
+  },
+  'forge-confirm': async (page) => {
+    await sceneShown(page, bakeryScene);
+    await expect(page.getByText('Here is the character so far. Nothing is rolled until you say yes.')).toBeVisible();
+    await expect(page.getByRole('listitem')).toHaveCount(19);
+    await expect(page.getByRole('button', { name: 'ROLL IT' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'TURN IT DOWN' })).toBeVisible();
+  },
+  'forge-turned-down': async (page) => {
+    await expect(page.getByText('Not rolled.')).toBeVisible();
+    await expect(page.getByRole('textbox', { name: /^Describe the scene/ })).toHaveValue(bakeryScene);
+  },
+  'forge-writing': async (page) => {
+    await sceneShown(page, bakeryScene);
+    await expect(page.getByRole('heading', { name: 'AT THE FORGE' })).toBeVisible();
+    await expect(page.getByText('The dice settle who they are.')).toBeVisible();
+    // Nothing to press while the character is written.
+    await expect(page.getByRole('button')).toHaveCount(0);
+  },
+  'forge-written': async (page) => {
+    await sceneShown(page, bakeryScene);
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('AldoBun Sourdough');
+    // Save, again and leave, each once on the page at either width.
+    for (const action of ['SAVE', 'ROLL AGAIN', 'LEAVE']) {
+      await expect(page.getByRole('button', { name: action, exact: true })).toHaveCount(1);
+      await expect(page.getByRole('button', { name: action, exact: true })).toBeVisible();
+    }
+  },
+  'forge-no-name': async (page) => {
+    await expect(page.getByText('Not written: no name followed the dice (K, 2, V)')).toBeVisible();
+    await expect(page.getByText('Nothing was saved.')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'ROLL AGAIN' })).toBeVisible();
+  },
+  'forge-cap': async (page) => {
+    await expect(page.getByText(/^Stopped: Spending cap reached: .* Nothing was saved\.$/)).toBeVisible();
+    // Nothing on the page asks the model for more.
+    await expect(page.getByRole('button')).toHaveCount(0);
+    await expect(page.getByRole('link', { name: 'OPEN THE SAVED CHARACTERS' })).toBeVisible();
+  },
+  'forge-saved': async (page) => {
+    await expect(page.getByText('Saved as 17.')).toBeVisible();
+    await expect(page.getByRole('link', { name: 'OPEN SAVE 17' })).toHaveAttribute('href', '/saved/17');
+    await expect(page.getByRole('link', { name: 'OPEN THE SAVED LIST' })).toHaveAttribute('href', '/saved');
+  },
+  'forge-left': async (page) => {
+    await expect(page.getByText('Not saved.')).toBeVisible();
+    await expect(page.getByRole('textbox', { name: /^Describe the scene/ })).toHaveValue(bakeryScene);
+  },
 };
 
 async function open(page: Page, path: string, name: string) {
@@ -31,28 +97,14 @@ async function open(page: Page, path: string, name: string) {
   await expect(page.getByRole('link', { name: 'NPCFORGE', exact: true })).toBeVisible();
   await expect(page.getByText('No state named')).toHaveCount(0);
   await seen[name]?.(page);
-  // A font that has not loaded changes both the contrast axe measures and the picture.
+  // A font that has not loaded changes the picture.
   await page.evaluate(() => document.fonts.ready);
-}
-
-// ADR-017 decision 7: a result axe cannot judge fails like a violation, and each line names the
-// element and the colours so a failure can be acted on.
-function findings(results: AxeResults): string[] {
-  const lines = (rules: AxeResults['violations'], verdict: string) =>
-    rules.flatMap((rule) =>
-      rule.nodes.map((node) => {
-        const why = [...node.any, ...node.all, ...node.none].map((check) => check.message).join(' ');
-        return `${verdict}: ${node.target.join(' ')} ${node.html.slice(0, 100)}\n    ${why}`;
-      }),
-    );
-  return [...lines(results.violations, 'violation'), ...lines(results.incomplete, 'could not judge')];
 }
 
 for (const [name, { path }] of Object.entries(namedStates)) {
   test(`${name} opens and its text has AA contrast`, async ({ page }) => {
     await open(page, path, name);
-    const results = await new AxeBuilder({ page }).withRules(['color-contrast']).analyze();
-    expect(findings(results)).toEqual([]);
+    expect(await contrastFindings(page)).toEqual([]);
   });
 
   test(`${name} screenshot`, { tag: '@screenshots' }, async ({ page }, testInfo) => {
