@@ -139,7 +139,7 @@ dotnet run --project NpcForge.Console              # paid: OpenAI, default model
 dotnet run --project NpcForge.Console -- --provider anthropic --model claude-opus-5   # paid
 npm --prefix NpcForge.Web start                    # the website's pages on made-up data, at localhost:5173; installs first
 npm --prefix NpcForge.Web test                     # free: type check, then the browser tests; first run downloads Chromium
-npm --prefix NpcForge.Web run screenshots          # free: rewrites docs/design/epic-12/*.png; npm test never does
+npm --prefix NpcForge.Web run screenshots          # free: rewrites docs/design/epic-13/*.png; npm test never does
 ```
 
 - `--seed <n>` fixes the dice. `--record <file>`, which needs `--seed`, also writes a paid run to a

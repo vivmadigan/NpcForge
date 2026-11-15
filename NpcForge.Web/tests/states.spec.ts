@@ -113,7 +113,7 @@ for (const [name, { path }] of Object.entries(namedStates)) {
     await open(page, path, name);
     // The folder is relative to NpcForge.Web/, where Playwright runs.
     await page.screenshot({
-      path: `../docs/design/epic-12/${name}-${testInfo.project.name}.png`,
+      path: `../docs/design/epic-13/${name}-${testInfo.project.name}.png`,
       fullPage: true,
     });
   });
