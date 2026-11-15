@@ -35,12 +35,89 @@ Two rules for every epic, now that the Safety net exists:
 
 | # | Epic | In one line |
 | --- | --- | --- |
+| 13 | A forge in a cavern | The pages get a cavern, a large title and a one-sentence confirmation. Still made-up data |
 | 6 | Friends can use it | The front end gets logins, a database and a spending cap, deployed |
 | 11 | Change a saved character | Change a saved character without starting over. For later |
 
-Epic 6 comes next. Its pages exist, on made-up data, and `docs/design/epic-12-api-needs.md` lists
-what they need from its API. Epic 6 has choices still open, listed in it. Epic 11 is a draft:
-sharpen it before it starts. It waits until after the website.
+Epic 13 comes first, because it changes what the confirmation asks of epic 6's API. Epic 6 follows.
+Its pages exist, on made-up data, and `docs/design/epic-12-api-needs.md` lists what they need from
+its API. Epic 6 has choices still open, listed in it. Epic 11 is a draft: sharpen it before it
+starts. It waits until after the website.
+
+## 13. A forge in a cavern
+
+**Goal.** The website does what it does today and looks like a forge in a cavern: simple, 8-bit,
+with less on each screen. A header links to my saved characters. The first page has a large NPC
+FORGE title over a cavern that falls from dark rock to lava. Sending a scene fades to black, and a
+flame burns while I wait. The confirmation is my scene and a few sentences that say who is being
+made. The character keeps its parchment, with save, roll again and leave at the top beside my scene.
+
+**Constraints.**
+- The look and the layout start from the sketch I picked, `docs/design/cavern-sketch.html`. The
+  sketch is throwaway: none of its code is the build.
+- The states the sketch does not draw take the same header, cavern, panel and parchment: the saved
+  list, an opened save, the one question, and the notices after a turn-down, a leave, a missing
+  name, the spending cap and a save.
+- Still no backend, no logins and no model call. The data stays made up, behind the seam in
+  `src/api.ts` (ADR-017).
+- No file in `NpcForge.Core`, `NpcForge.Console` or `NpcForge.Tests` changes, and `dotnet test`
+  still passes. The console keeps its full confirmation.
+- The confirmation's sentences are built from the brief's recorded fields. No model writes them, and
+  the page never cuts them out of prose (AGENTS.md, "The model never guesses" and "Never parse the
+  model's prose").
+- A scene that does not say what the players want still says so on the confirmation (ADR-010).
+- The confirmation shows no field name, no label and no row for a field the dice will pick.
+- The sheet is still the model's Markdown, rendered whole.
+- Text sits on flat colour. The cavern is behind the page and never under text, and the contrast
+  check still fails what it cannot judge (ADR-017, lesson 019).
+- The flame burns for as long as the seam takes to answer. The page adds no wait of its own.
+- Someone whose device asks for less motion gets a still flame and no fade.
+- Nothing makes a sound. Two pages, no more. Phones and computers both.
+- Colours and type stay in one place (ADR-017, decision 5).
+- A design check and an ADR come before the confirmation is built. They settle what crosses the
+  seam for it, and where its sentences are made once epic 6 has an API. The ADR also records what
+  this epic changes in ADR-017: the confirmation's shape at the seam, that the wait now moves, and
+  that the rolled brief is no longer shown beside the character.
+
+**Done when.**
+- The browser tests walk the whole flow, and the run that leaves, on the new pages.
+- A test opens the saved list from the header on both pages.
+- A test shows the confirmation holds the scene and every recorded value, says when the players'
+  want was not given, and shows no field name such as `playersWant`.
+- A second made-up confirmation, from a real run in `docs/runs/` whose scene says less than the
+  bakery's, has a named state of its own.
+- A test shows save, roll again and leave in view when the character page opens, with no scrolling,
+  at phone and desktop width.
+- A test shows no brief list beside the character.
+- A test runs the flame for many frames and finds no lit cell on the edge of its box.
+- A test with less motion asked for shows the wait holding still.
+- The contrast check passes at AA on every named state at phone and desktop width.
+- A screenshot of every named state at both widths is committed in `docs/design/epic-13/`, taken
+  with the flame held still. `docs/design/epic-12/` stays as the record of the first look.
+- `docs/design/epic-12-api-needs.md` says what the new confirmation and character page need from an
+  API, and no longer lists what they dropped.
+- `npm --prefix NpcForge.Web test` and `dotnet test` pass.
+- How the cavern, the title and the panels look at phone and desktop width (*needs my eyes*).
+- How the flame looks, and how the fade feels on send and on roll (*needs my eyes*).
+- How the confirmation reads for the bakery scene and for the scene that says less (*needs my
+  eyes*).
+- How the character page reads with save, roll again and leave at the top (*needs my eyes*).
+- How the states the sketch does not draw look (*needs my eyes*).
+
+**Open, mine to decide.** Each has a default, so the work can start.
+- Whether an opened save shows its brief. Until I decide, it does not, as on the forge page.
+- Whether the console also shows the confirmation as sentences. Until I decide, it does not.
+
+**Tasks.**
+- ADR: the confirmation at the seam, where its sentences are made in epic 6, and what changes in
+  ADR-017.
+- The shell on every state: the header, the cavern, the title, the panels and the buttons.
+- The confirmation.
+- The character page, the wait and its flame, the screenshots and the close-out.
+
+**Not in this epic.** The sheet still repeats the name under its title and names brief fields in its
+lever headings. Both come from the writer's skill file, and changing it needs a paid re-record.
+Logins, a real API and deployment (epic 6).
 
 ## 6. Friends can use it
 
@@ -60,7 +137,7 @@ behind that.
 - The core gains the two entries ADR-014 names: an interview that takes one answer and returns the
   next question, and a way for a run to report progress. The restructure and behavior rules at the
   top of this file apply.
-- It serves the pages from epic 12. A page changes only where the real API forces it.
+- It serves the pages from epics 12 and 13. A page changes only where the real API forces it.
 - A design check sets out the options for each open choice below, I choose, and an ADR records it
   before anything is built.
 
