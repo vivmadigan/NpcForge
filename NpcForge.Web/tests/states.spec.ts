@@ -14,6 +14,7 @@ const seen: Record<string, (page: Page) => Promise<void>> = {
   'saved-empty': async (page) => {
     await expect(page.getByRole('link', { name: 'SAVED: 0' })).toBeVisible();
     await expect(page.getByText('Nothing saved yet.')).toBeVisible();
+    await expect(page.getByRole('link', { name: 'FORGE A CHARACTER' })).toHaveAttribute('href', '/');
   },
   'saved-long': async (page) => {
     await expect(page.getByRole('list').getByRole('link')).toHaveCount(16);

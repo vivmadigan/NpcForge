@@ -48,7 +48,12 @@ export function SavedPage({
         <Frame saved={state.saves.length}>
           <h1 className="page-title">SAVED CHARACTERS</h1>
           {state.saves.length === 0 ? (
-            <p>Nothing saved yet.</p>
+            <>
+              <p>Nothing saved yet.</p>
+              <a className="button" href="/">
+                FORGE A CHARACTER
+              </a>
+            </>
           ) : (
             <ul className="saved-list">
               {state.saves.map(({ number, name, occupation, setting }) => (
