@@ -61,13 +61,6 @@ sketch settles the look. The owner chose among the options below on 2026-11-15.
      | { kind: 'question'; interview: InterviewId; field: string; question: string }
      | { kind: 'confirm'; interview: InterviewId; entries: ConfirmEntry[] }
      | Stopped;
-
-   export type RunResult =
-     | { kind: 'written'; draft: DraftId; name: string; sheet: string }
-     | { kind: 'no-name'; reason: string }
-     | Stopped;
-
-   export type SavedCharacter = { number: number; name: string | null; sheet: string };
    ```
 
 2. **The page writes the sentences**, in epic 13 and in epic 6. A pure function in
@@ -118,9 +111,7 @@ sketch settles the look. The owner chose among the options below on 2026-11-15.
    console prints it. Now no words of the page's own show a joined name. The confirmation says each
    field in a sentence, and no page shows the brief. The one question still shows its `field`,
    which is `setting` or `occupation`, the only two fields that are asked for. The sheet is the
-   model's Markdown and still names fields in its headings (epic 13, "Not in this epic"). ADR-017
-   said plain words would need a second list of the fields. `BriefField` and its table are that
-   list.
+   model's Markdown and still names fields in its headings (epic 13, "Not in this epic").
 
 8. **ADR-017's default, "Nothing moves or makes a sound, so the wait is a still screen with no
    spinner."** The pages now move in two ways. Sending a scene and rolling a character fade to
@@ -132,8 +123,9 @@ sketch settles the look. The owner chose among the options below on 2026-11-15.
 9. **ADR-017's default, "The rolled brief is shown beside the character"**, and decision 1's line
    for `Sheet.tsx`. No page shows the brief, on the forge page or on an opened save. The seam's
    types are what a page needs (ADR-017 decision 3), so `brief` leaves `RunResult` and
-   `SavedCharacter`, and `BriefEntry` leaves `api.ts`. The made-up saves in `sessionStorage` keep
-   their brief, because `listSaves` reads the occupation and the setting from it. If the owner
+   `SavedCharacter`, which keep their other fields, and `BriefEntry` leaves `api.ts`. The made-up
+   saves in `sessionStorage` keep their brief, because `listSaves` reads the occupation and the
+   setting from it. If the owner
    decides that an opened save shows its brief, `brief` returns to `SavedCharacter`, and how a
    field's name reads is open again.
 
@@ -156,9 +148,9 @@ sketch settles the look. The owner chose among the options below on 2026-11-15.
 
 ## Consequences
 
-- **Two lists of the fields.** `Dice.Fields` in the core and `BriefField` in the page, whose table
-  also holds plain words for each choice. A field or a choice added to the roll needs a line in the
-  page. `tsc` holds the table to `BriefField`. Nothing holds `BriefField` to the core until epic 6,
+- **Two lists of the fields**, which ADR-017 avoided. `Dice.Fields` in the core and `BriefField` in
+  the page, whose table also holds plain words for each choice. A field or a choice added to the
+  roll needs a line in the page. `tsc` holds the table to `BriefField`. Nothing holds `BriefField` to the core until epic 6,
   where `api.ts` throws on a name it does not know. Epic 6's design check decides whether a test
   holds the two lists equal.
 - **The GM no longer sees which words a value came from**, or whether it was read or inferred. The
