@@ -14,6 +14,7 @@ import { Frame } from './Frame';
 import { SceneForm } from './SceneForm';
 import { Sheet } from './Sheet';
 import { forge, Sprite } from './Sprite';
+import { Title } from './Title';
 
 type Written = Extract<RunResult, { kind: 'written' }>;
 
@@ -56,7 +57,7 @@ function afterRoll(scene: string, interview: InterviewId, result: RunResult): Fo
   }
 }
 
-// `saved` is the bar's count and `recount` asks for it again after a save. `start` opens a named
+// `saved` is the header's count and `recount` asks for it again after a save. `start` opens a named
 // state without calling the seam.
 export function ForgePage({
   saved,
@@ -189,7 +190,9 @@ export function ForgePage({
         const { scene, interview, character } = state;
         return (
           <>
-            <ScenePanel scene={scene} />
+            <div className="panel">
+              <ScenePanel scene={scene} />
+            </div>
             <Sheet
               name={character.name}
               brief={character.brief}
@@ -277,10 +280,22 @@ export function ForgePage({
     }
   }
 
+  // The first step, and the two that return to it, open on the big title. A written character is the
+  // one step whose own pieces are panels, with the parchment between; every other step is one panel.
+  const first = state.kind === 'describe' || state.kind === 'turned-down' || state.kind === 'left';
+  const written = state.kind === 'written';
   return (
-    <Frame saved={saved}>
+    <Frame saved={saved} here="forge" wide={written}>
+      {first && (
+        <>
+          <Title />
+          <p className="tagline">
+            <span>Dice settle who they are. A model writes them.</span>
+          </p>
+        </>
+      )}
       <div className="step" ref={step} tabIndex={-1}>
-        {draw()}
+        {written ? draw() : <div className="panel">{draw()}</div>}
       </div>
     </Frame>
   );

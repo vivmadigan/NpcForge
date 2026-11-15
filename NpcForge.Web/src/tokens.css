@@ -1,18 +1,19 @@
 /* ADR-017 decision 5: every colour, typeface and type size lives here, named by its role. app.css
-   reads them through var(--...). The values are the sketch's (docs/design/epic-12-sketch.html), with
-   one change: the dim text was #8a6a55, which fails AA contrast on the frame. --frame-shadow and
-   --parchment-quote are new, as is everything from the main button down, which the forge page
-   added: the sketch's SAVE button, the wall, the text boxes and the pixel art. */
+   and the code that draws on a canvas or an SVG read them through var(--...). Most values are the
+   cavern sketch's (docs/design/cavern-sketch.html, epic 13). The page, the wells and the body text
+   size keep the first look's values. */
 :root {
   --page-bg: #0a0606;
   --frame-bg: #120a0a;
-  --frame-edge: #5a1a14;
   --frame-shadow: #2a0d0a;
+
+  /* The header: flat, full width, outside the cavern. */
+  --header-bg: #050307;
   --text: #e8dccb;
   --text-dim: #a08068;
   --accent: #ff5a36;
 
-  --panel-bg: #1e1110;
+  --panel-bg: #140b0d;
   --panel-edge: #7a2a1c;
   --panel-text: #b9a898;
 
@@ -22,20 +23,46 @@
   --ink-heading: #8f2415;
   --parchment-edge: #b3401f;
 
-  /* The sketch's SAVE button: one main action on each step. */
+  /* The buttons: a lit top edge and a shaded bottom edge, as the sketch's. The main button is the
+     one action on each step. */
+  --button-bg: #2a1416;
+  --button-lit: #4a2a2a;
+  --button-shade: #1a0c0d;
   --main-bg: #c8321e;
   --main-text: #fff3e0;
   --main-edge: #ff7a4d;
+  --main-shade: #8f2415;
   --button-shadow: #000000;
   --focus: #ffd75e;
 
   /* The text boxes: a well cut into the forge. */
   --well-bg: #0a0606;
 
-  /* The dungeon wall behind the frame. Never under text, and darker than the frame. */
-  --wall-stone: #150d0c;
-  --wall-stone-lit: #1d1311;
-  --wall-mortar: #070404;
+  /* The cavern behind the page (Cavern.tsx). Never under text. The ramp runs from the dark rock at
+     the top to the lava's glow, and the rest are the rock and the glints in it. The lava itself
+     takes the flame's colours below, and --molten-deep. */
+  --cave-ramp-0: #120c1f;
+  --cave-ramp-1: #170d20;
+  --cave-ramp-2: #1e0e20;
+  --cave-ramp-3: #280f1e;
+  --cave-ramp-4: #36111a;
+  --cave-ramp-5: #4a1414;
+  --cave-ramp-6: #661b0e;
+  --cave-ramp-7: #8a280c;
+  --cave-ramp-8: #b23c0e;
+  --cave-ramp-9: #d95a16;
+  --cave-ramp-10: #f08428;
+  --cave-rock: #040306;
+  --cave-rock-back: #0a0714;
+  --cave-rock-lit: #4a1814;
+  --cave-glint: #4a3a78;
+
+  /* The title's letters (Title.tsx): the molten bands, a notched outline and a lip of depth. The
+     bands are the flame's colours over --molten-deep, and the lip is the panel's edge. */
+  --title-outline: #1a0605;
+  /* The deepest molten colour: the lava's depths and the title's bottom band. Its own token, so the
+     main button's red can change without them. */
+  --molten-deep: #c8321e;
 
   /* The pixel art. The flame is the accent and the glow the sheet's heading red, so the forge's
      red changes with the page's. */
@@ -64,4 +91,5 @@
   --size-note: 0.9375rem;
   --size-sheet: 1.125rem;
   --size-title: 1.375rem;
+  --size-tagline: 1.25rem;
 }

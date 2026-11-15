@@ -12,7 +12,7 @@ async function sceneShown(page: Page, scene: string) {
 // the table. A state with no entry here still has to show something other than "No state named".
 const seen: Record<string, (page: Page) => Promise<void>> = {
   'saved-empty': async (page) => {
-    await expect(page.getByRole('link', { name: 'SAVED: 0' })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'SAVED CHARACTERS 0' })).toBeVisible();
     await expect(page.getByText('Nothing saved yet.')).toBeVisible();
     await expect(page.getByRole('link', { name: 'FORGE A CHARACTER' })).toHaveAttribute('href', '/');
   },
@@ -28,12 +28,19 @@ const seen: Record<string, (page: Page) => Promise<void>> = {
   },
   'saved-missing': async (page) => {
     await expect(page.getByText('No save numbered 99.')).toBeVisible();
+    // A page this short is exactly one window tall: the cave takes what the header leaves.
+    expect(await page.evaluate(() => document.documentElement.scrollHeight <= window.innerHeight)).toBe(true);
   },
   'forge-describe': async (page) => {
-    await expect(page.getByRole('heading', { name: 'DESCRIBE THE SCENE' })).toBeVisible();
-    await expect(page.getByRole('textbox', { name: /^Describe the scene in one go/ })).toHaveValue('');
+    await expect(page.getByRole('heading', { name: 'DESCRIBE YOUR SCENE' })).toBeVisible();
+    await expect(page.getByRole('textbox', { name: 'DESCRIBE YOUR SCENE' })).toHaveValue('');
+    await expect(page.getByRole('textbox', { name: 'DESCRIBE YOUR SCENE' })).toHaveAccessibleDescription(
+      /^Where the players are/,
+    );
     // The main button does nothing until the box has text.
     await expect(page.getByRole('button', { name: 'SEND THE SCENE' })).toBeDisabled();
+    // The main button needs no scrolling to reach. The lava is below it.
+    await expect(page.getByRole('button', { name: 'SEND THE SCENE' })).toBeInViewport({ ratio: 1 });
   },
   'forge-reading': async (page) => {
     await sceneShown(page, bakeryScene);
@@ -53,7 +60,7 @@ const seen: Record<string, (page: Page) => Promise<void>> = {
   },
   'forge-turned-down': async (page) => {
     await expect(page.getByText('Not rolled.')).toBeVisible();
-    await expect(page.getByRole('textbox', { name: /^Describe the scene/ })).toHaveValue(bakeryScene);
+    await expect(page.getByRole('textbox', { name: 'DESCRIBE YOUR SCENE' })).toHaveValue(bakeryScene);
   },
   'forge-writing': async (page) => {
     await sceneShown(page, bakeryScene);
@@ -90,13 +97,13 @@ const seen: Record<string, (page: Page) => Promise<void>> = {
   },
   'forge-left': async (page) => {
     await expect(page.getByText('Not saved.')).toBeVisible();
-    await expect(page.getByRole('textbox', { name: /^Describe the scene/ })).toHaveValue(bakeryScene);
+    await expect(page.getByRole('textbox', { name: 'DESCRIBE YOUR SCENE' })).toHaveValue(bakeryScene);
   },
 };
 
 async function open(page: Page, path: string, name: string) {
   await page.goto(`${path}?state=${name}`);
-  await expect(page.getByRole('link', { name: 'NPCFORGE', exact: true })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'NPC FORGE', exact: true })).toBeVisible();
   await expect(page.getByText('No state named')).toHaveCount(0);
   await seen[name]?.(page);
   // A font that has not loaded changes the picture.
@@ -113,7 +120,7 @@ for (const [name, { path }] of Object.entries(namedStates)) {
     await open(page, path, name);
     // The folder is relative to NpcForge.Web/, where Playwright runs.
     await page.screenshot({
-      path: `../docs/design/epic-12/${name}-${testInfo.project.name}.png`,
+      path: `../docs/design/epic-13/${name}-${testInfo.project.name}.png`,
       fullPage: true,
     });
   });

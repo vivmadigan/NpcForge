@@ -12,7 +12,7 @@ import { namedStates } from './madeUp/states';
 
 // Two pages and one number in the path, so no router (ADR-017, "Smaller choices").
 function Page() {
-  // Read once here and handed down, so one place owns the bar's count.
+  // Read once here and handed down, so one place owns the header's count.
   const { count, recount } = useSavedCount();
   const path = location.pathname;
 
@@ -23,7 +23,9 @@ function Page() {
   if (name !== null && named?.path !== path) {
     return (
       <Frame saved={count}>
-        <p>No state named {name}</p>
+        <div className="panel">
+          <p>No state named {name}</p>
+        </div>
       </Frame>
     );
   }
@@ -37,7 +39,9 @@ function Page() {
   }
   return (
     <Frame saved={count}>
-      <p>No page at {path}</p>
+      <div className="panel">
+        <p>No page at {path}</p>
+      </div>
     </Frame>
   );
 }
