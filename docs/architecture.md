@@ -40,6 +40,12 @@ The brief shows beside the sheet, or below it on a phone, each field named as th
 it. The top bar counts the saves on every page. Colours, typefaces and type sizes are set once, in
 `src/tokens.css`. `/` shows a placeholder until the scene page is built.
 
+A saved-page state can be opened by name: `/saved?state=saved-empty`, and likewise `saved-long`,
+`saved-open`, `saved-open-unnamed` and `saved-missing`. `src/madeUp/states.ts` is the one table of
+them. Each entry holds the path it opens on and a `SavedState` value, so a state that no longer
+fits its page fails `tsc`. `main.tsx` looks the name up and hands the value to the page. A name the
+table lacks, or one opened on another path than its own, shows "No state named <name>".
+
 ## One run, end to end
 
 ```
@@ -578,7 +584,14 @@ for the wrong reason (lesson 004).
 The pages have their own free suite. `npm --prefix NpcForge.Web test` runs `tsc --noEmit`, then
 Playwright at phone (390 by 844) and desktop (1280 by 800) width. `sheet.spec.ts` opens each of the
 16 saves from the list and checks that the sheet holds every word of the saved text, in order, and
-that the shown name is the saved one or `(no name)`. The first run downloads Chromium.
+that the shown name is the saved one or `(no name)`. `states.spec.ts` takes its list from the
+table's keys. For each state at both widths it checks what a user sees, then runs axe's
+`color-contrast` rule, and a result axe cannot judge fails the test like a violation does. The first
+run downloads Chromium.
+
+`npm --prefix NpcForge.Web run screenshots` is the one command `npm test` skips. It writes
+`docs/design/epic-12/<state>-<phone|desktop>.png`, full page, for every state, to look at and not to
+compare. Run it again when a page's look changes.
 
 ## Behaviour worth knowing
 
