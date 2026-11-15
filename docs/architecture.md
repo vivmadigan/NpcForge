@@ -88,7 +88,8 @@ Each state can be opened by name, on its own path:
 looks the name up and hands the value to its page. A name the table lacks, or one opened on another
 path than its own, shows "No state named <name>". An opened state still works: from
 `forge-question` an answer leads to the confirmation, and from `forge-no-name` roll again writes a
-character.
+character. A named state calls no seam function, so `forge-saved` says "Saved as 17." under a bar
+that still counts 16.
 
 ## One run, end to end
 

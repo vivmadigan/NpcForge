@@ -12,8 +12,13 @@ const runFile = readFileSync(
 test('each made-up sheet is the bakery run file, byte for byte', () => {
   expect(bakeryCharacters).toHaveLength(3);
   for (const { name, sheet } of bakeryCharacters) {
-    // Whole lines, from the sheet's first heading to the line before the console's keep question.
-    expect(runFile.includes(`\n${sheet}\nKeep this character?`), `${name}'s sheet is in the run file`).toBe(true);
+    // The whole sheet: from the line after the writer's last `[loop] ... out` trace line to the
+    // line before the console's keep question.
+    const at = runFile.indexOf(` out\n${sheet}\nKeep this character?`);
+    expect(at, `${name}'s sheet is in the run file, whole`).toBeGreaterThan(-1);
+    // The last name the run accepted before this sheet is this character's name.
+    const named = runFile.slice(runFile.lastIndexOf('[app] name ', at));
+    expect(named.startsWith(`[app] name ${name} (`), `the run named this sheet's character ${name}`).toBe(true);
   }
 });
 
@@ -111,6 +116,14 @@ test('an answer to the question leads to the confirmation', async ({ page }) => 
   await page.getByRole('button', { name: 'ANSWER' }).click();
   await expect(page.getByText('Here is the character so far. Nothing is rolled until you say yes.')).toBeVisible();
   await expectContrast(page);
+});
+
+test('after no name, change the scene puts it back in the box', async ({ page }) => {
+  await page.goto('/?state=forge-no-name');
+  const shown = await page.getByRole('region', { name: 'Your scene' }).getByRole('paragraph').innerText();
+  await page.getByRole('button', { name: 'CHANGE THE SCENE' }).click();
+  await expect(page.getByRole('textbox', { name: /^Describe the scene/ })).toHaveValue(shown);
+  await expect(page.getByRole('button', { name: 'SEND THE SCENE' })).toBeEnabled();
 });
 
 test('after no name, roll again writes a character', async ({ page }) => {

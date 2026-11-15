@@ -78,6 +78,8 @@ scene back in the box.
   for as long as the page can still ask for new dice.
 - **Only the draft on the screen is ever saved.** After roll again, the page forgets the earlier
   draft.
+- **A reload loses the run.** The scene, the interview id and the draft live only in the page's
+  memory, so a reload in the middle of a run starts again at an empty scene box.
 - **A save can be sent twice.** The page has no state between the click on save and the answer, so
   a second click on a slow connection sends `save` again. Either the API treats a second save of
   one draft as the first, or the page gains a saving state.

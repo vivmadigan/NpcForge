@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactElement } from 'react';
 import {
   answer,
   rollAndWrite,
@@ -95,7 +95,9 @@ export function ForgePage({
     setState({ kind: 'saved', scene, interview, number });
   }
 
-  function draw(): ReactNode {
+  // The return type has no `undefined` in it, so a state with no case here fails tsc and cannot
+  // ship as a blank page (ADR-017, "Outcomes as values").
+  function draw(): ReactElement {
     switch (state.kind) {
       case 'describe':
       case 'turned-down':
@@ -151,6 +153,7 @@ export function ForgePage({
             <ScenePanel scene={scene} />
             <h1 className="page-title">THE BRIEF SO FAR</h1>
             <p>Here is the character so far. Nothing is rolled until you say yes.</p>
+            <p className="hint">Roll it or turn it down at the end of the brief.</p>
             <Confirmation fields={state.fields} />
             <p className="ask">Roll this character?</p>
             <div className="actions">
@@ -221,6 +224,9 @@ export function ForgePage({
             <div className="actions">
               <button className="button button-main" type="button" onClick={() => roll(scene, interview)}>
                 ROLL AGAIN
+              </button>
+              <button className="button" type="button" onClick={() => setState({ kind: 'describe', scene })}>
+                CHANGE THE SCENE
               </button>
             </div>
           </>

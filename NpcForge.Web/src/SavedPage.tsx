@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactElement } from 'react';
 import { listSaves, loadSave, type ListedCharacter, type SavedCharacter } from './api';
 import { Frame } from './Frame';
 import { Sheet } from './Sheet';
@@ -12,7 +12,8 @@ export type SavedState =
   | { kind: 'missing'; number: number }; // no save under this number
 
 // `number` is the one in the path, or null for the list. `saved` is the bar's count. `start` opens
-// a named state without calling the seam.
+// a named state without calling the seam. The return type has no `undefined` in it, so a state
+// with no case in the switch fails tsc.
 export function SavedPage({
   number,
   saved,
@@ -21,7 +22,7 @@ export function SavedPage({
   number: number | null;
   saved: number | null;
   start?: SavedState;
-}) {
+}): ReactElement {
   const [state, setState] = useState<SavedState>(start ?? { kind: 'loading' });
 
   useEffect(() => {
