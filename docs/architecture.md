@@ -27,7 +27,8 @@ started as a second process; ADR-016 records the switch.
 
 ## The website's pages
 
-`NpcForge.Web` is epic 12, in progress. It has no backend. It holds a Vite 8, React 19 and
+`NpcForge.Web` holds the website's two pages (epic 12). It has no backend until epic 6, and
+`docs/design/epic-12-api-needs.md` lists what the pages need from one. It is a Vite 8, React 19 and
 TypeScript 7 app, and `npm --prefix NpcForge.Web start` serves it at `http://localhost:5173`. Its
 pages get data only through `src/api.ts`, whose bodies read made-up data, so epic 6 can replace the
 bodies and leave the pages (ADR-017). The folder is not in `NpcForge.slnx`, so `dotnet build` and
@@ -694,3 +695,4 @@ agents and named, not numbered.
 | Faster tests (epic 9) | The free suite went from 12 m 19 s to about a minute with all 455 tests kept: a server closes at once on MCP 2.3.1, starts from its launcher, and the fast part runs on its own in 5 s | |
 | Save what I like (epic 4) | Saving is the GM's choice after each character; `again` rolls new dice for the same scene on the same server, so a seeded run repeats; `--list` finds a save and `--load` opens it; the cap stops a run cleanly. The bakery scene rolled again twice and saved the third | |
 | Ready to grow (epic 5) | One core, `NpcForge.Core`, called in-process by the console; saves behind `ICharacterStore`, with a file store and an in-memory store passing the same tests; the MCP server retired, with the replay and roll-again recordings passing unchanged and `--list` and `--load` printing what they printed | |
+| A front end to click through (epic 12) | The website's two pages run on made-up data behind one seam, `src/api.ts`; browser tests walk the whole flow and a run that leaves, read every word of every sheet, and pass AA contrast on all 16 named states at phone and desktop width | |
