@@ -46,7 +46,7 @@ function draw(canvas: HTMLCanvasElement, width: number, height: number) {
   const glint = colour('--cave-glint');
   const ember = colour('--px-flame-hot');
   const lavaCrest = colour('--px-flame-core');
-  const lavaDeep = colour('--main-bg');
+  const lavaDeep = colour('--molten-deep');
   const lavaBody = colour('--accent');
 
   const cols = Math.ceil(width / PX);
@@ -146,9 +146,13 @@ function draw(canvas: HTMLCanvasElement, width: number, height: number) {
     if (rockTop[x] < top) for (let y = rockTop[x]; y < rows; y++) put(x, y, y === rockTop[x] ? rockLit : rock);
   }
   if (hasForge) {
+    // Each of the forge's colours is read once, not once a pixel.
+    const forgeColour = new Map<string, Rgb>();
     forge.forEach((row, y) => {
       [...row].forEach((c, x) => {
-        if (c !== '.') put(forgeX + x, ledge - forge.length + y, colour(`--${paint[c]}`));
+        if (c === '.') return;
+        if (!forgeColour.has(c)) forgeColour.set(c, colour(`--${paint[c]}`));
+        put(forgeX + x, ledge - forge.length + y, forgeColour.get(c)!);
       });
     });
   }

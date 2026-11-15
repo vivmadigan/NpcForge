@@ -1,8 +1,7 @@
 /* ADR-017 decision 5: every colour, typeface and type size lives here, named by its role. app.css
-   and the code that draws on a canvas or an SVG read them through var(--...). The values are the
-   cavern sketch's (docs/design/cavern-sketch.html, epic 13). The first look's sketch
-   (docs/design/epic-12-sketch.html) changed one value: the dim text was #8a6a55, which fails AA
-   contrast on a panel. */
+   and the code that draws on a canvas or an SVG read them through var(--...). Most values are the
+   cavern sketch's (docs/design/cavern-sketch.html, epic 13). The page, the wells and the body text
+   size keep the first look's values. */
 :root {
   --page-bg: #0a0606;
   --frame-bg: #120a0a;
@@ -41,7 +40,7 @@
 
   /* The cavern behind the page (Cavern.tsx). Never under text. The ramp runs from the dark rock at
      the top to the lava's glow, and the rest are the rock and the glints in it. The lava itself
-     takes the flame's colours below. */
+     takes the flame's colours below, and --molten-deep. */
   --cave-ramp-0: #120c1f;
   --cave-ramp-1: #170d20;
   --cave-ramp-2: #1e0e20;
@@ -59,8 +58,11 @@
   --cave-glint: #4a3a78;
 
   /* The title's letters (Title.tsx): the molten bands, a notched outline and a lip of depth. The
-     bands are the flame's colours and the lip is the panel's edge. */
+     bands are the flame's colours over --molten-deep, and the lip is the panel's edge. */
   --title-outline: #1a0605;
+  /* The deepest molten colour: the lava's depths and the title's bottom band. Its own token, so the
+     main button's red can change without them. */
+  --molten-deep: #c8321e;
 
   /* The pixel art. The flame is the accent and the glow the sheet's heading red, so the forge's
      red changes with the page's. */
@@ -89,4 +91,5 @@
   --size-note: 0.9375rem;
   --size-sheet: 1.125rem;
   --size-title: 1.375rem;
+  --size-tagline: 1.25rem;
 }

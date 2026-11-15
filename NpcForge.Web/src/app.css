@@ -12,6 +12,13 @@ body {
   font-size: var(--size-text);
   line-height: 1.5;
 }
+/* The header, then the cave, which takes the rest of the window whatever the header's height, so a
+   short page is exactly one window tall and does not scroll. */
+#root {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
 
 a {
   color: inherit;
@@ -75,7 +82,7 @@ a {
 .cave {
   position: relative;
   overflow: clip;
-  min-height: calc(100vh - 4rem);
+  flex: 1;
   padding: 2.5rem 1rem 18rem;
 }
 .cavern {
@@ -103,7 +110,7 @@ a {
 }
 .title-stacked {
   display: block;
-  width: min(100%, 20rem);
+  width: min(100%, 15rem);
 }
 .title-wide {
   display: none;
@@ -124,7 +131,7 @@ a {
   fill: var(--accent);
 }
 .title-deep {
-  fill: var(--main-bg);
+  fill: var(--molten-deep);
 }
 /* The tagline sits on its own flat colour, as every line of text does. */
 .tagline {
@@ -136,7 +143,7 @@ a {
   padding: 0.375rem 0.875rem;
   background: var(--header-bg);
   font-family: var(--font-book);
-  font-size: var(--size-title);
+  font-size: var(--size-tagline);
   font-style: italic;
 }
 
@@ -154,12 +161,6 @@ a {
     0 4px 0 0 var(--panel-edge),
     -4px 0 0 0 var(--panel-edge),
     4px 0 0 0 var(--panel-edge);
-}
-
-*,
-*::before,
-*::after {
-  box-sizing: border-box;
 }
 
 .page-title,
@@ -448,8 +449,13 @@ form > .button {
 
 .instruction,
 .question {
-  display: block;
   margin: 0.5rem 0;
+}
+.instruction {
+  color: var(--text-dim);
+}
+.question {
+  display: block;
 }
 /* The question is the step: it reads as large as a confirmed value. */
 .question {
@@ -473,6 +479,7 @@ form > .button {
   resize: vertical;
 }
 
+.example-title,
 .scene-panel-title {
   margin: 0 0 0.5rem;
   color: var(--accent);

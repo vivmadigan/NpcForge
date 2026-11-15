@@ -40,4 +40,7 @@ test('the header names the forge page when the visitor is on it, and its title l
 test('the first step opens on the NPC FORGE title', async ({ page }) => {
   await page.goto('/');
   await expect(page.getByRole('heading', { level: 1, name: 'NPC FORGE' })).toBeVisible();
+  // The title is over the cavern, so it is a picture and not text (epic 13).
+  await expect(page.getByRole('img', { name: 'NPC FORGE' })).toBeVisible();
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('');
 });

@@ -15,7 +15,8 @@ const letters: Record<string, string[]> = {
 };
 const HEIGHT = 7;
 
-// The molten bands, top to bottom: the same split as the sketch's gradient (30, 25, 25, 20 percent).
+// The molten bands, top to bottom, one class a row: two rows each of the three flame colours, then
+// one of the deepest. The sketch's gradient runs the same four colours in the same order.
 const bands = ['title-core', 'title-core', 'title-hot', 'title-hot', 'title-flame', 'title-flame', 'title-deep'];
 
 type Cell = { x: number; y: number };
@@ -52,7 +53,7 @@ function Picture({ lines, className }: { lines: string[][]; className: string })
   return (
     <svg
       className={className}
-      viewBox={`${-1} ${-1} ${width + 2} ${height + 2 + LIP}`}
+      viewBox={`-1 -1 ${width + 2} ${height + 2 + LIP}`}
       role="img"
       aria-label="NPC FORGE"
       shapeRendering="crispEdges"

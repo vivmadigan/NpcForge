@@ -28,12 +28,19 @@ const seen: Record<string, (page: Page) => Promise<void>> = {
   },
   'saved-missing': async (page) => {
     await expect(page.getByText('No save numbered 99.')).toBeVisible();
+    // A page this short is exactly one window tall: the cave takes what the header leaves.
+    expect(await page.evaluate(() => document.documentElement.scrollHeight <= window.innerHeight)).toBe(true);
   },
   'forge-describe': async (page) => {
     await expect(page.getByRole('heading', { name: 'DESCRIBE YOUR SCENE' })).toBeVisible();
     await expect(page.getByRole('textbox', { name: 'DESCRIBE YOUR SCENE' })).toHaveValue('');
+    await expect(page.getByRole('textbox', { name: 'DESCRIBE YOUR SCENE' })).toHaveAccessibleDescription(
+      /^Where the players are/,
+    );
     // The main button does nothing until the box has text.
     await expect(page.getByRole('button', { name: 'SEND THE SCENE' })).toBeDisabled();
+    // The main button needs no scrolling to reach. The lava is below it.
+    await expect(page.getByRole('button', { name: 'SEND THE SCENE' })).toBeInViewport({ ratio: 1 });
   },
   'forge-reading': async (page) => {
     await sceneShown(page, bakeryScene);

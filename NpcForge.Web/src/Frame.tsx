@@ -4,9 +4,10 @@ import { listSaves } from './api';
 import { anvil, Sprite } from './Sprite';
 
 // The header, then the cavern with the page on it. `here` marks the current page in the header;
-// `wide` is the one step that needs the room, a character beside its keep panel. Pure: the page hands
-// it the count, and null shows none. The header is flat and outside the cavern, and every panel inside
-// the page has its own flat colour, so no text sits on the picture (ADR-017, Consequences).
+// `wide` is for a character beside its side column, on the forge page and on an opened save. Pure:
+// the page hands it the count, and null shows none. The header is flat and outside the cavern, and
+// every panel inside the page has its own flat colour, so no text sits on the picture (ADR-017,
+// Consequences).
 export function Frame({
   saved,
   here,

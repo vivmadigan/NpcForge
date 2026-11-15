@@ -55,7 +55,7 @@ export function SceneForm({
         id="scene"
         className="scene-box"
         aria-describedby="scene-help"
-        rows={6}
+        rows={5}
         value={scene}
         onChange={(event) => onScene(event.target.value)}
       />
