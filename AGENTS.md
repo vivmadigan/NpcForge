@@ -109,9 +109,11 @@ implementation and `haiku` for cheap checks. pstack's defaults name Fable; the m
   not ports. `IToolSource` is the loop's seam, not a port.
 - One core, front ends around it, no further layers. A rule both front ends need goes in
   `NpcForge.Core`; anything that touches the outside world goes in the front end that uses it
-  (`NpcForge.Console`, later `NpcForge.Api`). No Domain and Application split, no use-case handlers,
-  no mediator. Inside the core, folders follow the domain: `Brief`, `Interview`, `Writing`, `Loop`,
-  `Saves`. (ADR-014)
+  (`NpcForge.Console`, `NpcForge.Web`, later `NpcForge.Api`). No Domain and Application split, no
+  use-case handlers, no mediator. Inside the core, folders follow the domain: `Brief`, `Interview`,
+  `Writing`, `Loop`, `Saves`. (ADR-014)
+- `NpcForge.Web` is the website's pages: Vite, React and TypeScript, with npm. A page gets data only
+  through `src/api.ts`, never from `madeUp/` (ADR-017).
 - No host or DI container in the console. `Program.cs` wires things by hand so the order of events
   stays readable: connect, roll, run, ask, save. ADR-014 keeps this; only the website's API gets DI,
   in epic 6.
@@ -135,6 +137,8 @@ dotnet run --project NpcForge.Console -- --load 3  # no model call, no API key n
 dotnet run --project NpcForge.Console -- --list    # no model call: every save, one row each
 dotnet run --project NpcForge.Console              # paid: OpenAI, default model
 dotnet run --project NpcForge.Console -- --provider anthropic --model claude-opus-5   # paid
+npm --prefix NpcForge.Web start                    # the website's pages on made-up data, at localhost:5173; installs first
+npm --prefix NpcForge.Web test                     # free: type check, then the browser tests; first run downloads Chromium
 ```
 
 - `--seed <n>` fixes the dice. `--record <file>`, which needs `--seed`, also writes a paid run to a
@@ -157,6 +161,7 @@ dotnet run --project NpcForge.Console -- --provider anthropic --model claude-opu
 | --- | --- |
 | `README.md` | What NpcForge is, and why it is shaped this way |
 | `ROADMAP.md` | What's next, as epics, with a template for writing one |
+| `NpcForge.Web/` | The website's pages on made-up data: Vite, React, TypeScript and their Playwright tests |
 | `docs/architecture.md` | How it fits together, and behaviour worth knowing |
 | `docs/decisions/` | ADRs. `INDEX.md` is the live list of every decision |
 | `docs/lessons/` | Problems that took a dead end. `INDEX.md` is loaded into every session |
