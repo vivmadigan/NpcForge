@@ -632,8 +632,8 @@ flow: it describes a scene, confirms the brief, reads the first character, rolls
 second, saves, sees the bar reach 17, opens the list of 17 and the new save. Each character is read
 word for word against the made-up sheet. A second run ends with leave and finds the list still at
 16. Shorter tests turn the brief down, answer a question, and roll again or change the scene after
-no name. A data test holds each made-up sheet to the run file, byte for byte. `sheet.spec.ts` opens each of the 16
-saves from the list and checks that the sheet holds every word of the saved text, in order, and that
+no name. A data test holds each made-up sheet to the run file, byte for byte. `sheet.spec.ts` opens
+each of the 16 saves from the list and checks that the sheet holds every word of the saved text, in order, and that
 the shown name is the saved one or `(no name)`. `states.spec.ts` takes its list from the table's
 keys. For each state at both widths it checks that the state opened, and what a user sees there for
 each state its `seen` map describes. Both run axe's `color-contrast` rule through
