@@ -35,13 +35,95 @@ Two rules for every epic, now that the Safety net exists:
 
 | # | Epic | In one line |
 | --- | --- | --- |
+| 14 | The website makes real characters | The pages call the real core on my machine, and one command starts it all |
 | 6 | Friends can use it | The front end gets logins, a database and a spending cap, deployed |
 | 11 | Change a saved character | Change a saved character without starting over. For later |
 
-Epic 6 comes first. Its pages exist, on made-up data, with the look of epic 13, and
-`docs/design/epic-12-api-needs.md` lists what they need from its API. Epic 6 has choices still
-open, listed in it. Epic 11 is a draft: sharpen it before it starts. It waits until after the
-website.
+Epic 14 comes first. The pages exist, on made-up data, with the look of epic 13, and
+`docs/design/epic-12-api-needs.md` lists what they need from an API. Epic 14 gives them that API on
+my machine, with no logins. Epic 6 then adds the logins, the database and the deploy. Both have
+choices still open, listed in them. Epic 11 is a draft: sharpen it before it starts. It waits until
+after the website.
+
+## 14. The website makes real characters
+
+**Goal.** On my machine, I describe a scene in the browser and get a real character, from the real
+dice and a real model. I save it and open it again. One command starts everything.
+
+**Constraints.**
+- My machine only: no logins, no database and no deploy. Epic 6 keeps those.
+- The website's API calls `NpcForge.Core` in-process (ADR-014), and the console works and prints as
+  it does today.
+- The model is sent what the console sends it. No skill file changes, and no tool's name,
+  description or schema.
+- The core gains one entry, the first of the two ADR-014 names: an interview that takes one answer
+  and returns the next step. The restructure and behavior rules at the top of this file apply. A run
+  reports no progress, and the flame burns for as long as the call takes.
+- `src/api.ts` keeps its six signatures. A page changes only where the real API forces it.
+- A second save of one draft returns the first save's number and saves nothing new.
+- No test and no agent's run calls a paid model or writes to my `characters.json`.
+- The first behavior PR is a thin slice: the saved page lists real saves through the API, the
+  pages' proxy and Aspire, with no model call. The interview and the roll go in on top of it.
+- A design check sets out the options for each open choice below, and for three more: where the
+  model clients and the file store live now that two front ends need them (ADR-014), which projects
+  Aspire adds, and how a browser test starts the API when neither suite starts the other (ADR-017).
+  The core may not hold the model clients or the file store, and AGENTS.md allows no layer beyond
+  the core and its front ends, so the check says which rule a new home would change. I choose, and
+  an ADR records it before anything is built.
+
+**Done when.**
+- The replay and roll-again tests pass on the unchanged fixtures. Neither fixture interviews, so the
+  interview's restructure also shows `SceneInterviewTests` passing unchanged.
+- A free test walks the API on a stand-in model: a scene, a question, its answer, the confirmation,
+  a roll, a save, the list and a load.
+- For one seed and one scene, a test fails when what the API sends the model, every message, option
+  and tool over a roll and a roll again, differs from what the core sends when called as
+  `Program.cs` calls it. The writer's message holds the brief, so this also holds the dice. Show it
+  failing with one message changed.
+- A test sends two saves of one draft at the same moment and finds one save. Show it failing with
+  the guard removed.
+- If the site shows my `characters.json`: a test saves through two stores on one file at the same
+  moment and finds two saves with different numbers. Show it failing with the guard removed.
+- A test reaches the spending cap and gets the cap's message, with no model call after it.
+- A test fails when the field names in `src/api.ts` and `Dice.Fields` differ.
+- A free browser test, on the stand-in model, describes a scene, confirms it, reads the character,
+  saves it and finds it on the saved page.
+- A free browser test shows the failure state when the API does not answer.
+- `npm --prefix NpcForge.Web test` still passes contrast on every named state at both widths.
+- One command starts the API and the pages, and the Aspire dashboard shows both (*needs my eyes*).
+- I make, save and reopen a character in the browser on a paid model (*needs my eyes*).
+- How the failure state looks (*needs my eyes*).
+
+**Open, mine to decide.**
+- Which saves the site shows. Until I decide: my `NpcForge.Console/characters.json`, so the
+  console's characters are on the saved page. The file store takes no lock today and writes the
+  whole file in place, so this choice needs a guard for two writers and a test of it. A file of the
+  site's own needs the guard only for two saves from the site.
+- Which model the site calls, and what the cap counts. Until I decide: the console's provider, model
+  and keys, and its 200,000 tokens counted for each interview.
+- What the tests use as a stand-in model. Both recorded fixtures are flag runs with no interview,
+  and the site always interviews. Until I decide: a scripted fake, as `SceneInterviewTests` and
+  `NamerStandIn` already use, which is free. The other option is one paid recording of a scene run.
+  The console refuses that today, because `--record` needs the answers as flags, so it needs a
+  change to the console first.
+- Whether the named states stay on made-up data (ADR-017, "Left to the owner"). Until I decide:
+  they stay, because they are how every state's contrast is checked for free, and only the live
+  flow calls the API.
+- How far Aspire reaches. Until I decide: my machine only, an AppHost and no more. The core's traces
+  on stderr show as the API's log in the dashboard.
+
+**Tasks.**
+- The design check and the ADR.
+- Restructure, if the design check chooses it: the model clients and the file store move to where
+  both front ends reach them.
+- The thin slice: the API lists and loads saves, the saved page calls it, and Aspire starts both.
+- Restructure: the interview in steps, and the console calls the same steps.
+- The interview, the roll and the save through the API, tested on the stand-in model.
+- The forge page calls the API, with a failure state and the browser test. Close-out.
+
+**Not in this epic.** Logins, the database, a cap for each friend and the deploy (epic 6). Progress
+on the wait screen. The sheet repeating the name and naming brief fields in its lever headings, left
+over from epic 13, which needs a paid re-record.
 
 ## 6. Friends can use it
 
@@ -58,10 +140,10 @@ behind that.
 - The website's API calls `NpcForge.Core` in-process (ADR-014), and the console keeps working as it
   does today.
 - The model is sent what the console sends it.
-- The core gains the two entries ADR-014 names: an interview that takes one answer and returns the
-  next question, and a way for a run to report progress. The restructure and behavior rules at the
-  top of this file apply.
-- It serves the pages from epics 12 and 13. A page changes only where the real API forces it.
+- The core gains the second entry ADR-014 names, a way for a run to report progress. Epic 14 adds
+  the first. The restructure and behavior rules at the top of this file apply.
+- It builds on the API and the pages as epic 14 leaves them. A page changes only where a login or a
+  cap forces it.
 - A design check sets out the options for each open choice below, I choose, and an ADR records it
   before anything is built.
 
@@ -84,16 +166,17 @@ behind that.
 - How friends log in, and who is invited.
 - The cap for each person and in total, the period it covers, and which model friends get.
 - Whether my console saves stay in the file or move to the database.
-- Whether Aspire starts the API, the database and the front end together on my machine, with its
-  dashboard for traces. It adds projects to the solution, and it bears on where the site is hosted.
+- Whether Aspire, which starts the API and the pages on my machine from epic 14, also starts the
+  database and deploys the site. It bears on where the site is hosted.
 - Who opens the hosting and database accounts, and who deploys. Until I decide: I open the accounts
   and hold the keys, and an agent asks before each deploy, with the command.
 
 **Tasks.**
-- ADR: the open choices, and the API the pages need (`docs/design/epic-12-api-needs.md`).
-- The API, the database store and logins, tested locally on a stand-in model.
+- ADR: the open choices, and what `docs/design/epic-12-api-needs.md` still leaves open after
+  epic 14.
+- The database store and logins on epic 14's API, tested locally on a stand-in model.
 - Deploy that, with the invite list and both caps, before a paid model is switched on.
-- Connect the pages. The first paid run by a friend.
+- The pages gain a login. The first paid run by a friend.
 
 **Not in this epic.** Changing a saved character (epic 11). Sharing characters between friends.
 

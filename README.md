@@ -130,8 +130,8 @@ few seconds. The website's two pages are built, on made-up data with no backend.
 brief, read the character and save it, roll again or leave, and the saved page lists what you kept.
 The pages look like a forge in a cavern: a confirmation in a few sentences, a character page with
 save, roll again and leave at the top, and a fade to black with a flame while you wait.
-Next: logins, a database and a spending cap so friends can use it, and later editing a saved
-character. See [ROADMAP.md](ROADMAP.md).
+Next: the pages call the real core on my machine, then logins, a database and a spending cap so
+friends can use it, and later editing a saved character. See [ROADMAP.md](ROADMAP.md).
 
 ## Out of scope, for now
 
