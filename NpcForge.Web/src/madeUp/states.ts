@@ -4,7 +4,7 @@
 import type { SavedCharacter } from '../api';
 import type { ForgeState } from '../ForgePage';
 import type { SavedState } from '../SavedPage';
-import { bakeryCharacters, bakeryFields, bakeryScene } from './bakery';
+import { bakeryCharacters, bakeryFields, bakeryScene, marketFields, marketScene } from './bakery';
 import { savedCharacters, savedList } from './saves';
 
 // One variant for each page, so main.tsx can hand each page only its own states.
@@ -47,7 +47,13 @@ export const namedStates: Record<string, NamedState> = {
   'forge-confirm': {
     page: 'forge',
     path: '/',
-    state: { kind: 'confirm', scene: bakeryScene, interview: 'bakery', fields: bakeryFields },
+    state: { kind: 'confirm', scene: bakeryScene, interview: 'bakery', entries: bakeryFields },
+  },
+  // The scene that says less: a want and no gender (ADR-018 decision 6).
+  'forge-confirm-market': {
+    page: 'forge',
+    path: '/',
+    state: { kind: 'confirm', scene: marketScene, interview: 'market', entries: marketFields },
   },
   'forge-turned-down': { page: 'forge', path: '/', state: { kind: 'turned-down', scene: bakeryScene } },
   'forge-writing': { page: 'forge', path: '/', state: { kind: 'writing', scene: bakeryScene, interview: 'bakery' } },

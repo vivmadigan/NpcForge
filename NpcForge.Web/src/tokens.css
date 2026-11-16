@@ -35,6 +35,10 @@
   --button-shadow: #000000;
   --focus: #ffd75e;
 
+  /* A value the GM gave, in the confirmation's sentences (ADR-018): the flame's hot colour, the
+     sketch's second colour. It sits on the panel's flat fill. */
+  --said: var(--px-flame-hot);
+
   /* The text boxes: a well cut into the forge. */
   --well-bg: #0a0606;
 
@@ -76,8 +80,6 @@
   --px-iron-dark: #2e2b30;
   --px-iron: #6e6a72;
   --px-iron-lit: #b4afb6;
-  --px-die: var(--text);
-  --px-pip: var(--frame-bg);
 
   --font-pixel: 'Press Start 2P', monospace;
   --font-book: 'IM Fell English', serif;
@@ -92,4 +94,7 @@
   --size-sheet: 1.125rem;
   --size-title: 1.375rem;
   --size-tagline: 1.25rem;
+  /* The confirmation's scene, sentences and question, and their size on a phone. */
+  --size-scene: 1.5rem;
+  --size-scene-narrow: 1.3rem;
 }

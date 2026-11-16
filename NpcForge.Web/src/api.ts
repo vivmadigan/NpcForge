@@ -10,19 +10,20 @@ export type DraftId = string;
 // The spending cap, at any model call. Nothing was saved.
 export type Stopped = { kind: 'stopped'; reason: string };
 
-// One brief field as the confirmation shows it, in the order sent. A field recorded from the
-// scene carries the GM's words and the sentence they came from. An answer the GM typed when asked
-// has no quote, and the console shows it as "typed when asked" (ADR-010, decision 4). A rolled
-// field shows no value before the yes.
-export type Quoted = { quote: string; sentence: string };
-export type ConfirmField =
-  | { field: string; label: 'my words'; value: string; from: Quoted | 'typed when asked' }
-  | { field: string; label: 'inferred'; value: string; from: Quoted }
-  | { field: string; label: 'not given' | 'rolled'; note: string };
+// The brief's field names, in the order the roll lists them (ADR-018 decision 1).
+export type BriefField =
+  | 'setting' | 'playersWant' | 'occupation' | 'difficulty' | 'characterWants' | 'obstacle'
+  | 'attitude' | 'mannerism' | 'weakness' | 'willNotDiscuss' | 'wrongAbout' | 'tone' | 'race'
+  | 'nameLetter' | 'nameSyllables' | 'familyLetter' | 'gender' | 'age' | 'look';
+
+// One field the scene settled, in the roll's order, with the value the brief will hold. null is
+// "not given" (ADR-010 decision 2). A field the dice will pick has no entry. The page writes the
+// sentences from these (src/sentences.ts), so no label, quote or rolled field crosses.
+export type ConfirmEntry = { field: BriefField; value: string | null };
 
 export type InterviewStep =
   | { kind: 'question'; interview: InterviewId; field: string; question: string } // a place or role is missing
-  | { kind: 'confirm'; interview: InterviewId; fields: ConfirmField[] }
+  | { kind: 'confirm'; interview: InterviewId; entries: ConfirmEntry[] }
   | Stopped;
 
 // A rolled or saved brief, in the order sent. An old save has fewer entries (ADR-009).
@@ -50,14 +51,20 @@ export type SavedCharacter = {
 // The made-up run is the bakery run for any scene, so the confirmation never reads the scene.
 const bakeryInterview: InterviewId = 'bakery';
 
+// A real model takes many seconds to roll, name and write, and to read a scene. A short wait lets
+// someone clicking through the made-up run see the wait screen, as they will in epic 6.
+const aSecond = () => new Promise((resolve) => setTimeout(resolve, 1000));
+
 // The scene in one go. Returns the next question, the confirmation, or the cap.
 export async function startInterview(_scene: string): Promise<InterviewStep> {
-  return { kind: 'confirm', interview: bakeryInterview, fields: bakeryFields };
+  // ADR-018 decision 6: the wait, as `rollAndWrite` has, so the flame shows on send.
+  await aSecond();
+  return { kind: 'confirm', interview: bakeryInterview, entries: bakeryFields };
 }
 
 // One answer to the last question (ADR-014: one answer in, the next step out).
 export async function answer(_interview: InterviewId, _text: string): Promise<InterviewStep> {
-  return { kind: 'confirm', interview: bakeryInterview, fields: bakeryFields };
+  return { kind: 'confirm', interview: bakeryInterview, entries: bakeryFields };
 }
 
 // The bakery run's three characters in turn, then the first again. The draft id is the character's
@@ -66,9 +73,7 @@ let written = 0;
 
 // The yes, and "again": new dice for the same scene and answers, a name, a sheet. Saves nothing.
 export async function rollAndWrite(_interview: InterviewId): Promise<RunResult> {
-  // A real model takes many seconds to roll, name and write. A short wait lets someone clicking
-  // through the made-up run see the wait screen, as they will in epic 6.
-  await new Promise((resolve) => setTimeout(resolve, 1000));
+  await aSecond();
   const place = written % bakeryCharacters.length;
   written += 1;
   return { kind: 'written', draft: String(place), ...bakeryCharacters[place] };

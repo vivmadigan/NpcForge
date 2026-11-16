@@ -4,7 +4,7 @@ import {
   rollAndWrite,
   save,
   startInterview,
-  type ConfirmField,
+  type ConfirmEntry,
   type InterviewId,
   type InterviewStep,
   type RunResult,
@@ -20,15 +20,15 @@ type Written = Extract<RunResult, { kind: 'written' }>;
 
 // The page holds one of these and draws from it with one switch (principle-model-the-domain). Each
 // is plain data, so a state can be opened by name (ADR-017 decision 6). Every step after the first
-// carries the scene, which stays on screen above it. Turning the brief down and leaving are not
-// seam calls (ADR-017 decision 3); they put the scene back in the box.
+// carries the scene, which stays on screen above it. Changing the scene after the confirmation and
+// leaving are not seam calls (ADR-017 decision 3); they put the scene back in the box.
 export type ForgeState =
   | { kind: 'describe'; scene: string }
   | { kind: 'turned-down'; scene: string } // nothing was rolled
   | { kind: 'left'; scene: string } // nothing was saved
   | { kind: 'reading'; scene: string } // waiting on the interviewer
   | { kind: 'question'; scene: string; interview: InterviewId; field: string; question: string; answer: string }
-  | { kind: 'confirm'; scene: string; interview: InterviewId; fields: ConfirmField[] }
+  | { kind: 'confirm'; scene: string; interview: InterviewId; entries: ConfirmEntry[] }
   | { kind: 'writing'; scene: string; interview: InterviewId }
   | { kind: 'written'; scene: string; interview: InterviewId; character: Written }
   | { kind: 'no-name'; scene: string; interview: InterviewId; reason: string }
@@ -151,18 +151,15 @@ export function ForgePage({
         const { scene, interview } = state;
         return (
           <>
-            <ScenePanel scene={scene} />
-            <h1 className="page-title">THE BRIEF SO FAR</h1>
-            <p>Here is the character so far. Nothing is rolled until you say yes.</p>
-            <p className="hint">Roll it or turn it down at the end of the brief.</p>
-            <Confirmation fields={state.fields} />
-            <p className="ask">Roll this character?</p>
+            <ScenePanel scene={scene} large />
+            <Confirmation entries={state.entries} />
+            <p className="ask-big">Shall I roll this character?</p>
             <div className="actions">
               <button className="button button-main" type="button" onClick={() => roll(scene, interview)}>
                 ROLL IT
               </button>
               <button className="button" type="button" onClick={() => setState({ kind: 'turned-down', scene })}>
-                TURN IT DOWN
+                CHANGE THE SCENE
               </button>
             </div>
           </>
@@ -302,10 +299,11 @@ export function ForgePage({
 }
 
 // The scene the GM typed, above every step after the first. Not a chat log: the GM wants the
-// character, not the history.
-function ScenePanel({ scene }: { scene: string }) {
+// character, not the history. On the confirmation it is large and open on the panel, as the sketch
+// draws it (ADR-018).
+function ScenePanel({ scene, large = false }: { scene: string; large?: boolean }) {
   return (
-    <section className="scene-panel" aria-label="Your scene">
+    <section className={large ? 'scene-panel scene-panel-large' : 'scene-panel'} aria-label="Your scene">
       <h2 className="scene-panel-title">YOUR SCENE</h2>
       <p>{scene}</p>
     </section>

@@ -1,133 +1,36 @@
 // The bakery run, docs/runs/raw/2026-11-08-01-epic4-bakery-roll-again.md, as typed values: its
-// scene, its 19 confirmation fields in the order the run prints them, and the three characters it
-// wrote, each with the brief from its `[app] brief` line in that line's order. Cut from the run file
-// by a script, not typed: the strings are JSON-escaped so no editor can trim the lines that end in two
-// spaces, which Markdown reads as a line break. tests/flow.spec.ts holds each sheet to the run file.
+// scene, the seven fields its scene settled in the order the roll lists them, and the three
+// characters it wrote, each with the brief from its `[app] brief` line in that line's order. The
+// scene and the characters were cut from the run file by a script, not typed: the strings are
+// JSON-escaped so no editor can trim the lines that end in two spaces, which Markdown reads as a line
+// break. tests/flow.spec.ts holds each sheet to the run file. The market scene and its three entries
+// below are from a second run, whose scene says less and gives a want and no gender.
 // No page imports from madeUp/ (ADR-017 decision 3).
-import type { BriefEntry, ConfirmField } from '../api';
+import type { BriefEntry, ConfirmEntry } from '../api';
 
 export const bakeryScene: string = "The party bursts into a tiny bakery where a goblin baker is furious that someone keeps stealing his croissants. It’s a silly session, play it for laughs.";
 
-export const bakeryFields: ConfirmField[] = [
-  {
-    "field": "setting",
-    "label": "my words",
-    "value": "tiny bakery",
-    "from": {
-      "quote": "bursts into a tiny bakery",
-      "sentence": "The party bursts into a tiny bakery where a goblin baker is furious that someone keeps stealing his croissants."
-    }
-  },
-  {
-    "field": "playersWant",
-    "label": "not given",
-    "note": "nothing recorded, so the character is written around winning their goodwill"
-  },
-  {
-    "field": "occupation",
-    "label": "my words",
-    "value": "baker",
-    "from": {
-      "quote": "a goblin baker",
-      "sentence": "The party bursts into a tiny bakery where a goblin baker is furious that someone keeps stealing his croissants."
-    }
-  },
-  {
-    "field": "difficulty",
-    "label": "rolled",
-    "note": "nothing recorded, so the dice pick it after your yes"
-  },
-  {
-    "field": "characterWants",
-    "label": "rolled",
-    "note": "nothing recorded, so the dice pick it after your yes"
-  },
-  {
-    "field": "obstacle",
-    "label": "rolled",
-    "note": "nothing recorded, so the dice pick it after your yes"
-  },
-  {
-    "field": "attitude",
-    "label": "my words",
-    "value": "furious",
-    "from": {
-      "quote": "a goblin baker is furious",
-      "sentence": "The party bursts into a tiny bakery where a goblin baker is furious that someone keeps stealing his croissants."
-    }
-  },
-  {
-    "field": "mannerism",
-    "label": "rolled",
-    "note": "nothing recorded, so the dice pick it after your yes"
-  },
-  {
-    "field": "weakness",
-    "label": "rolled",
-    "note": "nothing recorded, so the dice pick it after your yes"
-  },
-  {
-    "field": "willNotDiscuss",
-    "label": "rolled",
-    "note": "nothing recorded, so the dice pick it after your yes"
-  },
-  {
-    "field": "wrongAbout",
-    "label": "rolled",
-    "note": "nothing recorded, so the dice pick it after your yes"
-  },
-  {
-    "field": "tone",
-    "label": "inferred",
-    "value": "Comic",
-    "from": {
-      "quote": "It’s a silly session, play it for laughs",
-      "sentence": "It’s a silly session, play it for laughs."
-    }
-  },
-  {
-    "field": "race",
-    "label": "my words",
-    "value": "goblin",
-    "from": {
-      "quote": "a goblin baker",
-      "sentence": "The party bursts into a tiny bakery where a goblin baker is furious that someone keeps stealing his croissants."
-    }
-  },
-  {
-    "field": "nameLetter",
-    "label": "rolled",
-    "note": "nothing recorded, so the dice pick it after your yes"
-  },
-  {
-    "field": "nameSyllables",
-    "label": "rolled",
-    "note": "nothing recorded, so the dice pick it after your yes"
-  },
-  {
-    "field": "familyLetter",
-    "label": "rolled",
-    "note": "nothing recorded, so the dice pick it after your yes"
-  },
-  {
-    "field": "gender",
-    "label": "inferred",
-    "value": "Male",
-    "from": {
-      "quote": "stealing his croissants",
-      "sentence": "The party bursts into a tiny bakery where a goblin baker is furious that someone keeps stealing his croissants."
-    }
-  },
-  {
-    "field": "age",
-    "label": "rolled",
-    "note": "nothing recorded, so the dice pick it after your yes"
-  },
-  {
-    "field": "look",
-    "label": "rolled",
-    "note": "nothing recorded, so the dice pick it after your yes"
-  }
+// What the bakery run's scene settled: seven entries in the roll's order, with the values the brief
+// holds, as the run's `[app] brief` line spells them. The run's other 12 fields were rolled after the yes.
+export const bakeryFields: ConfirmEntry[] = [
+  { field: 'setting', value: 'tiny bakery' },
+  { field: 'playersWant', value: null },
+  { field: 'occupation', value: 'baker' },
+  { field: 'attitude', value: 'furious' },
+  { field: 'tone', value: 'Comic' },
+  { field: 'race', value: 'goblin' },
+  { field: 'gender', value: 'Male' },
+];
+
+// The scene that says less, from docs/runs/raw/2026-11-03-01-epic10-interview-nogender.md: a place, a
+// want and a role, and no gender. The scene is the sentence that run's confirmation quoted from, and
+// the entries are its three `[my words]` fields. Only the named state forge-confirm-market opens it.
+export const marketScene: string = "The party walks into a crowded market and asks the spice seller for the fastest road to the capital.";
+
+export const marketFields: ConfirmEntry[] = [
+  { field: 'setting', value: 'crowded market' },
+  { field: 'playersWant', value: 'the fastest road to the capital' },
+  { field: 'occupation', value: 'spice seller' },
 ];
 
 export const bakeryCharacters: { name: string; brief: BriefEntry[]; sheet: string }[] = [

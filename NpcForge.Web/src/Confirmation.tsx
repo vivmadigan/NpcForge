@@ -1,46 +1,29 @@
-import type { ConfirmField } from './api';
-import { die, Sprite } from './Sprite';
+import { Fragment } from 'react';
+import type { ConfirmEntry } from './api';
+import { sentences } from './sentences';
 
-// Every field in the order sent, never regrouped (ADR-017 decision 3). A field with the GM's words
-// is drawn large with where they came from, and a field with no value is one quiet line, so the eye
-// lands on what the GM said and the rolled fields do not read as a wall.
-export function Confirmation({ fields }: { fields: ConfirmField[] }) {
+// ADR-018 decision 2: the sentences, drawn from their parts. A value the GM gave takes the second
+// colour, and no string is searched for it. The region has a name so a test can read the sentences
+// apart from the scene above them.
+export function Confirmation({ entries }: { entries: ConfirmEntry[] }) {
   return (
-    <ol className="fields">
-      {fields.map((field) =>
-        field.label === 'my words' || field.label === 'inferred' ? (
-          <li key={field.field} className="field field-told">
-            <span className="field-name">{field.field}</span>
-            <Label label={field.label} />
-            <span className="field-value">{field.value}</span>
-            {field.from === 'typed when asked' ? (
-              <span className="field-from">typed when asked</span>
-            ) : (
-              <>
-                <span className="field-from">from “{field.from.quote}”</span>
-                <span className="field-from">in “{field.from.sentence}”</span>
-              </>
+    <section aria-label="Who is being made">
+      <p className="outline">
+        {sentences(entries).map((sentence, at) => (
+          <Fragment key={at}>
+            {at > 0 && ' '}
+            {sentence.map((part, inSentence) =>
+              part.kind === 'value' ? (
+                <span key={inSentence} className="said">
+                  {part.text}
+                </span>
+              ) : (
+                part.text
+              ),
             )}
-          </li>
-        ) : (
-          <li key={field.field} className="field field-quiet">
-            <span className="field-name">{field.field}</span>
-            <Label label={field.label} />
-            <span className="field-note">{field.note}</span>
-          </li>
-        ),
-      )}
-    </ol>
-  );
-}
-
-// Each label has its own shape as well as its own words, so the four tell apart at a glance and not
-// by colour alone.
-function Label({ label }: { label: ConfirmField['label'] }) {
-  return (
-    <span className={`label label-${label.replace(' ', '-')}`}>
-      {label === 'rolled' && <Sprite art={die} scale={2} />}
-      {label}
-    </span>
+          </Fragment>
+        ))}
+      </p>
+    </section>
   );
 }

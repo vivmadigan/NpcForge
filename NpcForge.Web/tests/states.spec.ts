@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { bakeryScene } from '../src/madeUp/bakery';
+import { bakeryScene, marketScene } from '../src/madeUp/bakery';
 import { namedStates } from '../src/madeUp/states';
 import { contrastFindings } from './contrast';
 
@@ -53,10 +53,16 @@ const seen: Record<string, (page: Page) => Promise<void>> = {
   },
   'forge-confirm': async (page) => {
     await sceneShown(page, bakeryScene);
-    await expect(page.getByText('Here is the character so far. Nothing is rolled until you say yes.')).toBeVisible();
-    await expect(page.getByRole('listitem')).toHaveCount(19);
+    await expect(page.getByRole('region', { name: 'Who is being made' })).toContainText('The NPC we are building is');
+    await expect(page.getByText('Shall I roll this character?')).toBeVisible();
     await expect(page.getByRole('button', { name: 'ROLL IT' })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'TURN IT DOWN' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'CHANGE THE SCENE' })).toBeVisible();
+  },
+  'forge-confirm-market': async (page) => {
+    await sceneShown(page, marketScene);
+    await expect(page.getByRole('region', { name: 'Who is being made' })).toContainText('spice seller');
+    await expect(page.getByRole('button', { name: 'ROLL IT' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'CHANGE THE SCENE' })).toBeVisible();
   },
   'forge-turned-down': async (page) => {
     await expect(page.getByText('Not rolled.')).toBeVisible();

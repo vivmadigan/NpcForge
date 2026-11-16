@@ -51,9 +51,8 @@ async function describeAndConfirm(page: Page) {
 
   await page.getByRole('textbox', { name: 'DESCRIBE YOUR SCENE' }).fill(scene);
   await page.getByRole('button', { name: 'SEND THE SCENE' }).click();
-  await expect(page.getByText('Here is the character so far. Nothing is rolled until you say yes.')).toBeVisible();
+  await expect(page.getByRole('region', { name: 'Who is being made' })).toContainText('The NPC we are building is');
   await expect(page.getByRole('region', { name: 'Your scene' })).toContainText(scene);
-  await expect(page.getByRole('listitem')).toHaveCount(19);
   await expectContrast(page);
 
   await page.getByRole('button', { name: 'ROLL IT' }).click();
@@ -98,11 +97,11 @@ test('a second run that ends with leave saves nothing', async ({ page }) => {
   await expect(savedCount(page)).toHaveText('SAVED CHARACTERS 16');
 });
 
-test('turning the brief down rolls nothing and leaves the scene in the box', async ({ page }) => {
+test('changing the scene on the confirmation rolls nothing and leaves the scene in the box', async ({ page }) => {
   await page.goto('/');
   await page.getByRole('textbox', { name: 'DESCRIBE YOUR SCENE' }).fill(scene);
   await page.getByRole('button', { name: 'SEND THE SCENE' }).click();
-  await page.getByRole('button', { name: 'TURN IT DOWN' }).click();
+  await page.getByRole('button', { name: 'CHANGE THE SCENE' }).click();
 
   await expect(page.getByText('Not rolled.')).toBeVisible();
   await expect(page.getByRole('textbox', { name: 'DESCRIBE YOUR SCENE' })).toHaveValue(scene);
@@ -114,7 +113,7 @@ test('an answer to the question leads to the confirmation', async ({ page }) => 
   await page.goto('/?state=forge-question');
   await page.getByRole('textbox', { name: /^occupation/ }).fill('baker');
   await page.getByRole('button', { name: 'ANSWER' }).click();
-  await expect(page.getByText('Here is the character so far. Nothing is rolled until you say yes.')).toBeVisible();
+  await expect(page.getByRole('region', { name: 'Who is being made' })).toContainText('The NPC we are building is');
   await expectContrast(page);
 });
 

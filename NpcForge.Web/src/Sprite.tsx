@@ -14,8 +14,6 @@ export const paint: Record<string, string> = {
   i: 'px-iron-dark',
   I: 'px-iron',
   L: 'px-iron-lit',
-  d: 'px-die',
-  p: 'px-pip',
 };
 
 // A stone forge with a fire in its mouth and an anvil on the hearth: the wait screen.
@@ -60,17 +58,6 @@ export const anvil = [
   '...kIIIk.....',
   '..kiIIIik....',
   '.kiiiiiiik...',
-];
-
-// A die showing five, on the `rolled` label.
-export const die = [
-  '.ddddd.',
-  'dpdddpd',
-  'ddddddd',
-  'dddpddd',
-  'ddddddd',
-  'dpdddpd',
-  '.ddddd.',
 ];
 
 // Each run of one character in a row is one rectangle, with hard edges, so a pixel stays a square
