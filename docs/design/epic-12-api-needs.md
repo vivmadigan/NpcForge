@@ -21,8 +21,11 @@ with the answer. The types are in `api.ts` and are not repeated here. A state na
 - **The page needs** one of three answers:
   - a question for a missing place or role, with the field's name and the question's words
     (`forge-question`);
-  - the confirmation: every brief field in the order to show, each with its label, and for a field
-    with the GM's words the value, the quote and the sentence the quote is in (`forge-confirm`);
+  - the confirmation: one entry for each field the scene settled, in the roll's order, with the
+    field's name as the core spells it and the value the brief will hold, or null for a want that
+    was not given. A choice is sent as the roll spells it, such as `Comic`. The page writes its
+    sentences from the entries (ADR-018), so no label, quote or rolled field is sent
+    (`forge-confirm`, `forge-confirm-market`);
   - the spending cap, with the cap's message (`forge-cap`).
 - **The page also needs** an interview id, which it passes back and never reads.
 
@@ -95,11 +98,12 @@ the scene after no name followed the dice. Each puts the scene back in the box.
   again or a change of scene.
 - **The cap's message is shown as sent**, between "Stopped:" and "Nothing was saved." So the API
   sends the message alone.
-- **A brief field's name is shown as sent**, such as `playersWant`, and a note such as "nothing
-  recorded, so the dice pick it after your yes" is shown as sent. Plain words for either would come
-  from the API (ADR-017, "Left to the owner").
+- **The confirmation shows no field name.** The page words each field itself, and plain words for a
+  choice come from the page's table, so `api.ts` throws on a field name outside `BriefField` and
+  never drops an entry. Epic 6's design check decides whether a test holds that list equal to
+  `Dice.Fields` (ADR-018, Consequences). The one question still shows its `field` as sent.
 - **Paths the server must answer with the app's `index.html`:** `/`, `/saved` and
   `/saved/<number>`.
 - **The made-up parts to delete:** `src/madeUp/saves.ts` and `saves.json` stay only if the named
   states outlive epic 6 (ADR-017, "Left to the owner"). The `sessionStorage` saves, the one-second
-  wait and the run of three characters in `api.ts` go.
+  waits and the run of three characters in `api.ts` go.
