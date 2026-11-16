@@ -38,8 +38,7 @@ export function SceneForm({
       </h2>
       {after === 'turned-down' && (
         <p className="notice">
-          Not rolled. You turned the brief down. Your scene is still in the box, so you can change it
-          and send it again.
+          Not rolled. Your scene is still in the box, so you can change it and send it again.
         </p>
       )}
       {after === 'left' && (
