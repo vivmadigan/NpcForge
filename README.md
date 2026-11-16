@@ -128,8 +128,10 @@ the field and its values. The free tests run in about 25 s, and the part that st
 few seconds. The website's two pages are built, on made-up data with no backend.
 `npm --prefix NpcForge.Web start` opens the forge page, where you describe a scene, confirm the
 brief, read the character and save it, roll again or leave, and the saved page lists what you kept.
-Next: a new look for those pages, a forge in a cavern, then logins, a database and a spending cap
-so friends can use it, and later editing a saved character. See [ROADMAP.md](ROADMAP.md).
+The pages look like a forge in a cavern: a confirmation in a few sentences, a character page with
+save, roll again and leave at the top, and a fade to black with a flame while you wait.
+Next: logins, a database and a spending cap so friends can use it, and later editing a saved
+character. See [ROADMAP.md](ROADMAP.md).
 
 ## Out of scope, for now
 

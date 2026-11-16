@@ -42,6 +42,10 @@ async function expectCharacter(page: Page, name: string, sheet: string) {
   expect(words(await shown.innerText())).toEqual(words(sheet));
 }
 
+// The character page holds the three buttons twice, above the sheet and below it. The flow uses the
+// ones at the top, which are the ones in view.
+const keepBar = (page: Page) => page.getByRole('region', { name: 'Keep, roll again or leave', exact: true });
+
 const savedCount = (page: Page) => page.getByRole('navigation').getByRole('link', { name: /^SAVED/ });
 
 async function describeAndConfirm(page: Page) {
@@ -65,11 +69,11 @@ async function describeAndConfirm(page: Page) {
 test('the whole flow: describe, confirm, read, roll again, save, open the list, open the save', async ({ page }) => {
   await describeAndConfirm(page);
 
-  await page.getByRole('button', { name: 'ROLL AGAIN' }).click();
+  await keepBar(page).getByRole('button', { name: 'ROLL AGAIN' }).click();
   await expectCharacter(page, 'Snort Wafflewick', snort.sheet);
   await expectContrast(page);
 
-  await page.getByRole('button', { name: 'SAVE', exact: true }).click();
+  await keepBar(page).getByRole('button', { name: 'SAVE' }).click();
   await expect(page.getByText('Saved as 17.')).toBeVisible();
   await expect(savedCount(page)).toHaveText('SAVED CHARACTERS 17');
   await expectContrast(page);
@@ -87,7 +91,7 @@ test('the whole flow: describe, confirm, read, roll again, save, open the list, 
 test('a second run that ends with leave saves nothing', async ({ page }) => {
   await describeAndConfirm(page);
 
-  await page.getByRole('button', { name: 'LEAVE' }).click();
+  await keepBar(page).getByRole('button', { name: 'LEAVE' }).click();
   await expect(page.getByText('Not saved.')).toBeVisible();
   await expect(page.getByRole('textbox', { name: 'DESCRIBE YOUR SCENE' })).toHaveValue(scene);
   await expectContrast(page);

@@ -27,7 +27,7 @@ started as a second process; ADR-016 records the switch.
 
 ## The website's pages
 
-`NpcForge.Web` holds the website's two pages (epic 12). It has no backend until epic 6, and
+`NpcForge.Web` holds the website's two pages (epics 12 and 13). It has no backend until epic 6, and
 `docs/design/epic-12-api-needs.md` lists what the pages need from one. It is a Vite 8, React 19 and
 TypeScript 7 app, and `npm --prefix NpcForge.Web start` serves it at `http://localhost:5173`. Its
 pages get data only through `src/api.ts`, whose bodies read made-up data, so epic 6 can replace the
@@ -36,42 +36,60 @@ bodies and leave the pages (ADR-017). The folder is not in `NpcForge.slnx`, so `
 
 There are two pages. The forge page at `/` is where a GM describes a scene and gets a character.
 The saved page lists the saves at `/saved` and opens one at `/saved/<number>`. The top bar counts
-the saves on every page. Colours, typefaces and type sizes are set once, in `src/tokens.css`, and
-the pixel art is drawn in code from character maps in `src/Sprite.tsx`.
+the saves on every page, in a flat header above a cavern that falls from dark rock to lava. Colours,
+typefaces and type sizes are set once, in `src/tokens.css`, and the pixel art is drawn in code from
+character maps in `src/Sprite.tsx`. The cavern, the flame and the title are drawn in code too
+(`Cavern.tsx`, `Flame.tsx`, `Title.tsx`), and no text sits on the cavern (lesson 019). The look
+follows `docs/design/cavern-sketch.html`, which is throwaway.
 
 The forge page holds one `ForgeState` and draws it with one switch. One step replaces the last on
-the same page, and the GM's scene stays in a panel above every step after the first. It is not a
-chat log. The steps follow the console: the scene in one go, a question when the scene names no
-place or role, the confirmation, the wait while a character is written, then the character with
-save, roll again and leave. The confirmation shows every field in the order sent: a field with the
-GM's words (`my words`, `inferred`) as a card with its quote and sentence, a field with no value
-(`not given`, `rolled`) as one quiet line. Turning the brief down and leaving send nothing and put
-the scene back in the box. No name for the dice and the spending cap each say the console's
-message and that nothing was saved. The page's words are the console's wherever it says the same
-thing.
+the same page, and the GM's scene stays above every step after the first. It is not a chat log.
+The steps follow the console: the scene in one go, a question when the scene names no place or role,
+the confirmation, the wait while a character is written, then the character with save, roll again
+and leave. The confirmation is the scene and a few sentences that say who is being made
+(ADR-018). The page writes them from the fields the scene settled, in `src/sentences.ts`, and
+colours each value the GM gave. It shows no joined field name, no label and nothing for a field the
+dice will pick. Turning the brief down and leaving send nothing and put the scene back in the box.
+No name for the dice and the spending cap each say the console's message and that nothing was saved.
+
+The character page has one panel on top with the scene on the left and "Keep this character?" with
+save, roll again and leave on the right, stacked on a phone. Then comes the parchment, centred, and
+the question again below it. The three top buttons are in the window when the page opens, with no
+scrolling, at 390 by 844 and 1280 by 800. No page shows the rolled brief (ADR-018 decision 9), so
+`brief` is not in `RunResult` or `SavedCharacter`, and an opened save is a BACK TO SAVED link and the
+parchment. The made-up saves in `sessionStorage` keep the brief, because `listSaves` reads the
+occupation and the setting from it.
+
+Sending a scene and rolling fade to black, and a flame burns until the seam answers. The wait states
+`reading` and `writing` can carry the step the GM left (`from`), drawn under a 0.4 s stepped fade
+and then hidden, so the black screen's own title and line are text the contrast check can judge. The
+page sets no timer of its own. `src/flameGrid.ts` is the flame as a pure function over a grid,
+stepped by `Flame.tsx` twelve times a second. A device that asks for less motion gets black at once
+and a still flame, drawn from a fixed seed. Nothing makes a sound.
 
 The made-up run is the bakery run, `docs/runs/raw/2026-11-08-01-epic4-bakery-roll-again.md`, in
-`src/madeUp/bakery.ts`: its scene, its 19 confirmation fields and its three characters, cut from
-the run file by a script so the sheets keep their lines that end in two spaces. Any scene gets the
-bakery confirmation, and roll again gives the run's three characters in turn after a one-second
-wait. A save goes to `sessionStorage` as number 17 and on, read and written only by `api.ts`, so
+`src/madeUp/bakery.ts`: its scene, its seven confirmation entries and its three characters, cut from
+the run file by a script so the sheets keep their lines that end in two spaces. A second scene, from
+`docs/runs/raw/2026-11-03-01-epic10-interview-nogender.md`, has three entries and no gender, and only
+`forge-confirm-market` opens it. Any scene sent gets the bakery confirmation after a one-second wait,
+and roll again gives the run's three characters in turn after the same wait. A save goes to `sessionStorage` as number 17 and on, read and written only by `api.ts`, so
 it reaches the saved page through a plain link and each test starts with none.
 
 The saved page reads the 16 saves in `src/madeUp/saves.json`, which is
 `NpcForge.Console/characters.json` as it stood at commit `e3ac16e`, plus any save from the forge.
-`Sheet.tsx` hands a sheet to `react-markdown` whole and never reads its meaning, on both pages. The
-brief shows beside the sheet, or below it on a phone, each field named as the console prints it.
+`Sheet.tsx` hands a sheet to `react-markdown` whole and never reads its meaning, on both pages.
 
 Each state can be opened by name, on its own path:
 
 ```
 /?state=forge-describe               the empty scene box and its example
-/?state=forge-reading                waiting on the interviewer
+/?state=forge-reading                the black wait while the scene is read
 /?state=forge-question               the interviewer asking for a missing role
-/?state=forge-confirm                the bakery confirmation, 19 fields
+/?state=forge-confirm                the bakery confirmation, in sentences
+/?state=forge-confirm-market         the scene that says less: a want and no gender
 /?state=forge-turned-down            the brief turned down: the scene back in the box
-/?state=forge-writing                the wait while a character is written: the still forge
-/?state=forge-written                AldoBun Sourdough, with save, roll again and leave
+/?state=forge-writing                the black wait while a character is written
+/?state=forge-written                AldoBun Sourdough, with save, roll again and leave at the top
 /?state=forge-no-name                no name followed the dice
 /?state=forge-cap                    the spending cap reached
 /?state=forge-saved                  saved as 17
@@ -628,21 +646,27 @@ for the wrong reason (lesson 004).
 
 The pages have their own free suite. `npm --prefix NpcForge.Web test` runs `tsc --noEmit`, then
 Playwright at phone (390 by 844) and desktop (1280 by 800) width. `flow.spec.ts` walks the whole
-flow: it describes a scene, confirms the brief, reads the first character, rolls again and reads the
+flow: it describes a scene, confirms the scene, reads the first character, rolls again and reads the
 second, saves, sees the bar reach 17, opens the list of 17 and the new save. Each character is read
 word for word against the made-up sheet. A second run ends with leave and finds the list still at
 16. Shorter tests turn the brief down, answer a question, and roll again or change the scene after
-no name. A data test holds each made-up sheet to the run file, byte for byte. `sheet.spec.ts` opens
+no name. `character.spec.ts` shows no brief, and save, roll again and leave in the window with no
+scrolling. `flame.spec.ts` steps the flame 1,000 frames and finds no lit cell on its top, left or
+right edge. `wait.spec.ts` holds the seam to look at the wait: black at once with a still flame
+under less motion, a burning flame and a fade at normal motion, and a wait that ends when the seam
+answers and not later. `confirmation.spec.ts` and `sentences.spec.ts` hold the sentences. A data test holds each made-up sheet to the run file, byte for byte. `sheet.spec.ts` opens
 each of the 16 saves from the list and checks that the sheet holds every word of the saved text, in order, and that
 the shown name is the saved one or `(no name)`. `states.spec.ts` takes its list from the table's
 keys. For each state at both widths it checks that the state opened, and what a user sees there for
 each state its `seen` map describes. Both run axe's `color-contrast` rule through
 `tests/contrast.ts`: on every state, and after each step of the flow. A result axe cannot judge
-fails the test like a violation does. The first run downloads Chromium.
+fails the test like a violation does. The config asks for less motion in every test, so the flame is
+still and the contrast check is the same on every run. The first run downloads Chromium.
 
 `npm --prefix NpcForge.Web run screenshots` runs the tests that `npm test` skips. They write
-`docs/design/epic-12/<state>-<phone|desktop>.png`, full page, for every state, to look at and not to
-compare. Run it again when a page's look changes.
+`docs/design/epic-13/<state>-<phone|desktop>.png`, full page and with the flame held still, for
+every state, to look at and not to compare. `docs/design/epic-12/` stays as the record of the first
+look. Run it again when a page's look changes, and a second run changes nothing.
 
 ## Behaviour worth knowing
 
@@ -697,3 +721,4 @@ agents and named, not numbered.
 | Save what I like (epic 4) | Saving is the GM's choice after each character; `again` rolls new dice for the same scene on the same server, so a seeded run repeats; `--list` finds a save and `--load` opens it; the cap stops a run cleanly. The bakery scene rolled again twice and saved the third | |
 | Ready to grow (epic 5) | One core, `NpcForge.Core`, called in-process by the console; saves behind `ICharacterStore`, with a file store and an in-memory store passing the same tests; the MCP server retired, with the replay and roll-again recordings passing unchanged and `--list` and `--load` printing what they printed | |
 | A front end to click through (epic 12) | The website's two pages run on made-up data behind one seam, `src/api.ts`; browser tests walk the whole flow and a run that leaves, read every word of every sheet, and pass AA contrast on all 16 named states at phone and desktop width | |
+| A forge in a cavern (epic 13) | The pages look like a forge in a cavern: a header, a cavern, a title drawn as a picture, a confirmation in sentences, a character page with save, roll again and leave at the top and no brief, and a black wait with a flame that holds still under less motion. Browser tests pass AA contrast on all 17 named states at both widths, with a screenshot of each in `docs/design/epic-13/` | |

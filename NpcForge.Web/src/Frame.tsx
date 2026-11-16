@@ -4,7 +4,7 @@ import { listSaves } from './api';
 import { anvil, Sprite } from './Sprite';
 
 // The header, then the cavern with the page on it. `here` marks the current page in the header;
-// `wide` is for a character beside its side column, on the forge page and on an opened save. Pure:
+// `wide` is for the character page's top panel, which is wider than the parchment. Pure:
 // the page hands it the count, and null shows none. The header is flat and outside the cavern, and
 // every panel inside the page has its own flat colour, so no text sits on the picture (ADR-017,
 // Consequences).

@@ -42,9 +42,13 @@ const seen: Record<string, (page: Page) => Promise<void>> = {
     // The main button needs no scrolling to reach. The lava is below it.
     await expect(page.getByRole('button', { name: 'SEND THE SCENE' })).toBeInViewport({ ratio: 1 });
   },
+  // A wait is the sketch's black screen: a title, one line and a flame. It has no header, no scene and
+  // nothing to press.
   'forge-reading': async (page) => {
-    await sceneShown(page, bakeryScene);
-    await expect(page.getByText('The interviewer is reading your scene')).toBeVisible();
+    await expect(page.getByRole('status')).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'READING YOUR SCENE' })).toBeVisible();
+    await expect(page.getByText('Working out what your scene already says.')).toBeVisible();
+    await expect(page.getByRole('button')).toHaveCount(0);
   },
   'forge-question': async (page) => {
     await sceneShown(page, 'someone is furious that the croissants keep vanishing');
@@ -69,20 +73,23 @@ const seen: Record<string, (page: Page) => Promise<void>> = {
     await expect(page.getByRole('textbox', { name: 'DESCRIBE YOUR SCENE' })).toHaveValue(bakeryScene);
   },
   'forge-writing': async (page) => {
-    await sceneShown(page, bakeryScene);
+    await expect(page.getByRole('status')).toBeVisible();
     await expect(page.getByRole('heading', { name: 'AT THE FORGE' })).toBeVisible();
-    await expect(page.getByText('The dice settle who they are.')).toBeVisible();
+    await expect(page.getByText(/^The dice settle who they are, a name follows/)).toBeVisible();
     // Nothing to press while the character is written.
     await expect(page.getByRole('button')).toHaveCount(0);
   },
   'forge-written': async (page) => {
     await sceneShown(page, bakeryScene);
     await expect(page.getByRole('heading', { level: 1 })).toHaveText('AldoBun Sourdough');
-    // Save, again and leave, each once on the page at either width.
-    for (const action of ['SAVE', 'ROLL AGAIN', 'LEAVE']) {
-      await expect(page.getByRole('button', { name: action, exact: true })).toHaveCount(1);
-      await expect(page.getByRole('button', { name: action, exact: true })).toBeVisible();
+    // Save, again and leave, once above the sheet and once below it, at either width.
+    for (const region of ['Keep, roll again or leave', 'Keep, roll again or leave, below the sheet']) {
+      const set = page.getByRole('region', { name: region, exact: true });
+      for (const action of ['SAVE', 'ROLL AGAIN', 'LEAVE']) {
+        await expect(set.getByRole('button', { name: action, exact: true })).toBeVisible();
+      }
     }
+    await expect(page.getByText('Roll again: new dice, same scene.')).toBeVisible();
   },
   'forge-no-name': async (page) => {
     await expect(page.getByText('Not written: no name followed the dice (K, 2, V)')).toBeVisible();
@@ -107,9 +114,12 @@ const seen: Record<string, (page: Page) => Promise<void>> = {
   },
 };
 
+// The black screen covers the header, so a wait has none to find.
+const waits = ['forge-reading', 'forge-writing'];
+
 async function open(page: Page, path: string, name: string) {
   await page.goto(`${path}?state=${name}`);
-  await expect(page.getByRole('link', { name: 'NPC FORGE', exact: true })).toBeVisible();
+  if (!waits.includes(name)) await expect(page.getByRole('link', { name: 'NPC FORGE', exact: true })).toBeVisible();
   await expect(page.getByText('No state named')).toHaveCount(0);
   await seen[name]?.(page);
   // A font that has not loaded changes the picture.

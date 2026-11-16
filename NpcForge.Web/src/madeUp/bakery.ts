@@ -6,7 +6,11 @@
 // break. tests/flow.spec.ts holds each sheet to the run file. The market scene and its three entries
 // below are from a second run, whose scene says less and gives a want and no gender.
 // No page imports from madeUp/ (ADR-017 decision 3).
-import type { BriefEntry, ConfirmEntry } from '../api';
+import type { ConfirmEntry } from '../api';
+
+// A rolled or saved brief, in the order sent. An old save has fewer entries (ADR-009). It lives here
+// and not in api.ts, because no page shows it (ADR-018 decision 9).
+export type BriefEntry = { field: string; value: string | null };
 
 export const bakeryScene: string = "The party bursts into a tiny bakery where a goblin baker is furious that someone keeps stealing his croissants. It’s a silly session, play it for laughs.";
 

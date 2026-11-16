@@ -81,6 +81,11 @@
   --px-iron: #6e6a72;
   --px-iron-lit: #b4afb6;
 
+  /* The wait (Wait.tsx, Flame.tsx): a black screen, and the one flame colour the pixel art lacks,
+     between the page's shadow and the sheet's red. */
+  --wait-bg: #000000;
+  --flame-smoulder: #5a1a14;
+
   --font-pixel: 'Press Start 2P', monospace;
   --font-book: 'IM Fell English', serif;
   --font-text: 'Crimson Text', serif;

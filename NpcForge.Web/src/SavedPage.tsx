@@ -78,11 +78,11 @@ export function SavedPage({
       );
     case 'open':
       return (
-        <Frame saved={saved} here="saved" wide>
+        <Frame saved={saved} here="saved">
           <a className="button back" href="/saved">
             BACK TO SAVED
           </a>
-          <Sheet name={state.character.name} brief={state.character.brief} sheet={state.character.sheet} />
+          <Sheet name={state.character.name} sheet={state.character.sheet} />
         </Frame>
       );
     case 'missing':

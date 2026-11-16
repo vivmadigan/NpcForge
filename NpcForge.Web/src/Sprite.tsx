@@ -16,7 +16,7 @@ export const paint: Record<string, string> = {
   L: 'px-iron-lit',
 };
 
-// A stone forge with a fire in its mouth and an anvil on the hearth: the wait screen.
+// A stone forge with a fire in its mouth and an anvil on the hearth: the cavern's ledge (Cavern.tsx).
 export const forge = [
   '.............SSSSSSSk.......................',
   '.............sssssssk.......................',
