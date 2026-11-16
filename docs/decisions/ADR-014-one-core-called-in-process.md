@@ -1,6 +1,6 @@
 # ADR-014: One core, called in-process, with saves behind a port; the MCP server retires
 
-- **Status:** accepted; decision 2's numbering promise, decision 7's checks and decision 9.4's plan for `Storage` amended by ADR-015; the projects, where the adapters live and the epic that adds the interview's entry amended by ADR-019
+- **Status:** accepted; decision 2's numbering promise, decision 7's checks and decision 9.4's plan for `Storage` amended by ADR-015; the projects, where the adapters live, and the epic that adds the API, its DI and the interview's entry amended by ADR-019
 - **Date:** 2026-11-08
 - **Supersedes:** ADR-012 (the console starts the server's launcher). It replaces three of AGENTS.md's
   rules: "Two processes, no shared contracts project", "No Clean Architecture layering" and "No

@@ -1,7 +1,7 @@
 # ADR-018: The website's confirmation is the scene and a few sentences, written by the page from what the scene settled
 
 - **Status:** accepted. Amended 2026-11-16: the API sends the confirmation's entries from epic 14,
-  not epic 6 (ADR-019).
+  not epic 6, and a test holds `BriefField` to the core (ADR-019).
 - **Date:** 2026-11-15
 - **Amends, for the website only:** one line of ADR-007, one line of ADR-010 decision 4, and five
   parts of ADR-017. Each decision below names the line it changes. The console keeps its full
