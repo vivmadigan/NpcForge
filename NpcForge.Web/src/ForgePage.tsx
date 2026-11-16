@@ -192,7 +192,6 @@ export function ForgePage({
             </div>
             <Sheet
               name={character.name}
-              brief={character.brief}
               sheet={character.sheet}
               actions={
                 <div className="keep">

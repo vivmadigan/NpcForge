@@ -31,6 +31,5 @@ export const savedList: ListedCharacter[] = numbered.map(({ number, save }) => (
 export const savedCharacters: SavedCharacter[] = numbered.map(({ number, save }) => ({
   number,
   name: joinedName(save),
-  brief: Object.entries(save.brief).map(([field, value]) => ({ field, value })),
   sheet: save.text,
 }));

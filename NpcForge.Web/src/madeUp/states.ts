@@ -64,7 +64,7 @@ export const namedStates: Record<string, NamedState> = {
       kind: 'written',
       scene: bakeryScene,
       interview: 'bakery',
-      character: { kind: 'written', draft: '0', ...bakeryCharacters[0] },
+      character: { kind: 'written', draft: '0', name: bakeryCharacters[0].name, sheet: bakeryCharacters[0].sheet },
     },
   },
   // The dice in the console's own example of this line (docs/architecture.md, "The namer").

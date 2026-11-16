@@ -1,6 +1,6 @@
 // ADR-017 decision 3: the one place a page gets data. Epic 6 replaces the bodies below with calls
 // to NpcForge.Api and keeps these signatures. No page imports from madeUp/.
-import { bakeryCharacters, bakeryFields } from './madeUp/bakery';
+import { bakeryCharacters, bakeryFields, type BriefEntry } from './madeUp/bakery';
 import { savedCharacters, savedList } from './madeUp/saves';
 
 // A page passes an id back and never reads it.
@@ -26,12 +26,10 @@ export type InterviewStep =
   | { kind: 'confirm'; interview: InterviewId; entries: ConfirmEntry[] }
   | Stopped;
 
-// A rolled or saved brief, in the order sent. An old save has fewer entries (ADR-009).
-export type BriefEntry = { field: string; value: string | null };
-
+// No page shows the brief, so it does not cross the seam (ADR-018 decision 9).
 export type RunResult =
-  | { kind: 'written'; draft: DraftId; name: string; brief: BriefEntry[]; sheet: string }
-  | { kind: 'no-name'; brief: BriefEntry[]; reason: string } // no name followed the dice
+  | { kind: 'written'; draft: DraftId; name: string; sheet: string }
+  | { kind: 'no-name'; reason: string } // no name followed the dice
   | Stopped;
 
 // The name arrives joined, or null for an old save. The rule for joining it stays in the core.
@@ -44,7 +42,6 @@ export type ListedCharacter = {
 export type SavedCharacter = {
   number: number;
   name: string | null;
-  brief: BriefEntry[];
   sheet: string;
 };
 
@@ -76,14 +73,19 @@ export async function rollAndWrite(_interview: InterviewId): Promise<RunResult> 
   await aSecond();
   const place = written % bakeryCharacters.length;
   written += 1;
-  return { kind: 'written', draft: String(place), ...bakeryCharacters[place] };
+  const { name, sheet } = bakeryCharacters[place];
+  return { kind: 'written', draft: String(place), name, sheet };
 }
 
 // A new save lives in sessionStorage, read and written only here, so it survives the page load of a
 // plain link as it would on a server, and each Playwright test starts with none (ADR-017 decision 3).
+// A save keeps its brief, because `listSaves` reads the occupation and the setting from it. The brief
+// stays inside the made-up code, and no type a page sees holds it (ADR-018 decision 9).
 const sessionKey = 'npcforge-saves';
 
-function sessionSaves(): SavedCharacter[] {
+type KeptSave = SavedCharacter & { brief: BriefEntry[] };
+
+function sessionSaves(): KeptSave[] {
   return JSON.parse(sessionStorage.getItem(sessionKey) ?? '[]');
 }
 
@@ -114,5 +116,6 @@ export async function listSaves(): Promise<ListedCharacter[]> {
 
 // The save under this number, or null.
 export async function loadSave(number: number): Promise<SavedCharacter | null> {
-  return [...savedCharacters, ...sessionSaves()].find((character) => character.number === number) ?? null;
+  const found = [...savedCharacters, ...sessionSaves()].find((character) => character.number === number);
+  return found ? { number: found.number, name: found.name, sheet: found.sheet } : null;
 }
