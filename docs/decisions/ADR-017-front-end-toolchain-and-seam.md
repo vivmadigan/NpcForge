@@ -1,7 +1,8 @@
 # ADR-017: The front end is a Vite and React app in `NpcForge.Web`, on made-up data behind one seam
 
 - **Status:** accepted. Amended 2026-11-15: decisions 1, 3 and 6, two defaults and one open item are
-  amended for the website by ADR-018.
+  amended for the website by ADR-018. Amended 2026-11-16: decisions 1, 2 and 3, one item left to the
+  owner and one consequence are amended by ADR-019.
 - **Date:** 2026-11-14
 - **Supersedes:** no record. It fills in what ADR-014 left open when it named "a React app". It
   amends the INDEX line on tests, which named xUnit alone and now names the front end's own free
