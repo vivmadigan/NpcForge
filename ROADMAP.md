@@ -70,34 +70,38 @@ dice and a real model. I save it and open it again. One command starts everythin
   I choose, and an ADR records it before anything is built.
 
 **Done when.**
-- The replay and roll-again tests pass on the unchanged fixtures.
+- The replay and roll-again tests pass on the unchanged fixtures. Neither fixture interviews, so the
+  interview's restructure also shows `SceneInterviewTests` passing unchanged.
 - A free test walks the API on a stand-in model: a scene, a question, its answer, the confirmation,
   a roll, a save, the list and a load.
-- A test fails when the API sends the model a message the console would not send for the same seed
-  and scene. Show it failing with one message changed.
-- A seeded scene rolled twice through the API gives the two characters the console gives for that
-  seed and scene.
-- A test saves one draft twice and finds one save. Show it failing with the guard removed.
+- For one seed and one scene, a test fails when the messages the API sends the model, over a roll
+  and a roll again, differ from the messages the core sends when called as `Program.cs` calls it.
+  The writer's message holds the brief, so this also holds the dice. Show it failing with one
+  message changed.
+- A test sends two saves of one draft at the same moment and finds one save. Show it failing with
+  the guard removed.
 - A test reaches the spending cap and gets the cap's message, with no model call after it.
 - A test fails when the field names in `src/api.ts` and `Dice.Fields` differ.
 - A free browser test, on the stand-in model, describes a scene, confirms it, reads the character,
   saves it and finds it on the saved page.
+- A free browser test shows the failure state when the API does not answer.
 - `npm --prefix NpcForge.Web test` still passes contrast on every named state at both widths.
 - One command starts the API and the pages, and the Aspire dashboard shows both (*needs my eyes*).
 - I make, save and reopen a character in the browser on a paid model (*needs my eyes*).
-- What a page shows when the API is down or has no key (*needs my eyes*).
+- How the failure state looks (*needs my eyes*).
 
 **Open, mine to decide.**
 - Which saves the site shows. Until I decide: my `NpcForge.Console/characters.json`, so the
-  console's characters are on the saved page, if the design check shows two processes can write
-  that file safely.
+  console's characters are on the saved page. The file store takes no lock today and writes the
+  whole file in place, so this choice needs a guard for two writers and a test of it. A file of the
+  site's own needs the guard only for two saves from the site.
 - Which model the site calls, and what the cap counts. Until I decide: the console's provider, model
   and keys, and its 200,000 tokens counted for each interview.
 - What the tests use as a stand-in model. Both recorded fixtures are flag runs with no interview,
-  and the site always interviews. Until I decide: one paid recording of a seeded scene run with a
-  roll again, asked for first with the command, once the design check shows `--record` holds an
-  interview. The other option is a scripted fake, which is free and says nothing about a real
-  model's answers.
+  and the site always interviews. Until I decide: a scripted fake, as `SceneInterviewTests` and
+  `NamerStandIn` already use, which is free. The other option is one paid recording of a scene run.
+  The console refuses that today, because `--record` needs the answers as flags, so it needs a
+  change to the console first.
 - Whether the named states stay on made-up data (ADR-017, "Left to the owner"). Until I decide:
   they stay, because they are how every state's contrast is checked for free, and only the live
   flow calls the API.
@@ -106,9 +110,10 @@ dice and a real model. I save it and open it again. One command starts everythin
 
 **Tasks.**
 - The design check and the ADR.
-- Restructure: the interview in steps, and the console calls the same steps.
-- Restructure: the model clients and the file store move to where both front ends reach them.
+- Restructure, if the design check chooses it: the model clients and the file store move to where
+  both front ends reach them.
 - The thin slice: the API lists and loads saves, the saved page calls it, and Aspire starts both.
+- Restructure: the interview in steps, and the console calls the same steps.
 - The interview, the roll and the save through the API, tested on the stand-in model.
 - The forge page calls the API, with a failure state and the browser test. Close-out.
 
@@ -163,7 +168,8 @@ behind that.
   and hold the keys, and an agent asks before each deploy, with the command.
 
 **Tasks.**
-- ADR: the open choices, and what `docs/design/epic-12-api-needs.md` still leaves open after epic 14.
+- ADR: the open choices, and what `docs/design/epic-12-api-needs.md` still leaves open after
+  epic 14.
 - The database store and logins on epic 14's API, tested locally on a stand-in model.
 - Deploy that, with the invite list and both caps, before a paid model is switched on.
 - The pages gain a login. The first paid run by a friend.
