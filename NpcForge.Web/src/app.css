@@ -515,6 +515,10 @@ form > .button {
   padding: 0;
   background: none;
 }
+.scene-panel-large .scene-panel-title {
+  font-size: var(--size-pixel-heading);
+}
+
 .scene-panel-large p {
   color: var(--text);
   font-family: var(--font-book);

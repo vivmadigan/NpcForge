@@ -11,8 +11,9 @@ export type Sentence = Part[];
 const text = (words: string): Part => ({ kind: 'text', text: words });
 
 // Plain words for each choice the core's brief offers (NpcForge.Core/Brief/CharacterBrief.cs). A
-// choice added to the core needs a line here, and `tsc` fails until it has one. The name letters
-// need none: a letter is its own plain word.
+// choice added to the core needs a line here. Nothing holds this list to the core until epic 6
+// (ADR-018, Consequences); `tsc` only holds `plainWords` to this type. The name letters need none:
+// a letter is its own plain word.
 type Choices = {
   difficulty: 'Easy' | 'SomeWork' | 'Wall';
   obstacle: 'Wont' | 'Cant' | 'ForAPrice';
