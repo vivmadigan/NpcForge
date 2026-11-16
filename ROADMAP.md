@@ -82,8 +82,8 @@ dice and a real model. I save it and open it again. One command starts everythin
   failing with one message changed.
 - A test sends two saves of one draft at the same moment and finds one save. Show it failing with
   the guard removed.
-- If the site shows my `characters.json`: a test saves through two stores on one file at the same
-  moment and finds two saves with different numbers. Show it failing with the guard removed.
+- A test saves through two stores on one file at the same moment, from two threads, and finds two
+  saves with different numbers. Show it failing with the lock removed.
 - A test reaches the spending cap and gets the cap's message, with no model call after it.
 - A test fails when the field names in `src/api.ts` and `Dice.Fields` differ.
 - A free browser test, on the stand-in model, describes a scene, confirms it, reads the character,
@@ -94,29 +94,21 @@ dice and a real model. I save it and open it again. One command starts everythin
 - I make, save and reopen a character in the browser on a paid model (*needs my eyes*).
 - How the failure state looks (*needs my eyes*).
 
-**Open, mine to decide.**
-- Which saves the site shows. Until I decide: my `NpcForge.Console/characters.json`, so the
-  console's characters are on the saved page. The file store takes no lock today and writes the
-  whole file in place, so this choice needs a guard for two writers and a test of it. A file of the
-  site's own needs the guard only for two saves from the site.
-- Which model the site calls, and what the cap counts. Until I decide: the console's provider, model
-  and keys, and its 200,000 tokens counted for each interview.
-- What the tests use as a stand-in model. Both recorded fixtures are flag runs with no interview,
-  and the site always interviews. Until I decide: a scripted fake, as `SceneInterviewTests` and
-  `NamerStandIn` already use, which is free. The other option is one paid recording of a scene run.
-  The console refuses that today, because `--record` needs the answers as flags, so it needs a
-  change to the console first.
-- Whether the named states stay on made-up data (ADR-017, "Left to the owner"). Until I decide:
-  they stay, because they are how every state's contrast is checked for free, and only the live
-  flow calls the API.
-- How far Aspire reaches. Until I decide: my machine only, an AppHost and no more. The core's traces
-  on stderr show as the API's log in the dashboard.
+**Decided in ADR-019.**
+- The model clients and the file store move to a new project, `NpcForge.Adapters`.
+- The site shows my `NpcForge.Console/characters.json`, behind a file lock.
+- The site calls the console's provider, model and keys, with the 200,000 tokens counted for each
+  interview.
+- The tests' stand-in model is a scripted fake.
+- The made-up bodies leave `src/api.ts`, and the named states keep their own data.
+- Aspire adds an AppHost and no more.
+- The browser tests start their own API and dev server, and never reuse one already running.
 
-**Tasks.**
-- The design check and the ADR.
-- Restructure, if the design check chooses it: the model clients and the file store move to where
-  both front ends reach them.
+**Tasks.** One PR each, in ADR-019's order.
+- ADR-019.
+- Restructure: the model clients and the file store move to `NpcForge.Adapters`.
 - The thin slice: the API lists and loads saves, the saved page calls it, and Aspire starts both.
+- The file store's lock.
 - Restructure: the interview in steps, and the console calls the same steps.
 - The interview, the roll and the save through the API, tested on the stand-in model.
 - The forge page calls the API, with a failure state and the browser test. Close-out.
