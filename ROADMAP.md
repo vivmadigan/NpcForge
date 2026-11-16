@@ -67,19 +67,23 @@ dice and a real model. I save it and open it again. One command starts everythin
 - A design check sets out the options for each open choice below, and for three more: where the
   model clients and the file store live now that two front ends need them (ADR-014), which projects
   Aspire adds, and how a browser test starts the API when neither suite starts the other (ADR-017).
-  I choose, and an ADR records it before anything is built.
+  The core may not hold the model clients or the file store, and AGENTS.md allows no layer beyond
+  the core and its front ends, so the check says which rule a new home would change. I choose, and
+  an ADR records it before anything is built.
 
 **Done when.**
 - The replay and roll-again tests pass on the unchanged fixtures. Neither fixture interviews, so the
   interview's restructure also shows `SceneInterviewTests` passing unchanged.
 - A free test walks the API on a stand-in model: a scene, a question, its answer, the confirmation,
   a roll, a save, the list and a load.
-- For one seed and one scene, a test fails when the messages the API sends the model, over a roll
-  and a roll again, differ from the messages the core sends when called as `Program.cs` calls it.
-  The writer's message holds the brief, so this also holds the dice. Show it failing with one
-  message changed.
+- For one seed and one scene, a test fails when what the API sends the model, every message, option
+  and tool over a roll and a roll again, differs from what the core sends when called as
+  `Program.cs` calls it. The writer's message holds the brief, so this also holds the dice. Show it
+  failing with one message changed.
 - A test sends two saves of one draft at the same moment and finds one save. Show it failing with
   the guard removed.
+- If the site shows my `characters.json`: a test saves through two stores on one file at the same
+  moment and finds two saves with different numbers. Show it failing with the guard removed.
 - A test reaches the spending cap and gets the cap's message, with no model call after it.
 - A test fails when the field names in `src/api.ts` and `Dice.Fields` differ.
 - A free browser test, on the stand-in model, describes a scene, confirms it, reads the character,
