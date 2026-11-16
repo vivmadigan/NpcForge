@@ -451,7 +451,7 @@ form > .button {
 .question {
   display: block;
 }
-/* The question is the step: it reads as large as a confirmed value. */
+/* The question is the step, so it is large. */
 .question {
   font-size: var(--size-title);
   line-height: 1.3;

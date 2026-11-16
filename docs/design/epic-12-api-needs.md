@@ -99,9 +99,11 @@ the scene after no name followed the dice. Each puts the scene back in the box.
 - **The cap's message is shown as sent**, between "Stopped:" and "Nothing was saved." So the API
   sends the message alone.
 - **The confirmation shows no field name.** The page words each field itself, and plain words for a
-  choice come from the page's table, so `api.ts` throws on a field name outside `BriefField` and
-  never drops an entry. Epic 6's design check decides whether a test holds that list equal to
-  `Dice.Fields` (ADR-018, Consequences). The one question still shows its `field` as sent.
+  choice come from the page's table. `api.ts` throws on a field name outside `BriefField` and never
+  drops an entry (ADR-018 decision 3). Epic 6's design check decides whether a test holds that list
+  equal to `Dice.Fields` (ADR-018, Consequences). The one question still shows its `field` as sent.
+- **A choice the page's table does not know is shown as sent**, such as a new tone. Whether `api.ts`
+  refuses it instead is open.
 - **Paths the server must answer with the app's `index.html`:** `/`, `/saved` and
   `/saved/<number>`.
 - **The made-up parts to delete:** `src/madeUp/saves.ts` and `saves.json` stay only if the named

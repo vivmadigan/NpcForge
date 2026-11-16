@@ -11,18 +11,9 @@ export type Sentence = Part[];
 const text = (words: string): Part => ({ kind: 'text', text: words });
 
 // Plain words for each choice the core's brief offers (NpcForge.Core/Brief/CharacterBrief.cs). A
-// choice added to the core needs a line here. Nothing holds this list to the core until epic 6
-// (ADR-018, Consequences); `tsc` only holds `plainWords` to this type. The name letters need none:
-// a letter is its own plain word.
-type Choices = {
-  difficulty: 'Easy' | 'SomeWork' | 'Wall';
-  obstacle: 'Wont' | 'Cant' | 'ForAPrice';
-  tone: 'Serious' | 'Comic' | 'Heartfelt';
-  gender: 'Male' | 'Female';
-  age: 'Teenager' | 'Adult' | 'MiddleAged' | 'Old';
-  nameSyllables: '1' | '2' | '3';
-};
-const plainWords: { [Field in keyof Choices]: Record<Choices[Field], string> } = {
+// choice added to the core needs a line here, and nothing holds this list to the core until epic 6
+// (ADR-018, Consequences). The name letters need none: a letter is its own plain word.
+const plainWords: Partial<Record<BriefField, Record<string, string>>> = {
   difficulty: { Easy: 'easy', SomeWork: 'some work', Wall: 'a wall' },
   obstacle: { Wont: 'unwilling', Cant: 'unable', ForAPrice: 'willing for a price' },
   tone: { Serious: 'serious', Comic: 'comic', Heartfelt: 'heartfelt' },
@@ -35,21 +26,21 @@ const plainWords: { [Field in keyof Choices]: Record<Choices[Field], string> } =
 // choice this table does not know reads as sent, so a value is never dropped (epic 6's `api.ts`
 // decides whether to refuse it).
 export function plain(field: BriefField, value: string): string {
-  const words: Record<string, string> | undefined = (plainWords as Record<string, Record<string, string>>)[field];
-  return words !== undefined && Object.hasOwn(words, value) ? words[value] : value;
+  const choices = plainWords[field];
+  return choices !== undefined && Object.hasOwn(choices, value) ? choices[value] : value;
 }
 
 // The pronouns a sentence about the character uses. Only a gender the scene settled gets he or she;
 // no gender entry gets they, so a sentence never guesses (ADR-018 decision 2, the scene with no gender).
 type Who = { subject: string; object: string; possessive: string; be: string; s: string };
 const they: Who = { subject: 'they', object: 'them', possessive: 'their', be: 'are', s: '' };
-const pronouns: Record<Choices['gender'], Who> = {
+const pronouns: Record<string, Who> = {
   Male: { subject: 'he', object: 'him', possessive: 'his', be: 'is', s: 's' },
   Female: { subject: 'she', object: 'her', possessive: 'her', be: 'is', s: 's' },
 };
 function whoIs(entries: ConfirmEntry[]): Who {
   const gender = entries.find((entry) => entry.field === 'gender')?.value;
-  return gender != null && Object.hasOwn(pronouns, gender) ? pronouns[gender as Choices['gender']] : they;
+  return gender != null && Object.hasOwn(pronouns, gender) ? pronouns[gender] : they;
 }
 
 // One field's words, as a clause that a sentence joins to others. No clause puts an article or a
@@ -76,7 +67,7 @@ const words: Record<BriefField, Clause> = {
   familyLetter: (v, who) => [text(`${who.possessive} family name starts with `), v],
   gender: (v) => [v],
   age: (v) => [v],
-  look: (v, who) => [text(`what stands out about how ${who.subject} look${who.s} is `), v],
+  look: (v, who) => [text(`what stands out about how ${who.subject} look${who.s} is “`), v, text('”')],
 };
 
 // ADR-010 decision 2: a want the GM did not give, said as the sentence the page writes for it.
@@ -87,8 +78,8 @@ const notGiven = (who: Who): Part[] => [
 ];
 
 // Each sentence joins the fields that read together, so the page says a few sentences and not one for
-// each field. The order is the page's own. The first sentence, about who they are, is `opening`,
-// and `playersWant` comes last, as in the sketch.
+// each field. The order is the page's own. The first sentence, about who they are, is built
+// apart, in `sentences`, and `playersWant` comes last, as in the sketch.
 const groups: BriefField[][] = [
   ['setting', 'attitude'],
   ['tone'],
