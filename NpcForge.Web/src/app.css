@@ -544,24 +544,70 @@ form > .button {
   font-size: var(--size-note);
 }
 
-/* The wait: a still forge. Nothing on it moves (the epic's default). */
-.forge {
+/* The wait (Wait.tsx, ADR-018 decision 8): a black screen over the whole window, the sketch's. The
+   step the GM left is drawn under it in `.under`, and black fades in over it in six steps. It is one
+   flat colour, so the contrast check judges its title and line (lesson 019). */
+.under {
+  display: contents;
+}
+.wait {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 1.125rem;
+  padding: 1.5rem;
+  background: var(--wait-bg);
   text-align: center;
 }
-.forge-art {
-  display: block;
-  max-width: 100%;
-  height: auto;
-  margin: 1.5rem auto 0;
+.wait-fade {
+  animation: wait-in 0.4s steps(6) both;
 }
-.forge-steps {
-  display: inline-block;
-  margin: 0 0 0.5rem;
-  padding-left: 1.75rem;
-  text-align: left;
+@keyframes wait-in {
+  from {
+    opacity: 0;
+  }
 }
-.forge-steps li {
-  margin: 0.25rem 0;
+/* Once the black is fully in, the step under it is hidden, so nothing that the contrast check cannot
+   judge stays under the fixed screen. */
+.under[inert] {
+  animation: under-gone 0.4s linear forwards;
+}
+@keyframes under-gone {
+  to {
+    visibility: hidden;
+  }
+}
+.flame {
+  width: 512px;
+  height: 512px;
+  margin-top: -96px;
+  image-rendering: pixelated;
+}
+.wait-title {
+  margin: 0;
+  color: var(--px-flame-core);
+  font-family: var(--font-pixel);
+  font-size: var(--size-pixel-heading);
+  font-weight: normal;
+  line-height: 1.5;
+}
+.wait p {
+  max-width: 26rem;
+  margin: 0;
+  color: var(--text-dim);
+}
+/* Less motion asked for: black at once, with no fade, and the flame holds its still frame
+   (Flame.tsx). */
+@media (prefers-reduced-motion: reduce) {
+  .wait-fade {
+    animation: none;
+  }
+  .under[inert] {
+    display: none;
+  }
 }
 
 @media (max-width: 36rem) {
@@ -581,6 +627,11 @@ form > .button {
   }
   .sheet {
     padding: 0.5rem 1.125rem 1rem;
+  }
+  .flame {
+    width: 320px;
+    height: 320px;
+    margin-top: -60px;
   }
 }
 
@@ -613,8 +664,5 @@ form > .button {
   form > .button {
     flex: none;
     width: auto;
-  }
-  .forge-art {
-    width: 352px;
   }
 }
