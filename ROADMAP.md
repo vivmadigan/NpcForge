@@ -194,5 +194,6 @@ that rewrites the character calls the model, so its checks are paid.
   motion gets black at once and a still flame. Browser tests pass AA contrast on all 17 named
   states at both widths, with a screenshot of each in `docs/design/epic-13/`, and the Core, Console
   and Tests folders did not change. The two open choices held their defaults: an opened save shows
-  no brief, and the console does not show the confirmation as sentences. See ADR-018, lessons 021
-  and 022 and `docs/design/epic-12-api-needs.md`.
+  no brief, and the console does not show the confirmation as sentences. Left out: the sheet still
+  repeats the name and names brief fields in its lever headings, which needs a paid re-record. See
+  ADR-018, lessons 021 and 022 and `docs/design/epic-12-api-needs.md`.

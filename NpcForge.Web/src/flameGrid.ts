@@ -7,7 +7,7 @@ export const WIDTH = 64;
 export const HEIGHT = 64;
 // The hottest a cell can be. Flame.tsx maps 1 to LEVELS onto the flame's colours.
 export const LEVELS = 16;
-// The canvas is wider and taller than the flame. A spark this near an edge cools twice as fast.
+// The canvas is wider and taller than the flame. A spark this near an edge cools one more a frame.
 const MARGIN = 6;
 
 // One byte of heat a cell, row by row from the top. 0 is dark.

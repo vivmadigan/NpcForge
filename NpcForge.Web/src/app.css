@@ -335,7 +335,8 @@ a {
 
 /* The forge page. Focus moves to each new step from the button that has gone; the step itself
    needs no ring. */
-.step:focus {
+.step:focus,
+.wait:focus {
   outline: none;
 }
 
@@ -605,8 +606,19 @@ form > .button {
   .wait-fade {
     animation: none;
   }
+  /* Hidden, not removed: a cavern with no box has nothing to draw on and its canvas throws. */
   .under[inert] {
-    display: none;
+    animation: none;
+    visibility: hidden;
+  }
+}
+/* A window too short for the sketch's flame, such as a phone held sideways, gets a small one, so
+   the title and the line stay in the window. `.wait .flame` outranks the phone's `.flame` below. */
+@media (max-height: 30rem) {
+  .wait .flame {
+    width: 160px;
+    height: 160px;
+    margin-top: -30px;
   }
 }
 

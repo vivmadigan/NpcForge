@@ -24,7 +24,8 @@ judged the next step and not the wait.
 An init script that keeps the page's one-second timer (the seam's) and runs it only when the test
 calls `answerTheSeam`. Every other timer is the real one, so axe runs. The wait then stays up for as
 long as the test wants, the checks run inside it, and the answer is released by hand. The same hold
-proves the page adds no wait of its own: after the release the next step must show within 500 ms.
+catches a wait the page adds after the answer: after the release the next step must show within
+500 ms. It cannot see a shorter one, or a least time on screen that runs beside the seam.
 Show the break-it for each check: remove the code that hides the old step, and add a 1,500 ms timer
 to `send`.
 
