@@ -151,7 +151,7 @@ export function ForgePage({
         const { scene, interview } = state;
         return (
           <>
-            <ScenePanel scene={scene} large />
+            <ScenePanel scene={scene} look="large" />
             <Confirmation entries={state.entries} />
             <p className="ask-big">Shall I roll this character?</p>
             <div className="actions">
@@ -185,30 +185,36 @@ export function ForgePage({
         );
       case 'written': {
         const { scene, interview, character } = state;
+        // The same three buttons sit above the sheet and below it, as the sketch draws them. The
+        // top set is in view when the page opens, so the GM never scrolls to answer.
+        const buttons = (
+          <div className="actions">
+            <button className="button button-main" type="button" onClick={() => keep(scene, interview, character)}>
+              SAVE
+            </button>
+            <button className="button" type="button" onClick={() => roll(scene, interview)}>
+              ROLL AGAIN
+            </button>
+            <button className="button" type="button" onClick={() => setState({ kind: 'left', scene })}>
+              LEAVE
+            </button>
+          </div>
+        );
         return (
           <>
-            <div className="panel">
-              <ScenePanel scene={scene} />
+            <div className="panel keepbar">
+              <ScenePanel scene={scene} look="small" />
+              <section aria-label="Keep, roll again or leave">
+                <p className="ask">Keep this character?</p>
+                {buttons}
+                <p className="hint">Roll again: new dice, same scene.</p>
+              </section>
             </div>
-            <Sheet
-              name={character.name}
-              sheet={character.sheet}
-              actions={
-                <div className="keep">
-                  <p className="ask">Keep this character?</p>
-                  <button className="button button-main" type="button" onClick={() => keep(scene, interview, character)}>
-                    SAVE
-                  </button>
-                  <button className="button" type="button" onClick={() => roll(scene, interview)}>
-                    ROLL AGAIN
-                  </button>
-                  <p className="hint">New dice, same scene.</p>
-                  <button className="button" type="button" onClick={() => setState({ kind: 'left', scene })}>
-                    LEAVE
-                  </button>
-                </div>
-              }
-            />
+            <Sheet name={character.name} sheet={character.sheet} />
+            <section className="panel foot" aria-label="Keep, roll again or leave, below the sheet">
+              <p className="ask">Keep this character?</p>
+              {buttons}
+            </section>
           </>
         );
       }
@@ -290,7 +296,7 @@ export function ForgePage({
           </p>
         </>
       )}
-      <div className="step" ref={step} tabIndex={-1}>
+      <div className={written ? 'step stack' : 'step'} ref={step} tabIndex={-1}>
         {written ? draw() : <div className="panel">{draw()}</div>}
       </div>
     </Frame>
@@ -298,11 +304,11 @@ export function ForgePage({
 }
 
 // The scene the GM typed, above every step after the first. Not a chat log: the GM wants the
-// character, not the history. On the confirmation it is large and open on the panel, as the sketch
-// draws it (ADR-018).
-function ScenePanel({ scene, large = false }: { scene: string; large?: boolean }) {
+// character, not the history. On the confirmation it is large and open on the panel, and on the
+// character page it is small and dim beside the question, as the sketch draws them (ADR-018).
+function ScenePanel({ scene, look = 'well' }: { scene: string; look?: 'well' | 'large' | 'small' }) {
   return (
-    <section className={large ? 'scene-panel scene-panel-large' : 'scene-panel'} aria-label="Your scene">
+    <section className={`scene-panel scene-panel-${look}`} aria-label="Your scene">
       <h2 className="scene-panel-title">YOUR SCENE</h2>
       <p>{scene}</p>
     </section>

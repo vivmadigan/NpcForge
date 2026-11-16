@@ -78,11 +78,14 @@ const seen: Record<string, (page: Page) => Promise<void>> = {
   'forge-written': async (page) => {
     await sceneShown(page, bakeryScene);
     await expect(page.getByRole('heading', { level: 1 })).toHaveText('AldoBun Sourdough');
-    // Save, again and leave, each once on the page at either width.
-    for (const action of ['SAVE', 'ROLL AGAIN', 'LEAVE']) {
-      await expect(page.getByRole('button', { name: action, exact: true })).toHaveCount(1);
-      await expect(page.getByRole('button', { name: action, exact: true })).toBeVisible();
+    // Save, again and leave, once above the sheet and once below it, at either width.
+    for (const region of ['Keep, roll again or leave', 'Keep, roll again or leave, below the sheet']) {
+      const set = page.getByRole('region', { name: region, exact: true });
+      for (const action of ['SAVE', 'ROLL AGAIN', 'LEAVE']) {
+        await expect(set.getByRole('button', { name: action, exact: true })).toBeVisible();
+      }
     }
+    await expect(page.getByText('Roll again: new dice, same scene.')).toBeVisible();
   },
   'forge-no-name': async (page) => {
     await expect(page.getByText('Not written: no name followed the dice (K, 2, V)')).toBeVisible();

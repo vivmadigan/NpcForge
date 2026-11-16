@@ -17,3 +17,49 @@ test('no brief list beside the character, on an opened save', async ({ page }) =
   await page.goto('/saved/13?state=saved-open');
   await expectNoBrief(page);
 });
+
+// The epic's test: the GM answers without scrolling. Save, roll again and leave in the top panel are
+// fully inside the window the moment the page opens, at both widths.
+const topButtons = (page: Page) =>
+  page.getByRole('region', { name: 'Keep, roll again or leave', exact: true }).getByRole('button');
+
+async function expectTopButtonsInView(page: Page) {
+  for (const name of ['SAVE', 'ROLL AGAIN', 'LEAVE']) {
+    await expect(topButtons(page).filter({ hasText: new RegExp(`^${name}$`) })).toBeInViewport({ ratio: 1 });
+  }
+  expect(await page.evaluate(() => window.scrollY)).toBe(0);
+}
+
+test('save, roll again and leave are in view when the character page opens, with no scrolling', async ({ page }) => {
+  await page.goto('/?state=forge-written');
+  await expectTopButtonsInView(page);
+});
+
+test('save, roll again and leave are in view when the character page opens after ROLL IT', async ({ page }) => {
+  await page.goto('/');
+  await page.getByRole('textbox', { name: 'DESCRIBE YOUR SCENE' }).fill('An inn in a major city.');
+  await page.getByRole('button', { name: 'SEND THE SCENE' }).click();
+  await page.getByRole('button', { name: 'ROLL IT' }).click();
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('AldoBun Sourdough');
+  await expectTopButtonsInView(page);
+});
+
+test('the character page puts the sheet between two sets of the same three buttons', async ({ page }) => {
+  await page.goto('/?state=forge-written');
+  const below = page.getByRole('region', { name: 'Keep, roll again or leave, below the sheet', exact: true });
+  const sheet = page.getByRole('region', { name: 'Character sheet' });
+  const [top, middle, foot] = await Promise.all([
+    topButtons(page).first().boundingBox(),
+    sheet.boundingBox(),
+    below.getByRole('button').first().boundingBox(),
+  ]);
+  expect(top!.y).toBeLessThan(middle!.y);
+  expect(middle!.y).toBeLessThan(foot!.y);
+});
+
+test('an opened save is BACK TO SAVED and the parchment, with no keep buttons', async ({ page }) => {
+  await page.goto('/saved/13');
+  await expect(page.getByRole('link', { name: 'BACK TO SAVED' })).toBeVisible();
+  await expect(page.getByRole('region', { name: 'Character sheet' })).toBeVisible();
+  await expect(page.getByRole('button')).toHaveCount(0);
+});

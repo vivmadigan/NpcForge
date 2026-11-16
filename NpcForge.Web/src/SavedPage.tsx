@@ -78,7 +78,7 @@ export function SavedPage({
       );
     case 'open':
       return (
-        <Frame saved={saved} here="saved" wide>
+        <Frame saved={saved} here="saved">
           <a className="button back" href="/saved">
             BACK TO SAVED
           </a>

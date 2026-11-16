@@ -148,10 +148,8 @@ a {
 }
 
 /* One panel: a flat fill with a notched edge. The edge is four shadows, so the fill is the
-   element's own background and axe reads the colour under the text. `.keep` is the character page's
-   side panel. */
-.panel,
-.keep {
+   element's own background and axe reads the colour under the text. */
+.panel {
   margin: 4px;
   padding: 1.75rem;
   background: var(--panel-bg);
@@ -225,15 +223,11 @@ a {
   grid-column: 2;
 }
 
-.character {
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-  margin: 1.5rem 4px 0;
-}
-
-/* The parchment: the panel's notched edge in the sheet's own red. */
+/* The parchment: the panel's notched edge in the sheet's own red. Centred at the sketch's width, on
+   the character page and on an opened save. */
 .sheet {
+  max-width: 44rem;
+  margin: 0 auto;
   padding: 0.5rem 1.5rem 1rem;
   background: var(--parchment);
   box-shadow:
@@ -272,10 +266,39 @@ a {
   font-style: italic;
 }
 
-.side {
-  display: flex;
-  flex-direction: column;
+/* The character page, as the sketch draws it: a panel with the scene on the left and the question
+   on the right, the parchment, and the question again below it. The pieces stack a window's gap
+   apart. The panel is one flat colour, so the contrast check can judge every line on it. */
+.stack > * + * {
+  margin-top: 1.5rem;
+}
+.keepbar {
+  display: grid;
   gap: 1.5rem;
+}
+.keepbar .scene-panel,
+.foot .scene-panel {
+  margin: 0;
+  padding: 0;
+  background: none;
+}
+.scene-panel-small p {
+  color: var(--text-dim);
+}
+.keepbar .ask,
+.foot .ask {
+  margin: 0 0 4px;
+}
+.keepbar .actions,
+.foot .actions {
+  margin: 0.875rem 4px 0;
+}
+.keepbar .hint {
+  margin: 0.875rem 4px 0;
+}
+.foot {
+  max-width: 44rem;
+  margin-inline: auto;
 }
 
 /* The pixel art's colours, one class for each character of a sprite map (Sprite.tsx). */
@@ -541,20 +564,6 @@ form > .button {
   margin: 0.25rem 0;
 }
 
-/* Save, again and leave, in the side column. */
-.keep {
-  display: grid;
-  gap: 0.75rem;
-  margin: 0;
-  padding: 0 1rem 1rem;
-}
-.keep .ask {
-  margin-top: 0.75rem;
-}
-.keep .button {
-  width: 100%;
-}
-
 @media (max-width: 36rem) {
   .top {
     padding: 0.5rem 1rem;
@@ -576,6 +585,11 @@ form > .button {
 }
 
 @media (min-width: 52rem) {
+  /* The scene on the left, the question on the right, as the sketch draws the top panel. */
+  .keepbar {
+    grid-template-columns: 1fr auto;
+    align-items: start;
+  }
   .title-stacked {
     display: none;
   }
@@ -594,17 +608,6 @@ form > .button {
   }
   .row-detail {
     grid-column: auto;
-  }
-  .character {
-    flex-direction: row;
-    align-items: flex-start;
-  }
-  .sheet {
-    flex: 1 1 0;
-  }
-  .side {
-    flex: none;
-    width: 16rem;
   }
   .actions .button,
   form > .button {
