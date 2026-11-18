@@ -54,7 +54,8 @@ Decision, Why, Consequences.
 - [ADR-016 The console calls the core in-process: the roll refuses by name, and the shapes as built](ADR-016-console-calls-the-core.md) — accepted 2026-11-10; supersedes the INDEX lines on starting the server and on traces
 - [ADR-017 The front end is a Vite and React app in `NpcForge.Web`, on made-up data behind one seam](ADR-017-front-end-toolchain-and-seam.md) — accepted 2026-11-14; amends the INDEX line on tests; two defaults, decisions 1, 3 and 6, and one open item amended for the website by ADR-018; decisions 1, 2 and 3 amended by ADR-019
 - [ADR-018 The website's confirmation is the scene and a few sentences, written by the page from what the scene settled](ADR-018-website-confirmation-in-sentences.md) — accepted 2026-11-15; amends ADR-007, ADR-010 and ADR-017 for the website only; the epic that sends the entries, and what holds `BriefField` to the core, amended by ADR-019
-- [ADR-019 The website calls the core through `NpcForge.Api`, with shared adapters and an Aspire AppHost](ADR-019-the-website-calls-the-core-through-an-api.md) — accepted 2026-11-16; amends ADR-014, ADR-017 and ADR-018
+- [ADR-019 The website calls the core through `NpcForge.Api`, with shared adapters and an Aspire AppHost](ADR-019-the-website-calls-the-core-through-an-api.md) — accepted 2026-11-16; amends ADR-014, ADR-017 and ADR-018; the Aspire version in decision 9 amended by ADR-020
+- [ADR-020 Aspire is pinned to 13.6.5, not the 13.4.2 the spike ran](ADR-020-aspire-pinned-to-13-6-5.md) — accepted 2026-11-18; amends ADR-019 decision 9
 
 ADR-004 was reserved for the server layers by a plan that no longer exists, and was never written.
 Older records mention plan versions and `PLAN.md`; those are in git at commit `cd20b60`.
