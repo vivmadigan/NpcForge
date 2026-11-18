@@ -85,7 +85,7 @@ implementation and `haiku` for cheap checks. pstack's defaults name Fable; the m
   answer. Traces go to stderr.
 - **One core, called in-process.** `NpcForge.Core` holds every rule the front ends share: the dice,
   the brief, the namer, the writer, the interview and the save rules. The console calls it
-  in-process, and so will the website's API. The core references only .NET and
+  in-process, and so does the website's API (`NpcForge.Api`, epic 14). The core references only .NET and
   `Microsoft.Extensions.AI.Abstractions`: no front end, no model vendor, no MCP, and it reads no file
   but the bundled skills, through `SkillFiles`. `CoreReferenceTests` and the core's
   `BannedSymbols.txt` hold this. Widening either needs an ADR. (ADR-014, ADR-016.)
@@ -116,8 +116,8 @@ implementation and `haiku` for cheap checks. pstack's defaults name Fable; the m
 - `NpcForge.Web` is the website's pages: Vite, React and TypeScript, with npm. A page gets data only
   through `src/api.ts`, never from `madeUp/` (ADR-017).
 - No host or DI container in the console. `Program.cs` wires things by hand so the order of events
-  stays readable: connect, roll, run, ask, save. ADR-014 keeps this; only the website's API gets DI,
-  in epic 6.
+  stays readable: connect, roll, run, ask, save. ADR-014 keeps this. Only the website's API has a host
+  and DI, since epic 14 (ADR-019).
 - Why-comments, not what-comments: a comment says which rule a line keeps. Keep them: never run
   pstack's `/no-comments` or its `comment-sicko` agent here
   (`.agents/playbooks/npcforge-keep-why-comments.md`). Comments that mention "step N" mean the build
@@ -138,8 +138,9 @@ dotnet run --project NpcForge.Console -- --load 3  # no model call, no API key n
 dotnet run --project NpcForge.Console -- --list    # no model call: every save, one row each
 dotnet run --project NpcForge.Console              # paid: OpenAI, default model
 dotnet run --project NpcForge.Console -- --provider anthropic --model claude-opus-5   # paid
-npm --prefix NpcForge.Web start                    # the website's pages on made-up data, at localhost:5173; installs first
-npm --prefix NpcForge.Web test                     # free: type check, then the browser tests; first run downloads Chromium
+dotnet run --project NpcForge.AppHost              # no model call: starts NpcForge.Api and the pages; the dashboard's address is in its output
+npm --prefix NpcForge.Web start                    # the pages alone, at localhost:5173; installs first; the saved page, the header's count and the forge's save need the API at localhost:5180
+npm --prefix NpcForge.Web test                     # free: type check, then the browser tests on their own API and dev server; needs the .NET SDK; first run downloads Chromium
 npm --prefix NpcForge.Web run screenshots          # free: rewrites docs/design/epic-13/*.png; npm test never does
 ```
 
@@ -152,6 +153,15 @@ npm --prefix NpcForge.Web run screenshots          # free: rewrites docs/design/
   `save`, and an input that ends first saves nothing (`[app] not saved: end of input`).
 - API keys are user-secrets on the console project: `OpenAI:ApiKey` and `Anthropic:ApiKey`.
 - A build fails while the app is running or paused in the debugger: it locks `NpcForge.Console.dll`.
+  The same holds for `NpcForge.Api.dll` while the AppHost or `npm test` has the API up.
+- `npm --prefix NpcForge.Web test` builds and starts `NpcForge.Api` on a temp copy of
+  `src/madeUp/saves.json`, and starts its own dev server. It reuses no server already running, so
+  it fails if something holds its ports (5381 and 5382). Its first run waits for a cold .NET build.
+  `dotnet test` still never starts Node.
+- `dotnet run --project NpcForge.AppHost` points the API at `NpcForge.Console/characters.json`,
+  which holds my saves, unless `NPCFORGE_CHARACTERS` is set. For any run of yours, set it to the
+  absolute path of a scratch file. The API refuses to start with no path or a relative one, and never
+  guesses one.
 - The full suite takes about 25 s (24 to 25 s over five runs on 2026-11-10, once no test started a
   server), and longer beside other work. Run the fast part between edits and the full suite before
   saying a task is done. A test that starts the console carries `[Trait("Category", "Process")]`, or
@@ -163,7 +173,9 @@ npm --prefix NpcForge.Web run screenshots          # free: rewrites docs/design/
 | --- | --- |
 | `README.md` | What NpcForge is, and why it is shaped this way |
 | `ROADMAP.md` | What's next, as epics, with a template for writing one |
-| `NpcForge.Web/` | The website's pages on made-up data: Vite, React, TypeScript and their Playwright tests |
+| `NpcForge.Api/` | The website's API: a minimal API over the core. It serves the two save routes so far |
+| `NpcForge.AppHost/` | Aspire's AppHost. `dotnet run --project NpcForge.AppHost` starts the API and the pages |
+| `NpcForge.Web/` | The website's pages: Vite, React, TypeScript and their Playwright tests. The saved page reads the API, and the forge page is still made-up |
 | `docs/architecture.md` | How it fits together, and behaviour worth knowing |
 | `docs/decisions/` | ADRs. `INDEX.md` is the live list of every decision |
 | `docs/lessons/` | Problems that took a dead end. `INDEX.md` is loaded into every session |

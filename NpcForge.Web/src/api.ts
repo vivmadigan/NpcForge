@@ -1,7 +1,10 @@
-// ADR-017 decision 3: the one place a page gets data. Epic 6 replaces the bodies below with calls
-// to NpcForge.Api and keeps these signatures. No page imports from madeUp/.
+// ADR-017 decision 3: the one place a page gets data. Epic 14 replaces the bodies below with calls
+// to NpcForge.Api and keeps these signatures, one PR at a time (ADR-019, decision 11). The saves are
+// real now: `listSaves` and `loadSave` read the API through the dev server's /api proxy
+// (vite.config.ts). The forge page's four calls still answer from madeUp/, and its made-up saves
+// live in sessionStorage after the real ones, until the forge page calls the API. No page imports
+// from madeUp/.
 import { bakeryCharacters, bakeryFields, type BriefEntry } from './madeUp/bakery';
-import { savedCharacters, savedList } from './madeUp/saves';
 
 // A page passes an id back and never reads it.
 export type InterviewId = string;
@@ -77,10 +80,41 @@ export async function rollAndWrite(_interview: InterviewId): Promise<RunResult> 
   return { kind: 'written', draft: String(place), name, sheet };
 }
 
+// Every fault from the API, as one type that carries the problem's detail (ADR-019 decision 4). A
+// 404 for a save is not one the saved page shows, so `loadSave` reads it as "none". No page shows
+// the rest yet: the failure state arrives with the forge page's call to the API.
+export class ApiError extends Error {
+  constructor(
+    readonly status: number,
+    detail: string,
+  ) {
+    super(detail);
+  }
+}
+
+// The API's faults are problem details, and the answer of anything in front of it, such as the dev
+// server's proxy when nothing listens behind it, may have no JSON body at all.
+async function faultOf(response: Response): Promise<ApiError> {
+  const problem: { detail?: unknown } | null = await response.json().catch(() => null);
+  return new ApiError(
+    response.status,
+    typeof problem?.detail === 'string' ? problem.detail : `${response.status} ${response.statusText}`,
+  );
+}
+
+async function getJson<Body>(path: string): Promise<Body> {
+  const response = await fetch(path);
+  if (!response.ok) throw await faultOf(response);
+  return response.json();
+}
+
+const realSaves = () => getJson<ListedCharacter[]>('/api/saves');
+
 // A new save lives in sessionStorage, read and written only here, so it survives the page load of a
 // plain link as it would on a server, and each Playwright test starts with none (ADR-017 decision 3).
 // A save keeps its brief, because `listSaves` reads the occupation and the setting from it. The brief
-// stays inside the made-up code, and no type a page sees holds it (ADR-018 decision 9).
+// stays inside the made-up code, and no type a page sees holds it (ADR-018 decision 9). The forge page
+// calls the API instead in epic 14's last PR, and this store goes then.
 const sessionKey = 'npcforge-saves';
 
 type KeptSave = SavedCharacter & { brief: BriefEntry[] };
@@ -89,10 +123,12 @@ function sessionSaves(): KeptSave[] {
   return JSON.parse(sessionStorage.getItem(sessionKey) ?? '[]');
 }
 
-// Keeps a written character and returns its number.
+// Keeps a written character and returns its number: after the highest real save and every kept one,
+// so a made-up save never takes the number of a save the API holds (ADR-019 decision 8).
 export async function save(draft: DraftId): Promise<number> {
   const kept = sessionSaves();
-  const number = savedList.length + kept.length + 1;
+  const highest = Math.max(0, ...(await realSaves()).map(({ number }) => number));
+  const number = highest + kept.length + 1;
   const { name, brief, sheet } = bakeryCharacters[Number(draft)];
   sessionStorage.setItem(sessionKey, JSON.stringify([...kept, { number, name, brief, sheet }]));
   return number;
@@ -102,8 +138,7 @@ function briefValue(brief: BriefEntry[], field: string): string | null {
   return brief.find((entry) => entry.field === field)?.value ?? null;
 }
 
-// Every save in number order. Never the text. A new array each time, so the 16 made-up saves that
-// the saved-long state holds never grow.
+// Every save in number order: the API's, then the kept ones. Never the text.
 export async function listSaves(): Promise<ListedCharacter[]> {
   const kept = sessionSaves().map(({ number, name, brief }) => ({
     number,
@@ -111,11 +146,16 @@ export async function listSaves(): Promise<ListedCharacter[]> {
     occupation: briefValue(brief, 'occupation'),
     setting: briefValue(brief, 'setting'),
   }));
-  return [...savedList, ...kept];
+  return [...(await realSaves()), ...kept];
 }
 
-// The save under this number, or null.
+// The save under this number, or null. A kept save is looked for only after the API says it holds none.
 export async function loadSave(number: number): Promise<SavedCharacter | null> {
-  const found = [...savedCharacters, ...sessionSaves()].find((character) => character.number === number);
+  try {
+    return await getJson<SavedCharacter>(`/api/saves/${number}`);
+  } catch (fault) {
+    if (!(fault instanceof ApiError && fault.status === 404)) throw fault;
+  }
+  const found = sessionSaves().find((character) => character.number === number);
   return found ? { number: found.number, name: found.name, sheet: found.sheet } : null;
 }

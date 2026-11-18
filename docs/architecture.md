@@ -12,7 +12,10 @@ NpcForge.slnx
 ├── NpcForge.Adapters  what two front ends share from the outside world: the model clients and their
 │                      default provider and model, record and replay, and the file store
 ├── NpcForge.Console   the app: flags, the lab, the save question, the list and the owner's characters.json
-└── NpcForge.Tests     xUnit, free: fake models, the real dice and tools, and the whole app against a recording
+├── NpcForge.Api       the website's API, a minimal API on the core: the two save routes so far
+├── NpcForge.AppHost   Aspire's AppHost: starts the API and the pages with one command
+└── NpcForge.Tests     xUnit, free: fake models, the real dice and tools, the whole app against a recording,
+                       and the API run in-process
 
 NpcForge.Web           the website's pages, outside the solution: Vite, React and TypeScript, with npm
 ```
@@ -25,18 +28,27 @@ that. An adapter only one front end uses stays in that front end. Inside the cor
 the domain: `Brief`, `Interview`, `Writing`, `Loop`, `Saves`.
 `CoreReferenceTests` and the core's `BannedSymbols.txt` hold the boundary: the core references only
 .NET and Microsoft.Extensions.AI.Abstractions, writes only traces to the console, and reads no file but
-the bundled skills, through `SkillFiles`. `NpcForge.Web` does not call the core yet (see "The
-website's pages"). Until epic 5 the dice and the saves lived in an MCP server that the console
-started as a second process; ADR-016 records the switch.
+the bundled skills, through `SkillFiles`. `NpcForge.Api` is a second front end on the same core, in
+a process of its own (see "The API"). `NpcForge.Web` reaches the core only through it, and so far
+only for the saved page (see "The website's pages"). Until epic 5 the dice and the saves lived in
+an MCP server that the console started as a second process; ADR-016 records the switch.
 
 ## The website's pages
 
-`NpcForge.Web` holds the website's two pages (epics 12 and 13). It has no backend until epic 6, and
-`docs/design/epic-12-api-needs.md` lists what the pages need from one. It is a Vite 8, React 19 and
-TypeScript 7 app, and `npm --prefix NpcForge.Web start` serves it at `http://localhost:5173`. Its
-pages get data only through `src/api.ts`, whose bodies read made-up data, so epic 6 can replace the
-bodies and leave the pages (ADR-017). The folder is not in `NpcForge.slnx`, so `dotnet build` and
-`dotnet test` never start Node.
+`NpcForge.Web` holds the website's two pages (epics 12 and 13), and `docs/design/epic-12-api-needs.md`
+lists what they need from an API. It is a Vite 8, React 19 and TypeScript 7 app, and
+`npm --prefix NpcForge.Web start` serves it at `http://localhost:5173`. Its pages get data only
+through `src/api.ts`, so epic 14 can replace the bodies one PR at a time and leave the pages
+(ADR-017, ADR-019). The saved page's two calls read `NpcForge.Api` now. The forge page's calls still
+read made-up data. The folder is not in `NpcForge.slnx`, so `dotnet build` and `dotnet test` never
+start Node. `npm test` does start the API, so it builds `NpcForge.Api` and needs the .NET SDK.
+
+The pages call `/api` on their own address, and `vite.config.ts` forwards it to the API. The target is
+`API_HTTP`, which the AppHost sets when it starts the pages, and `http://localhost:5180`, the API's
+launch profile port, when it is not set. With no API behind the proxy, a call gets a 502 from the dev
+server and `api.ts` throws an `ApiError` for it. No page shows that yet. The saved page stays on
+"Reading the saves.", every page's header shows no count, and the forge's SAVE does nothing, because
+`save` asks the API for the highest real number.
 
 There are two pages. The forge page at `/` is where a GM describes a scene and gets a character.
 The saved page lists the saves at `/saved` and opens one at `/saved/<number>`. The top bar counts
@@ -76,11 +88,16 @@ The made-up run is the bakery run, `docs/runs/raw/2026-11-08-01-epic4-bakery-rol
 the run file by a script so the sheets keep their lines that end in two spaces. A second scene, from
 `docs/runs/raw/2026-11-03-01-epic10-interview-nogender.md`, has three entries and no gender, and only
 `forge-confirm-market` opens it. Any scene sent gets the bakery confirmation after a one-second wait,
-and roll again gives the run's three characters in turn after the same wait. A save goes to `sessionStorage` as number 17 and on, read and written only by `api.ts`, so
-it reaches the saved page through a plain link and each test starts with none.
+and roll again gives the run's three characters in turn after the same wait. A save goes to
+`sessionStorage`, read and written only by `api.ts`, numbered after the highest save the API holds and
+every kept one, so a made-up save never takes a real save's number. Against the 16 saves of the browser
+tests that is 17 and on. It reaches the saved page through a plain link, and each test starts with none.
 
-The saved page reads the 16 saves in `src/madeUp/saves.json`, which is
-`NpcForge.Console/characters.json` as it stood at commit `e3ac16e`, plus any save from the forge.
+The saved page reads the saves from `NpcForge.Api`, then any save kept from the forge. The browser tests'
+API reads a temp copy of `src/madeUp/saves.json`, which is `NpcForge.Console/characters.json` as it
+stood at commit `e3ac16e`, so those tests count 16 saves whatever the owner has saved since.
+`loadSave` looks among the kept saves only after the API says it holds none. The named states hold
+their own data, apart from the top bar's count, which asks the API.
 `Sheet.tsx` hands a sheet to `react-markdown` whole and never reads its meaning, on both pages.
 
 Each state can be opened by name, on its own path:
@@ -112,6 +129,48 @@ path than its own, shows "No state named <name>". An opened state still works: f
 `forge-question` an answer leads to the confirmation, and from `forge-no-name` roll again writes a
 character. Opening a named state saves nothing, so `forge-saved` says "Saved as 17." under a bar
 that still counts 16.
+
+## The API
+
+`NpcForge.Api` is a minimal API on the core and the adapters, for the website (ADR-019). It has two
+routes, both reads, and no model code yet. It is a `Microsoft.NET.Sdk.Web` project with one
+`ICharacterStore`, a `FileCharacterStore`, registered in DI.
+
+| Route | Answers |
+| --- | --- |
+| `GET /api/saves` | Every save in number order, as `{ number, name, occupation, setting }`. `name` is the joined name, or null for a save from before the namer. `occupation` and `setting` are null when the brief lacks them. |
+| `GET /api/saves/{number}` | `{ number, name, sheet }`, where `sheet` is the saved text as written. A number no save holds is a 404 problem. A number that is no `int` matches no route and is a 404 with no body. |
+
+The JSON field names are the ones in `ListedCharacter` and `SavedCharacter` in `src/api.ts`. The API's
+own records, `SaveRow` and `SaveSheet`, carry them, so no core type is serialised and a rename in the
+core cannot rename a field the page reads. They are not named after the core's types, which sit in the
+namespace above them. The name is joined by `NamedCharacter.Full`, the same call `SaveList` makes for
+the console.
+
+The API reads its saves file from `NPCFORGE_CHARACTERS`, a configuration key that an environment
+variable fills. `SavesPath.From` parses it where it enters. A missing or blank value stops the API at
+start-up with a message that names the variable. So does a relative one, because under the AppHost
+DCP starts the API in its own project folder, where a relative path names another file. The API never
+reads `FileCharacterStore.DefaultPath`, which is the console's rule. The AppHost passes the caller's
+own `NPCFORGE_CHARACTERS`, and without one the absolute path of `NpcForge.Console/characters.json`,
+found from the AppHost's folder. It refuses a relative one itself, before it starts anything, because
+`dotnet run` starts it in its project folder too, and the API's refusal would show only in the
+dashboard. The routes
+only read. The file store takes no lock yet, so a read that overlaps a console save can fail.
+
+Faults are problem details. A save file that will not parse is a 500 whose `detail` is the store's
+message, the one the console prints for the same file (ADR-015, decision 4). The routes catch
+`InvalidDataException` only, around the store call. Any other fault reaches the host as the bug it is.
+
+`dotnet run --project NpcForge.AppHost` starts the API and the pages. The AppHost adds the API as a
+project and the pages through `AddViteApp`, with `WithReference(api)` and `WaitFor(api)`. Aspire adds
+its own `--port` to the dev script and Vite honours the last one, so the npm scripts keep their fixed
+5173. `WithReference` gives Vite `API_HTTP`. The API listens behind Aspire's proxy on 5180, its launch
+profile's port, and Vite takes a port Aspire picks. The dashboard's address and login are in the AppHost's
+output. The AppHost's launch profile is http only, so nothing needs a trusted development certificate.
+Aspire is pinned to 13.6.5 (ADR-020). ADR-019's spike ran 13.4.2, whose dashboard and host packages
+carry audit advisories that 13.6.5 does not. A first restore puts 336 MB of Aspire packages in the
+NuGet cache, once.
 
 ## One run, end to end
 
@@ -557,11 +616,20 @@ One real run is recorded once, and the whole app replays against it for free (AD
 
 ## Tests
 
-`dotnet test` is free: no network and no model. The whole suite, 500 tests, takes about 25 s. A test
+`dotnet test` is free: no network and no model. The whole suite, 521 tests, takes about 25 s. A test
 that starts the console carries `[Trait("Category", "Process")]`, so
-`dotnet test --filter "Category!=Process"` runs the 449 tests that start none in a few seconds. No test
+`dotnet test --filter "Category!=Process"` runs the 468 tests that start none in a few seconds. No test
 starts a server since the server retired. `LabRunTests` runs alone because the lab swaps the
 process-wide `Console.Error`.
+- `SavesApiTests`: the API's two routes, run in-process with `WebApplicationFactory` on a temp saves
+  file, with no process and no port. It keys the factory on `SavesPath`, a type in the API, because
+  the console has a `Program` too. The list is every save in number order with the name joined and a
+  gap left as null, and holds no text. An opened save is its number, joined name and text exactly as
+  saved, with a CRLF and curly quotes kept. A number no save holds is a 404 problem that names it, and a
+  number that is no `int` is a 404 and not a 400. A file that will not parse is a 500 with the store's
+  message, and any other fault in the store is not reported as one. A blank saves path stops the API
+  at start-up and names the variable, and a relative one stops it and asks for an absolute path. Each
+  expected value is read off the file the test wrote.
 - `AgentLoopTests`: the loop exits when the model sends no tool calls, throws at the cap, and runs a
   tool call through the writer's real tool. Fake models throughout.
 - `RollArgumentsTests`: what `Dice.Roll(arguments)` binds, pinned on the binder before it learned to

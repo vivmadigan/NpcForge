@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <!-- Not NpcForge: the core's types live there, and a type here with the same name as one there
+         would shadow it (ADR-019, decision 3). -->
+    <RootNamespace>NpcForge.Api</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- The website's back end: the core for every rule, the adapters for the file store. No model
+         code yet, so no user secrets and no vendor package of its own (ADR-019, decision 11). -->
+    <ProjectReference Include="..\NpcForge.Core\NpcForge.Core.csproj" />
+    <ProjectReference Include="..\NpcForge.Adapters\NpcForge.Adapters.csproj" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,8 @@
+// The files that run in Node: the tests and the two config files, which read the environment. Node's
+// types are kept out of tsconfig.json, which checks src/ alone, because the browser has no `process`
+// and tsc there must refuse code that uses it.
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": { "types": ["vite/client", "node"] },
+  "include": ["tests", "playwright.config.ts", "vite.config.ts"]
+}
