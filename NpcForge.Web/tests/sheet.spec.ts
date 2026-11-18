@@ -9,15 +9,26 @@ const saves: Record<string, { text: string; name?: { syllables: string[]; family
 // the page, in order, with none added.
 const words = (text: string) => text.match(/[\p{L}\p{N}]+/gu) ?? [];
 
-test('the saved list shows all 16 saves', async ({ page }) => {
+// The API's saves are a copy of the same file the made-up saves are, so the page would show the same
+// words if it never asked the API. Each test waits for the API's answer, so a page that reads
+// made-up data instead fails here (ADR-019 decision 8).
+const answered = (path: string) => (response: { url(): string; ok(): boolean }) =>
+  new URL(response.url()).pathname === path && response.ok();
+
+test('the saved list shows all 16 saves the API sent', async ({ page }) => {
+  const listed = page.waitForResponse(answered('/api/saves'));
   await page.goto('/saved');
-  await expect(page.getByRole('list').getByRole('link')).toHaveCount(16);
+  const rows: unknown[] = await (await listed).json();
+  expect(rows).toHaveLength(16);
+  await expect(page.getByRole('list').getByRole('link')).toHaveCount(rows.length);
 });
 
 for (const [number, save] of Object.entries(saves)) {
   test(`save ${number} opens with its name and every word of its text, in order`, async ({ page }) => {
     await page.goto('/saved');
+    const opened = page.waitForResponse(answered(`/api/saves/${number}`));
     await page.getByRole('link', { name: new RegExp(`^${number} `) }).click();
+    await opened;
 
     const sheet = page.getByRole('region', { name: 'Character sheet' });
     await expect(sheet).toBeVisible();
