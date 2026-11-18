@@ -1,5 +1,5 @@
 // The one command: `dotnet run --project NpcForge.AppHost` starts the API and the website's pages
-// together (ADR-019, decision 9). Not a place for rules: it only says what runs and where.
+// together (ADR-019, decision 9).
 var builder = DistributedApplication.CreateBuilder(args);
 
 // The saves the API reads. The caller's own NPCFORGE_CHARACTERS wins, which is how an agent points a run
