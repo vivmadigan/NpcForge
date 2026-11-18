@@ -9,8 +9,9 @@ How NpcForge fits together as it is now. Why it is shaped this way is in `README
 NpcForge.slnx
 ├── NpcForge.Core      every rule the front ends share: the brief, the tables, the dice, the namer,
 │                      the writer, the interview, the loop, the save rules and the skills
-├── NpcForge.Console   the app: flags, the model clients, record and replay, the lab, the file store
-│                      and the owner's characters.json
+├── NpcForge.Adapters  what two front ends share from the outside world: the model clients and their
+│                      default provider and model, record and replay, and the file store
+├── NpcForge.Console   the app: flags, the lab, the save question, the list and the owner's characters.json
 └── NpcForge.Tests     xUnit, free: fake models, the real dice and tools, and the whole app against a recording
 
 NpcForge.Web           the website's pages, outside the solution: Vite, React and TypeScript, with npm
@@ -18,7 +19,10 @@ NpcForge.Web           the website's pages, outside the solution: Vite, React an
 
 One process. The console calls the core in-process and hands it what lives outside it: an
 `IChatClient` for the model and an `ICharacterStore` for the saves, the core's two ports (ADR-014).
-Inside the core, folders follow the domain: `Brief`, `Interview`, `Writing`, `Loop`, `Saves`.
+It builds both from `NpcForge.Adapters`, which references the core and the vendor packages and never
+a front end, so the website's API can build the same ones (ADR-019). `AdaptersReferenceTests` holds
+that. An adapter only one front end uses stays in that front end. Inside the core, folders follow
+the domain: `Brief`, `Interview`, `Writing`, `Loop`, `Saves`.
 `CoreReferenceTests` and the core's `BannedSymbols.txt` hold the boundary: the core references only
 .NET and Microsoft.Extensions.AI.Abstractions, writes only traces to the console, and reads no file but
 the bundled skills, through `SkillFiles`. `NpcForge.Web` does not call the core yet (see "The
@@ -164,7 +168,9 @@ character saved as N.` and exit code 1. `--seed`, `--record` and `--provider rep
 Every flag is a row in one table in `RunOptions`, which says its default, how its value is read and
 whether it goes on line 1 of a recording. The parser and the recording both read that table, so a
 flag cannot be parsed and left off the recording. The same table names the `roll_character` parameter each answer fills
-(`RollArguments()`).
+(`RollArguments()`). The defaults for `--provider` and `--model` are `ModelClients.DefaultProvider` and
+`DefaultModel`, which the table reads, so a second front end calls the model the console calls
+(ADR-019, decision 6).
 
 | Flag | Default | Does |
 | --- | --- | --- |
@@ -485,7 +491,9 @@ as one `[app]` line with exit code 1 (ADR-015, decision 4).
 `NPCFORGE_CHARACTERS` overrides the path. Otherwise the default, `FileCharacterStore.DefaultPath`, is
 found three folders up from the console's bin folder, always absolute, with the two-argument
 `GetFullPath`: a build in a folder long enough gets its own folder as a `\\?\` path, where the
-one-argument form leaves `..` as it is (lesson 015, `LongFolderTests`).
+one-argument form leaves `..` as it is (lesson 015, `LongFolderTests`). The class is in
+`NpcForge.Adapters`, but `AppContext.BaseDirectory` is the running program's folder, so the default is
+the console's rule, and the website's API never reads it (ADR-019, decision 1).
 
 A replay or a recording run is not a real character, so it never uses the tracked file.
 `RunOptions.CharactersPath` decides the file for every run: an `NPCFORGE_CHARACTERS` the caller set

@@ -21,6 +21,12 @@ public static class ModelClients
     // touching args. `offline` is for tests; null means ask the environment.
     public const string OfflineVariable = "NPCFORGE_OFFLINE";
 
+    // The provider and model a run gets when it names none. Here, beside the providers, and not in the
+    // console's flag table, so the website's API calls the model the console calls (ADR-019,
+    // decision 6). RunOptions' table reads them for --provider and --model.
+    public const string DefaultProvider = "openai";
+    public const string DefaultModel = "gpt-6-luna";
+
     public static IChatClient Create(string provider, string model, IConfiguration config, string? recording = null, bool? offline = null)
     {
         // Before the switch, so before any client object exists and before any secret is read.

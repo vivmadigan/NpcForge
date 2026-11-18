@@ -11,11 +11,13 @@ namespace NpcForge;
 public sealed class FileCharacterStore(string path) : ICharacterStore
 {
     // The owner's saves when nothing names another file: NpcForge.Console/characters.json, three folders
-    // up from bin\Debug\net10.0, where you can find it. Always absolute: a relative path depends on where
-    // the app was started (step 7). The two-argument GetFullPath, because a console run as
-    // `dotnet NpcForge.Console.dll` from a path of 260 characters or more gets AppContext.BaseDirectory as
-    // a \\?\ path, and the one-argument form leaves ".." in such a path as it is (lesson 015,
-    // LongFolderTests). The file APIs take a \\?\ path, so the prefix can stay.
+    // up from bin\Debug\net10.0, where you can find it. AppContext.BaseDirectory is the folder of the
+    // program that is running, not of this assembly, so this finds the console's file only when the
+    // console runs: it is the console's rule, and the website's API never reads it (ADR-019, decision 1).
+    // Always absolute: a relative path depends on where the app was started (step 7). The two-argument
+    // GetFullPath, because a console run as `dotnet NpcForge.Console.dll` from a path of 260 characters
+    // or more gets AppContext.BaseDirectory as a \\?\ path, and the one-argument form leaves ".." in such
+    // a path as it is (lesson 015, LongFolderTests). The file APIs take a \\?\ path, so the prefix can stay.
     public static string DefaultPath { get; } =
         Path.GetFullPath(Path.Combine("..", "..", "..", "characters.json"), AppContext.BaseDirectory);
 

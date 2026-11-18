@@ -3,7 +3,7 @@
 - **Status:** active
 - **Date:** 2026-09-13 (recorded 2026-09-18 from PLAN.md "Decisions already made")
 - **Plan version:** v01
-- **Applies to:** NpcForge.Console/ModelClients.cs · tags: openai, sdk, tools
+- **Applies to:** NpcForge.Adapters/ModelClients.cs · tags: openai, sdk, tools
 
 ## Symptom
 HTTP 400 from OpenAI on `gpt-5.6-terra` when `ChatOptions.Tools` contains a function tool and the request goes to Chat Completions. The message says to use `/v1/responses` or set `reasoning_effort` to `none`.
