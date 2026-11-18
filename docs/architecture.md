@@ -155,12 +155,15 @@ reads `FileCharacterStore.DefaultPath`, which is the console's rule. The AppHost
 own `NPCFORGE_CHARACTERS`, and without one the absolute path of `NpcForge.Console/characters.json`,
 found from the AppHost's folder. It refuses a relative one itself, before it starts anything, because
 `dotnet run` starts it in its project folder too, and the API's refusal would show only in the
-dashboard. The routes
-only read. The file store takes no lock yet, so a read that overlaps a console save can fail.
+dashboard. The routes only read. A read that overlaps a console save waits for it, through the file
+store's lock ("Storage").
 
 Faults are problem details. A save file that will not parse is a 500 whose `detail` is the store's
 message, the one the console prints for the same file (ADR-015, decision 4). The routes catch
 `InvalidDataException` only, around the store call. Any other fault reaches the host as the bug it is.
+A file held for more than 5 s reaches the host too ("Storage"). The host answers it with its own 500,
+not problem details. In Development the body is the exception and its stack trace, and otherwise it
+is empty.
 
 `dotnet run --project NpcForge.AppHost` starts the API and the pages. The AppHost adds the API as a
 project and the pages through `AddViteApp`, with `WithReference(api)` and `WaitFor(api)`. Aspire adds
@@ -545,7 +548,18 @@ default escaping, as the run printed it, not as the file indents it. Only `FileC
 the file; a database store in epic 6 implements the same port and passes the same
 `CharacterStoreTests`, and `SaveFileGuardTests` holds the owner's file byte for byte. A file that will
 not parse throws `InvalidDataException` with its path, and `--list`, `--load` and a save each report it
-as one `[app]` line with exit code 1 (ADR-015, decision 4).
+as one `[app]` line with exit code 1 (ADR-015, decision 4). A file of zero bytes holds no saves.
+
+The console and the website's API each hold a store on the same file, so the file store locks the file
+through the operating system, which holds between the two processes (ADR-019, decision 5). A save
+opens the file for itself alone and keeps it open across the read, the number and the write, so two
+saves at the same moment get different numbers and neither is lost. It writes over the old bytes and
+then cuts the file to the new length. So a process that stops part way through a save leaves the old
+file or one that will not parse, and never an empty file where saves were. A list or a load opens the file shared with other readers only,
+so it never reads half a save. A store that finds the file held tries again
+every 50 ms, for up to 5 s, and then throws the operating system's `IOException`, which names the
+file. Neither the console nor the API reports that one as a single line yet. The console stops with a
+stack trace, as it did at once before the lock.
 
 `NPCFORGE_CHARACTERS` overrides the path. Otherwise the default, `FileCharacterStore.DefaultPath`, is
 found three folders up from the console's bin folder, always absolute, with the two-argument
@@ -616,9 +630,9 @@ One real run is recorded once, and the whole app replays against it for free (AD
 
 ## Tests
 
-`dotnet test` is free: no network and no model. The whole suite, 521 tests, takes about 25 s. A test
+`dotnet test` is free: no network and no model. The whole suite, 525 tests, takes about 25 s. A test
 that starts the console carries `[Trait("Category", "Process")]`, so
-`dotnet test --filter "Category!=Process"` runs the 468 tests that start none in a few seconds. No test
+`dotnet test --filter "Category!=Process"` runs the 472 tests that start none in a few seconds. No test
 starts a server since the server retired. `LabRunTests` runs alone because the lab swaps the
 process-wide `Console.Error`.
 - `SavesApiTests`: the API's two routes, run in-process with `WebApplicationFactory` on a temp saves
@@ -697,7 +711,10 @@ process-wide `Console.Error`.
   file deleted, stops before the interview and names the file. An intact copy reaching the interview
   is the control for this run and for `NotGivenFileTests`' (`ConsoleBuildCopy`).
 - `CharacterStoreTests`: the save, load and list rules, written once and run against the file store and
-  the tests' in-memory store. `SaveFileGuardTests`: on a copy of the real `characters.json`, a new
+  the tests' in-memory store. `FileCharacterStoreTests` adds the file's lock: two stores saving at the
+  same moment from two threads give every save a number of its own, a list waits while another handle
+  holds the file, a save waits while another program reads it, and a save over a longer file leaves
+  none of its old tail. `SaveFileGuardTests`: on a copy of the real `characters.json`, a new
   save leaves every old entry byte for byte, with no `name` or null added.
 - `UnreadableSaveFileTests`: a save file that will not parse is one `[app]` line naming it, with exit
   code 1, on `--list`, `--load` and a save. `LongFolderTests`: a console build in a folder long enough

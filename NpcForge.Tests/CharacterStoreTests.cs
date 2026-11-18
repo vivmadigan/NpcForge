@@ -16,7 +16,7 @@ public abstract class CharacterStoreTests
     // correctly after one.
     protected abstract void Remove(int number);
 
-    private static readonly CancellationToken Ct = CancellationToken.None;
+    protected static readonly CancellationToken Ct = CancellationToken.None;
 
     [Fact]
     public async Task An_empty_store_lists_nothing_and_loads_null()
@@ -136,7 +136,7 @@ public abstract class CharacterStoreTests
             Assert.False(loaded.Brief.TryGetProperty(newer, out _), $"{newer} appeared in an old brief"));
     }
 
-    private static SavedCharacter Saved(string text) =>
+    protected static SavedCharacter Saved(string text) =>
         new(Brief("""{"setting":"an inn","occupation":"innkeeper"}"""), new CharacterName(["Tam"], "Reed"), text);
 
     private static JsonElement Brief(string json) => JsonDocument.Parse(json).RootElement.Clone();
@@ -163,6 +163,101 @@ public sealed class FileCharacterStoreTests : CharacterStoreTests, IDisposable
         var all = JsonNode.Parse(File.ReadAllText(_path))!.AsObject();
         all.Remove(number.ToString());
         File.WriteAllText(_path, all.ToJsonString());
+    }
+
+    // The console and the API are two processes on one characters.json, each with its own store
+    // (ADR-019, decision 5). Two stores on one file stand for them. The saves come from two real
+    // threads: SaveAsync's work runs on the caller's thread when nothing waits, so Task.WhenAll over two
+    // calls would run them one after the other and pass with no lock (decision 10, lesson 022). The
+    // Barrier sends both threads into the same save, round after round, so the overlap is not left to chance.
+    [Fact]
+    public async Task Two_stores_saving_at_the_same_moment_give_every_save_a_number_of_its_own()
+    {
+        const int rounds = 50;
+        FileCharacterStore[] stores = [new(_path), new(_path)];
+        using var barrier = new Barrier(2);
+
+        Task<List<(int Number, string Text)>> SaveOnItsOwnThread(int which) => Task.Factory.StartNew(() =>
+        {
+            var saved = new List<(int, string)>();
+            try
+            {
+                for (var round = 1; round <= rounds; round++)
+                {
+                    barrier.SignalAndWait();
+                    var text = $"{(char)('A' + which)}-{round}";
+                    saved.Add((stores[which].SaveAsync(Saved(text), Ct).GetAwaiter().GetResult(), text));
+                }
+            }
+            catch
+            {
+                // The other thread would wait at the barrier for a partner that is gone, and the test
+                // would hang instead of failing with this exception.
+                barrier.RemoveParticipant();
+                throw;
+            }
+            return saved;
+        }, TaskCreationOptions.LongRunning);
+
+        var results = await Task.WhenAll(SaveOnItsOwnThread(0), SaveOnItsOwnThread(1)).WaitAsync(TimeSpan.FromSeconds(60));
+        var saves = results.SelectMany(each => each).ToList();
+
+        Assert.Empty(saves.GroupBy(save => save.Number).Where(group => group.Count() > 1)
+            .Select(group => $"number {group.Key} was given to {string.Join(" and ", group.Select(save => save.Text))}"));
+        foreach (var (number, text) in saves)
+            Assert.Equal(text, (await stores[0].LoadAsync(number, Ct))?.Text);
+        Assert.Equal(2 * rounds, (await stores[1].ListAsync(Ct)).Count);
+    }
+
+    // The other front end is saving, and it holds the file as another process would. The list must wait,
+    // then answer. It is looked at while the hold is on, so the test sees the wait itself and not only the
+    // answer that comes after it (lesson 021).
+    [Fact]
+    public async Task A_list_waits_while_another_handle_holds_the_file_and_answers_once_it_lets_go()
+    {
+        await Store.SaveAsync(Saved("kept"), Ct);
+        using var held = new FileStream(_path, FileMode.Open, FileAccess.ReadWrite, FileShare.None);
+
+        var list = Store.ListAsync(Ct);
+        await Task.Delay(300);
+        Assert.False(list.IsCompleted, $"the list was {list.Status} after 300 ms, while another handle held the file");
+
+        held.Dispose();
+        var rows = await list.WaitAsync(TimeSpan.FromSeconds(4));
+        Assert.Equal(1, Assert.Single(rows).Number);
+    }
+
+    // Another program reads the file and lets anyone else read and write it, so only the save's own
+    // handle, which lets nobody in, keeps the save out until it lets go. A lock inside this process, such
+    // as a semaphore around the save, passes the two tests above and fails this one, and the console and
+    // the API are two processes (ADR-019, decision 5).
+    [Fact]
+    public async Task A_save_waits_while_another_program_reads_the_file_and_saves_once_it_lets_go()
+    {
+        await Store.SaveAsync(Saved("kept"), Ct);
+        using var reading = new FileStream(_path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+
+        var save = Store.SaveAsync(Saved("second"), Ct);
+        await Task.Delay(300);
+        Assert.False(save.IsCompleted, $"the save was {save.Status} after 300 ms, while another program read the file");
+
+        reading.Dispose();
+        Assert.Equal(2, await save.WaitAsync(TimeSpan.FromSeconds(4)));
+    }
+
+    // A hand edit can leave the file longer than the store writes it back, here with wide padding before
+    // the last brace. A save writes over the old bytes and only then cuts the file to the new length, so
+    // none of the old tail is left after the new end, where it would stop every list.
+    [Fact]
+    public async Task A_save_over_a_file_longer_than_it_writes_leaves_none_of_its_old_tail()
+    {
+        File.WriteAllText(_path, """{"1":{"brief":{"setting":"an inn"},"text":"old"}""" + new string(' ', 2000) + "}");
+
+        var number = await Store.SaveAsync(Saved("new"), Ct);
+
+        Assert.Equal("old", (await Store.LoadAsync(1, Ct))!.Text);
+        Assert.Equal("new", (await Store.LoadAsync(number, Ct))!.Text);
+        Assert.Equal(2, (await Store.ListAsync(Ct)).Count);
     }
 
     public void Dispose() => File.Delete(_path);
