@@ -8,6 +8,7 @@
   </Folder>
   <Project Path="NpcForge.Adapters/NpcForge.Adapters.csproj" />
   <Project Path="NpcForge.Api/NpcForge.Api.csproj" />
+  <Project Path="NpcForge.AppHost/NpcForge.AppHost.csproj" />
   <Project Path="NpcForge.Console/NpcForge.Console.csproj" />
   <Project Path="NpcForge.Core/NpcForge.Core.csproj" />
   <Project Path="NpcForge.Tests/NpcForge.Tests.csproj" />

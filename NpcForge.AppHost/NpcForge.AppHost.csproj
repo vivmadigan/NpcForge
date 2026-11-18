@@ -1,0 +1,28 @@
+<Project Sdk="Aspire.AppHost.Sdk/13.6.5">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <!-- ASPIRE010 says this AppHost does not use the Aspire CLI bundle. It never does: the owner starts it with
+         `dotnet run`, and DCP and the dashboard come from NuGet, which is the choice the diagnostic offers
+         to suppress it for. The choice is written out, so a later SDK default cannot switch it unseen. It is
+         no audit warning, and the audit stays on (ADR-020). -->
+    <AspireUseCliBundle>false</AspireUseCliBundle>
+    <NoWarn>$(NoWarn);ASPIRE010</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Pinned to 13.6.5, which the SDK above also names, so the two move together. Not 13.4.2, the version
+         ADR-019's spike ran: its dashboard package has a critical audit advisory (GHSA-4g86-54fm-h9h8) and
+         its host packages a high one (GHSA-f7vh-h5g3-7jrh), and 13.6.5 has none (ADR-020). AddViteApp is in
+         this package. -->
+    <PackageReference Include="Aspire.Hosting.JavaScript" Version="13.6.5" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\NpcForge.Api\NpcForge.Api.csproj" />
+  </ItemGroup>
+
+</Project>
