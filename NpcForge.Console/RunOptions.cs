@@ -28,10 +28,10 @@ public sealed class RunOptions
 
     private static readonly Flag[] Table =
     [
-        new("--provider", "openai", Lower),
+        new("--provider", ModelClients.DefaultProvider, Lower),
         new("--seed", null, Number, Recorded: true,
             MissingValue: "--seed needs a number, for example --seed 1."),
-        new("--model", "gpt-6-luna", Lower, Recorded: true),
+        new("--model", ModelClients.DefaultModel, Lower, Recorded: true),
         // Occupation sits with the setting because they change together: a farm run wants
         // --occupation as well as --setting.
         new("--setting", "an inn in a major city", AsIs, Recorded: true, RollParameter: "setting"),
