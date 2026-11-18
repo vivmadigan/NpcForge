@@ -44,9 +44,11 @@ internal static class ConsoleProcess
     {
         // --no-build runs whatever is in bin, so a missing or old build would run old code and
         // pass or fail for the wrong reason. The core holds the dice, the loop, the writer, the save
-        // rules and the skills, so a change there is stale to the console too, and it is checked as well.
+        // rules and the skills, and the adapters hold the model clients, the file store and the replay,
+        // so a change in either is stale to the console too, and both are checked as well.
         RequireFreshBuild("NpcForge.Console");
         RequireFreshBuild("NpcForge.Core");
+        RequireFreshBuild("NpcForge.Adapters");
 
         var start = new ProcessStartInfo("dotnet")
         {

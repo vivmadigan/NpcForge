@@ -11,9 +11,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Anthropic" Version="12.47.0" />
-    <PackageReference Include="Microsoft.Extensions.AI" Version="10.10.0" />
-    <PackageReference Include="Microsoft.Extensions.AI.OpenAI" Version="10.10.0" />
     <PackageReference Include="Microsoft.Extensions.Configuration.UserSecrets" Version="10.0.12" />
   </ItemGroup>
 
@@ -22,6 +19,9 @@
          the core, called in-process, and so do the skills, which the core's project file copies into
          this project's bin folder (ADR-014). -->
 		<ProjectReference Include="..\NpcForge.Core\NpcForge.Core.csproj" />
+		<!-- The model clients, the file store, and record and replay: the adapters a second front end
+         builds too, so they live outside the console (ADR-019, decision 1). -->
+		<ProjectReference Include="..\NpcForge.Adapters\NpcForge.Adapters.csproj" />
 	</ItemGroup>
 
 

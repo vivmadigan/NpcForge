@@ -1,6 +1,6 @@
 ---
 name: verify
-description: Drive NpcForge, a .NET console app that calls its core library in-process, and prove a change works without paying for a model call. Use after any edit to NpcForge.Console, NpcForge.Core, a skill's SKILL.md or the tests, and before saying a task is done. Replays the recorded run, loads a saved character, probes the flag refusals, stops the scene interview at end of input and runs the free test suite.
+description: Drive NpcForge, a .NET console app that calls its core library in-process, and prove a change works without paying for a model call. Use after any edit to NpcForge.Console, NpcForge.Core, NpcForge.Adapters, a skill's SKILL.md or the tests, and before saying a task is done. Replays the recorded run, loads a saved character, probes the flag refusals, stops the scene interview at end of input and runs the free test suite.
 ---
 
 # Verify NpcForge
@@ -33,7 +33,7 @@ Each drive is one `dotnet run`, with nothing else to start or stop. `--no-build`
 
 `$V doctor` is read-only. Run it first, and again whenever anything looks off. It checks:
 - `dotnet` is on `PATH`.
-- Each of the three projects (Core, Console, Tests) was built after its newest `.cs` or `.csproj`.
+- Each of the four projects (Core, Adapters, Console, Tests) was built after its newest `.cs` or `.csproj`.
 - `bin` holds the same `npc-writer/SKILL.md` and `scene-interviewer/SKILL.md` as the source. The model is told the `bin` copy.
 - The fixture exists and its line 1 is a plain JSON array of flags.
 - No `NpcForge.Console` process is running. A hit is not necessarily yours. The owner may have one paused in the debugger. Do not kill it.

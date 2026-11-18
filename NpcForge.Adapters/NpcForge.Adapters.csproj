@@ -1,0 +1,31 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <!-- The types keep the namespace they had in the console, so no caller and no test names them
+         differently (ADR-019, decision 1). -->
+    <RootNamespace>NpcForge</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- The model vendors, which only ModelClients names. Microsoft.Extensions.AI is called by no code
+         here. It came from the console with the vendors, and dropping it would change what the console
+         and the tests resolve, so that is a change of its own. -->
+    <PackageReference Include="Anthropic" Version="12.47.0" />
+    <PackageReference Include="Microsoft.Extensions.AI" Version="10.10.0" />
+    <PackageReference Include="Microsoft.Extensions.AI.OpenAI" Version="10.10.0" />
+    <!-- IConfiguration, which ModelClients reads the keys from. Where the keys live is each front end's
+         choice (the console reads its user secrets), so only the abstraction is here, at the version the
+         console's user secrets package brings. -->
+    <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" Version="10.0.12" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- The core and no other project. The adapters are what two front ends share, so a front end here
+         would put one front end inside the other. AdaptersReferenceTests holds it. -->
+    <ProjectReference Include="..\NpcForge.Core\NpcForge.Core.csproj" />
+  </ItemGroup>
+
+</Project>
