@@ -107,11 +107,12 @@ implementation and `haiku` for cheap checks. pstack's defaults name Fable; the m
   `IChatClient` (the model) and `ICharacterStore` (one person's saves), and each new one needs an ADR
   and a second implementation that passes the same tests. Dice, the clock, traces and skill text are
   not ports. `IToolSource` is the loop's seam, not a port.
-- One core, front ends around it, no further layers. A rule both front ends need goes in
-  `NpcForge.Core`; anything that touches the outside world goes in the front end that uses it
-  (`NpcForge.Console`, `NpcForge.Web`, later `NpcForge.Api`). No Domain and Application split, no
-  use-case handlers, no mediator. Inside the core, folders follow the domain: `Brief`, `Interview`,
-  `Writing`, `Loop`, `Saves`. (ADR-014)
+- One core, the adapters two front ends share, and front ends around them. An adapter one front end
+  uses stays in that front end. A rule both front ends need goes in `NpcForge.Core`; an adapter to
+  the outside world that both need goes in `NpcForge.Adapters`, which references the core and the
+  vendor packages and never a front end (`NpcForge.Console`, `NpcForge.Web`, later `NpcForge.Api`).
+  No Domain and Application split, no use-case handlers, no mediator. Inside the core, folders follow
+  the domain: `Brief`, `Interview`, `Writing`, `Loop`, `Saves`. (ADR-014, ADR-019)
 - `NpcForge.Web` is the website's pages: Vite, React and TypeScript, with npm. A page gets data only
   through `src/api.ts`, never from `madeUp/` (ADR-017).
 - No host or DI container in the console. `Program.cs` wires things by hand so the order of events
