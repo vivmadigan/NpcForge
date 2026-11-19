@@ -84,9 +84,9 @@ export async function rollAndWrite(_interview: InterviewId): Promise<RunResult> 
   return { kind: 'written', draft: String(place), name, sheet };
 }
 
-// Every fault from the API, as one type that carries the problem's detail (ADR-019 decision 4). A
-// 404 for a save is not one the saved page shows, so `loadSave` reads it as "none". No page shows
-// the rest yet: the failure state arrives with the forge page's call to the API.
+// Every fault from the API, as one type that carries the problem's detail (ADR-019 decision 4). Each
+// page shows it in its failure state. A 404 for a save is not a fault the saved page shows, so
+// `loadSave` reads it as "none". `status` is 0 when no answer came at all.
 export class ApiError extends Error {
   constructor(
     readonly status: number,
@@ -106,11 +106,20 @@ async function faultOf(response: Response): Promise<ApiError> {
   );
 }
 
-async function getJson<Body>(path: string): Promise<Body> {
-  const response = await fetch(path);
+// fetch rejects only when no answer came, such as a dropped connection, and its error names no
+// status. It becomes the same ApiError, so a page catches one type (ADR-019 decision 4, its last row).
+async function call<Body>(path: string, init?: RequestInit): Promise<Body> {
+  let response: Response;
+  try {
+    response = await fetch(path, init);
+  } catch {
+    throw new ApiError(0, 'The API did not answer.');
+  }
   if (!response.ok) throw await faultOf(response);
   return response.json();
 }
+
+const getJson = <Body>(path: string) => call<Body>(path);
 
 const realSaves = () => getJson<ListedCharacter[]>('/api/saves');
 

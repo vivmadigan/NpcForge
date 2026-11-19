@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type ReactElement } from 'react';
 import {
   answer,
+  ApiError,
   rollAndWrite,
   save,
   startInterview,
@@ -28,6 +29,7 @@ type Settled =
   | { kind: 'written'; scene: string; interview: InterviewId; character: Written }
   | { kind: 'no-name'; scene: string; interview: InterviewId; reason: string }
   | { kind: 'stopped'; scene: string; reason: string } // the spending cap
+  | { kind: 'failed'; scene: string; reason: string } // the API's fault, as it sent it (ADR-019 decision 4)
   | { kind: 'saved'; scene: string; interview: InterviewId; number: number };
 
 // A call to the seam is out. `from` is the step the GM just left, drawn under the fade (ADR-018
@@ -94,24 +96,38 @@ export function ForgePage({
   // The step on screen when a wait begins, to fade out from.
   const leaving = (): Settled | undefined => (isWaiting(state) ? state.from : state);
 
+  // A call to the seam, and the step it leads to. A fault from the API ends it in the failure state
+  // with the scene kept, whatever step it came from (ADR-019 decision 4). Anything else thrown is a
+  // bug, and is left to surface.
+  async function settle(scene: string, next: () => Promise<ForgeState>) {
+    try {
+      setState(await next());
+    } catch (fault) {
+      if (!(fault instanceof ApiError)) throw fault;
+      setState({ kind: 'failed', scene, reason: fault.message });
+    }
+  }
+
   // Each wait ends when the seam answers and not before: the page sets no timer (the epic's
   // constraint, ADR-018 decision 8).
   async function send(scene: string) {
     setState({ kind: 'reading', scene, from: leaving() });
-    setState(afterInterview(scene, await startInterview(scene)));
+    await settle(scene, async () => afterInterview(scene, await startInterview(scene)));
   }
   async function reply(scene: string, interview: InterviewId, text: string) {
     setState({ kind: 'reading', scene, from: leaving() });
-    setState(afterInterview(scene, await answer(interview, text)));
+    await settle(scene, async () => afterInterview(scene, await answer(interview, text)));
   }
   async function roll(scene: string, interview: InterviewId) {
     setState({ kind: 'writing', scene, interview, from: leaving() });
-    setState(afterRoll(scene, interview, await rollAndWrite(interview)));
+    await settle(scene, async () => afterRoll(scene, interview, await rollAndWrite(interview)));
   }
   async function keep(scene: string, interview: InterviewId, character: Written) {
-    const number = await save(character.draft);
-    recount();
-    setState({ kind: 'saved', scene, interview, number });
+    await settle(scene, async () => {
+      const number = await save(character.draft);
+      recount();
+      return { kind: 'saved', scene, interview, number };
+    });
   }
 
   // The return type has no `undefined` in it, so a step with no case here fails tsc and cannot
@@ -240,6 +256,24 @@ export function ForgePage({
               <a className="button" href="/saved">
                 OPEN THE SAVED CHARACTERS
               </a>
+            </div>
+          </>
+        );
+      case 'failed':
+        return (
+          <>
+            <ScenePanel scene={s.scene} />
+            <h1 className="page-title">FAILED</h1>
+            <p className="notice">Failed: {s.reason}</p>
+            <p>Your scene is kept, so you can send it again.</p>
+            <div className="actions">
+              <button
+                className="button button-main"
+                type="button"
+                onClick={() => setState({ kind: 'describe', scene: s.scene })}
+              >
+                BACK TO YOUR SCENE
+              </button>
             </div>
           </>
         );

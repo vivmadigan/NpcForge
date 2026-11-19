@@ -31,6 +31,10 @@ const seen: Record<string, (page: Page) => Promise<void>> = {
     // A page this short is exactly one window tall: the cave takes what the header leaves.
     expect(await page.evaluate(() => document.documentElement.scrollHeight <= window.innerHeight)).toBe(true);
   },
+  'saved-failed': async (page) => {
+    await expect(page.getByText('The saves could not be read: The API did not answer.')).toBeVisible();
+    await expect(page.getByRole('link', { name: 'TRY AGAIN' })).toHaveAttribute('href', '/saved');
+  },
   'forge-describe': async (page) => {
     await expect(page.getByRole('heading', { name: 'DESCRIBE YOUR SCENE' })).toBeVisible();
     await expect(page.getByRole('textbox', { name: 'DESCRIBE YOUR SCENE' })).toHaveValue('');
@@ -102,6 +106,11 @@ const seen: Record<string, (page: Page) => Promise<void>> = {
     // Nothing on the page asks the model for more.
     await expect(page.getByRole('button')).toHaveCount(0);
     await expect(page.getByRole('link', { name: 'OPEN THE SAVED CHARACTERS' })).toBeVisible();
+  },
+  'forge-failed': async (page) => {
+    await sceneShown(page, bakeryScene);
+    await expect(page.getByText(/^Failed: Missing user secret 'OpenAI:ApiKey'\./)).toBeVisible();
+    await expect(page.getByRole('button', { name: 'BACK TO YOUR SCENE' })).toBeVisible();
   },
   'forge-saved': async (page) => {
     await expect(page.getByText('Saved as 17.')).toBeVisible();

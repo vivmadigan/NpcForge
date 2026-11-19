@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactElement } from 'react';
-import { listSaves, loadSave, type ListedCharacter, type SavedCharacter } from './api';
+import { ApiError, listSaves, loadSave, type ListedCharacter, type SavedCharacter } from './api';
 import { Frame } from './Frame';
 import { Sheet } from './Sheet';
 
@@ -9,7 +9,14 @@ export type SavedState =
   | { kind: 'loading' } // still text, nothing moves
   | { kind: 'list'; saves: ListedCharacter[] } // empty or long, same case
   | { kind: 'open'; character: SavedCharacter }
-  | { kind: 'missing'; number: number }; // no save under this number
+  | { kind: 'missing'; number: number } // no save under this number
+  | { kind: 'failed'; reason: string }; // the API's fault, as it sent it (ADR-019 decision 4)
+
+// A fault from the API is the failure state. Anything else thrown is a bug, and is left to surface.
+function failed(fault: unknown): SavedState {
+  if (!(fault instanceof ApiError)) throw fault;
+  return { kind: 'failed', reason: fault.message };
+}
 
 // `number` is the one in the path, or null for the list. `saved` is the header's count. `start` opens
 // a named state without calling the seam. The return type has no `undefined` in it, so a state
@@ -28,10 +35,14 @@ export function SavedPage({
   useEffect(() => {
     if (start) return;
     if (number === null) {
-      listSaves().then((saves) => setState({ kind: 'list', saves }));
+      listSaves().then(
+        (saves) => setState({ kind: 'list', saves }),
+        (fault) => setState(failed(fault)),
+      );
     } else {
-      loadSave(number).then((character) =>
-        setState(character ? { kind: 'open', character } : { kind: 'missing', number }),
+      loadSave(number).then(
+        (character) => setState(character ? { kind: 'open', character } : { kind: 'missing', number }),
+        (fault) => setState(failed(fault)),
       );
     }
   }, [number, start]);
@@ -92,6 +103,19 @@ export function SavedPage({
             <p>No save numbered {state.number}.</p>
             <a className="button back" href="/saved">
               BACK TO SAVED
+            </a>
+          </div>
+        </Frame>
+      );
+    case 'failed':
+      // The link opens this same page again, so it asks the API again.
+      return (
+        <Frame saved={saved} here="saved">
+          <div className="panel">
+            <h1 className="page-title">FAILED</h1>
+            <p className="notice">The saves could not be read: {state.reason}</p>
+            <a className="button" href={number === null ? '/saved' : `/saved/${number}`}>
+              TRY AGAIN
             </a>
           </div>
         </Frame>

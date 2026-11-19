@@ -27,6 +27,9 @@ export const namedStates: Record<string, NamedState> = {
   // the contrast check.
   'saved-open-unnamed': { page: 'saved', path: '/saved/8', state: { kind: 'open', character: save(8) } },
   'saved-missing': { page: 'saved', path: '/saved/99', state: { kind: 'missing', number: 99 } },
+  // The words api.ts gives a request that got no answer at all, such as one the browser dropped. With
+  // the dev server up and no API behind it, the message is the proxy's 502 instead.
+  'saved-failed': { page: 'saved', path: '/saved', state: { kind: 'failed', reason: 'The API did not answer.' } },
 
   'forge-describe': { page: 'forge', path: '/', state: { kind: 'describe', scene: '' } },
   'forge-reading': { page: 'forge', path: '/', state: { kind: 'reading', scene: bakeryScene } },
@@ -81,6 +84,17 @@ export const namedStates: Record<string, NamedState> = {
       kind: 'stopped',
       scene: bakeryScene,
       reason: 'Spending cap reached: this session has used 201,342 tokens of 200,000. Nothing more is sent to the model.',
+    },
+  },
+  // The 503 the owner is likeliest to meet: ModelClients' words for a key that was never set. It is
+  // long, so it puts a notice of several lines under the contrast check at phone width.
+  'forge-failed': {
+    page: 'forge',
+    path: '/',
+    state: {
+      kind: 'failed',
+      scene: bakeryScene,
+      reason: 'Missing user secret \'OpenAI:ApiKey\'. Set it with: dotnet user-secrets set "OpenAI:ApiKey" "<value>"',
     },
   },
   'forge-saved': { page: 'forge', path: '/', state: { kind: 'saved', scene: bakeryScene, interview: 'bakery', number: 17 } },
