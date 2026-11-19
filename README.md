@@ -125,13 +125,14 @@ the writer, the interview and the save rules, and the console calls it in-proces
 will. Saving sits behind a store a database can replace, and the MCP server it started with is
 retired. A field the dice cannot read, such as `--tone grumpy`, stops the run with one line naming
 the field and its values. The free tests run in about 25 s, and the part that starts no process in a
-few seconds. The website's two pages are built, on made-up data with no backend.
-`npm --prefix NpcForge.Web start` opens the forge page, where you describe a scene, confirm the
-brief, read the character and save it, roll again or leave, and the saved page lists what you kept.
-The pages look like a forge in a cavern: a confirmation in a few sentences, a character page with
-save, roll again and leave at the top, and a fade to black with a flame while you wait.
-Next: the pages call the real core on my machine, then logins, a database and a spending cap so
-friends can use it, and later editing a saved character. See [ROADMAP.md](ROADMAP.md).
+few seconds. The website makes real characters on my machine: `dotnet run --project NpcForge.AppHost`
+starts its API and its pages, and on the forge page you describe a scene, answer its questions,
+confirm, read a character from the real dice and the console's model, and save it, roll again or
+leave. The saved page lists the same saves the console keeps and opens any of them. The pages look
+like a forge in a cavern: a confirmation in a few sentences, a character page with save, roll again
+and leave at the top, a fade to black with a flame while you wait, and a failure state with your
+scene kept when the API faults. Next: logins, a database and a spending cap so friends can use it,
+and later editing a saved character. See [ROADMAP.md](ROADMAP.md).
 
 ## Out of scope, for now
 

@@ -1,6 +1,8 @@
 # A test of the wait passes once the wait has ended, and a held page clock hangs the contrast check
 
-- **Status:** active
+- **Status:** active. Since epic 14 the seam is NpcForge.Api and has no timer, so `wait.spec.ts`
+  holds the API's answer with `page.route` in place of the init script. The rule is the same: the test
+  holds the answer, so the wait cannot end before it looks.
 - **Date:** 2026-11-16
 - **Applies to:** `NpcForge.Web/tests/wait.spec.ts`, `NpcForge.Web/src/api.ts`, any test that must look at the wait screen · tags: tests, web, wait, axe, timers
 

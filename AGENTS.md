@@ -138,9 +138,9 @@ dotnet run --project NpcForge.Console -- --load 3  # no model call, no API key n
 dotnet run --project NpcForge.Console -- --list    # no model call: every save, one row each
 dotnet run --project NpcForge.Console              # paid: OpenAI, default model
 dotnet run --project NpcForge.Console -- --provider anthropic --model claude-opus-5   # paid
-dotnet run --project NpcForge.AppHost              # no model call: starts NpcForge.Api and the pages; the dashboard's address is in its output
-npm --prefix NpcForge.Web start                    # the pages alone, at localhost:5173; installs first; the saved page, the header's count and the forge's save need the API at localhost:5180
-npm --prefix NpcForge.Web test                     # free: type check, then the browser tests on their own API and dev server; needs the .NET SDK; first run downloads Chromium
+dotnet run --project NpcForge.AppHost              # starts NpcForge.Api and the pages; the dashboard's address is in its output; paid once the forge page sends a scene
+npm --prefix NpcForge.Web start                    # the pages alone, at localhost:5173; installs first; every call needs the API at localhost:5180, and a page shows its failure state without it
+npm --prefix NpcForge.Web test                     # free: type check, then the browser tests on their own API, on the stand-in model, and dev server; needs the .NET SDK; first run downloads Chromium
 npm --prefix NpcForge.Web run screenshots          # free: rewrites docs/design/epic-13/*.png; npm test never does
 ```
 
@@ -175,7 +175,7 @@ npm --prefix NpcForge.Web run screenshots          # free: rewrites docs/design/
 | `ROADMAP.md` | What's next, as epics, with a template for writing one |
 | `NpcForge.Api/` | The website's API: a minimal API over the core. It serves the saves, the interview, the roll and the save of a draft, and holds the stand-in model |
 | `NpcForge.AppHost/` | Aspire's AppHost. `dotnet run --project NpcForge.AppHost` starts the API and the pages |
-| `NpcForge.Web/` | The website's pages: Vite, React, TypeScript and their Playwright tests. The saved page reads the API, and the forge page is still made-up |
+| `NpcForge.Web/` | The website's pages: Vite, React, TypeScript and their Playwright tests. Both pages call the API for everything; `src/madeUp/` holds only the named states' data |
 | `docs/architecture.md` | How it fits together, and behaviour worth knowing |
 | `docs/decisions/` | ADRs. `INDEX.md` is the live list of every decision |
 | `docs/lessons/` | Problems that took a dead end. `INDEX.md` is loaded into every session |

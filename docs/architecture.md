@@ -29,8 +29,8 @@ the domain: `Brief`, `Interview`, `Writing`, `Loop`, `Saves`.
 `CoreReferenceTests` and the core's `BannedSymbols.txt` hold the boundary: the core references only
 .NET and Microsoft.Extensions.AI.Abstractions, writes only traces to the console, and reads no file but
 the bundled skills, through `SkillFiles`. `NpcForge.Api` is a second front end on the same core, in
-a process of its own (see "The API"). `NpcForge.Web` reaches the core only through it, and so far
-only for the saved page (see "The website's pages"). Until epic 5 the dice and the saves lived in
+a process of its own (see "The API"). `NpcForge.Web` reaches the core only through it, for every call
+of both pages (see "The website's pages"). Until epic 5 the dice and the saves lived in
 an MCP server that the console started as a second process; ADR-016 records the switch.
 
 ## The website's pages
@@ -38,17 +38,22 @@ an MCP server that the console started as a second process; ADR-016 records the 
 `NpcForge.Web` holds the website's two pages (epics 12 and 13), and `docs/design/epic-12-api-needs.md`
 lists what they need from an API. It is a Vite 8, React 19 and TypeScript 7 app, and
 `npm --prefix NpcForge.Web start` serves it at `http://localhost:5173`. Its pages get data only
-through `src/api.ts`, so epic 14 can replace the bodies one PR at a time and leave the pages
-(ADR-017, ADR-019). The saved page's two calls read `NpcForge.Api` now. The forge page's calls still
-read made-up data. The folder is not in `NpcForge.slnx`, so `dotnet build` and `dotnet test` never
-start Node. `npm test` does start the API, so it builds `NpcForge.Api` and needs the .NET SDK.
+through `src/api.ts`, whose six functions each call one route of `NpcForge.Api` and return its answer
+alone (ADR-017, ADR-019 decision 8). The folder is not in `NpcForge.slnx`, so `dotnet build` and
+`dotnet test` never start Node. `npm test` does start the API, so it builds `NpcForge.Api` and needs
+the .NET SDK.
 
 The pages call `/api` on their own address, and `vite.config.ts` forwards it to the API. The target is
 `API_HTTP`, which the AppHost sets when it starts the pages, and `http://localhost:5180`, the API's
-launch profile port, when it is not set. With no API behind the proxy, a call gets a 502 from the dev
-server and `api.ts` throws an `ApiError` for it. No page shows that yet. The saved page stays on
-"Reading the saves.", every page's header shows no count, and the forge's SAVE does nothing, because
-`save` asks the API for the highest real number.
+launch profile port, when it is not set. Every fault throws one `ApiError` with the API's message: a
+problem's `detail`, or the status for an answer with no problem in it. With no API behind the proxy, a
+call gets a 502 from the dev server, so the message is `502 Bad Gateway`. A request that gets no
+answer at all, such as one the browser drops, is an `ApiError` with status 0 and the message
+`The API did not answer.` Each page then shows its one failure state (ADR-019 decision 4). The forge
+page's shows the scene, `Failed:` and the message, and BACK TO YOUR SCENE puts the scene back in the
+box, whatever step failed. The saved page's says the saves could not be read, with the message, and
+TRY AGAIN opens the same page. The header shows no count while the API faults. A 404 from
+`loadSave` is not a fault: it is "no save numbered", as before there was an API.
 
 There are two pages. The forge page at `/` is where a GM describes a scene and gets a character.
 The saved page lists the saves at `/saved` and opens one at `/saved/<number>`. The top bar counts
@@ -60,9 +65,10 @@ follows `docs/design/cavern-sketch.html`, which is throwaway.
 
 The forge page holds one `ForgeState` and draws it with one switch. One step replaces the last on
 the same page, and the GM's scene stays above every step after the first. It is not a chat log.
-The steps follow the console: the scene in one go, a question when the scene names no place or role,
-the confirmation, the wait while a character is written, then the character with save, roll again
-and leave. The confirmation is the scene and a few sentences that say who is being made
+The steps follow the console, and each is one call: the scene in one go (`POST /api/interviews`), a
+question when the scene names no place or role, answered one at a time (`.../answers`), the
+confirmation, the wait while a character is written (`.../characters`), then the character with save
+(`PUT /api/drafts/{id}/save`), roll again (the same interview's next dice) and leave. The confirmation is the scene and a few sentences that say who is being made
 (ADR-018). The page writes them from the fields the scene settled, in `src/sentences.ts`, and
 colours each value the GM gave. It shows no joined field name, no label and nothing for a field the
 dice will pick. Turning the brief down and leaving send nothing and put the scene back in the box.
@@ -73,31 +79,24 @@ save, roll again and leave on the right, stacked on a phone. Then comes the parc
 the question again below it. The three top buttons are in the window when the page opens, with no
 scrolling, at 390 by 844 and 1280 by 800. No page shows the rolled brief (ADR-018 decision 9), so
 `brief` is not in `RunResult` or `SavedCharacter`, and an opened save is a BACK TO SAVED link and the
-parchment. The made-up saves in `sessionStorage` keep the brief, because `listSaves` reads the
-occupation and the setting from it.
+parchment.
 
-Sending a scene and rolling fade to black, and a flame burns until the seam answers. The wait states
+Sending a scene, answering a question and rolling fade to black, and a flame burns until the API
+answers. The wait states
 `reading` and `writing` can carry the step the GM left (`from`), drawn under a 0.4 s stepped fade
 and then hidden, so the black screen's own title and line are text the contrast check can judge. The
 page sets no timer of its own. `src/flameGrid.ts` is the flame as a pure function over a grid,
 stepped by `Flame.tsx` twelve times a second. A device that asks for less motion gets black at once
 and a still flame, drawn from a fixed seed. Nothing makes a sound.
 
-The made-up run is the bakery run, `docs/runs/raw/2026-11-08-01-epic4-bakery-roll-again.md`, in
-`src/madeUp/bakery.ts`: its scene, its seven confirmation entries and its three characters, cut from
-the run file by a script so the sheets keep their lines that end in two spaces. A second scene, from
+`src/madeUp/` holds only the named states' own data. The bakery run,
+`docs/runs/raw/2026-11-08-01-epic4-bakery-roll-again.md`, is in `src/madeUp/bakery.ts`: its scene, its
+seven confirmation entries and its first character, cut from the run file by a script so the sheet
+keeps its lines that end in two spaces. A second scene, from
 `docs/runs/raw/2026-11-03-01-epic10-interview-nogender.md`, has three entries and no gender, and only
-`forge-confirm-market` opens it. Any scene sent gets the bakery confirmation after a one-second wait,
-and roll again gives the run's three characters in turn after the same wait. A save goes to
-`sessionStorage`, read and written only by `api.ts`, numbered after the highest save the API holds and
-every kept one, so a made-up save never takes a real save's number. Against the 16 saves of the browser
-tests that is 17 and on. It reaches the saved page through a plain link, and each test starts with none.
-
-The saved page reads the saves from `NpcForge.Api`, then any save kept from the forge. The browser tests'
-API reads a temp copy of `src/madeUp/saves.json`, which is `NpcForge.Console/characters.json` as it
-stood at commit `e3ac16e`, so those tests count 16 saves whatever the owner has saved since.
-`loadSave` looks among the kept saves only after the API says it holds none. The named states hold
-their own data, apart from the top bar's count, which asks the API.
+`forge-confirm-market` opens it. `src/madeUp/saves.json` is `NpcForge.Console/characters.json` as it
+stood at commit `e3ac16e`, and the saved states show it. The browser tests' API reads a temp copy of
+it, so the 16 seeded saves are there whatever the owner has saved since.
 `Sheet.tsx` hands a sheet to `react-markdown` whole and never reads its meaning, on both pages.
 
 Each state can be opened by name, on its own path:
@@ -113,6 +112,7 @@ Each state can be opened by name, on its own path:
 /?state=forge-written                AldoBun Sourdough, with save, roll again and leave at the top
 /?state=forge-no-name                no name followed the dice
 /?state=forge-cap                    the spending cap reached
+/?state=forge-failed                 the failure state: the API's 503 for a key never set, the scene kept
 /?state=forge-saved                  saved as 17
 /?state=forge-left                   a character left: the scene back in the box
 /saved?state=saved-empty             a list with no saves
@@ -120,22 +120,24 @@ Each state can be opened by name, on its own path:
 /saved/13?state=saved-open           save 13 open
 /saved/8?state=saved-open-unnamed    save 8 open: no name, and the one sheet with a blockquote
 /saved/99?state=saved-missing        no save under that number
+/saved?state=saved-failed            the failure state: no answer from the API
 ```
 
 `src/madeUp/states.ts` is the one table of them. Each entry holds the path it opens on and a
 `ForgeState` or `SavedState` value, so a state that no longer fits its page fails `tsc`. `main.tsx`
 looks the name up and hands the value to its page. A name the table lacks, or one opened on another
-path than its own, shows "No state named <name>". An opened state still works: from
-`forge-question` an answer leads to the confirmation, and from `forge-no-name` roll again writes a
-character. Opening a named state saves nothing, so `forge-saved` says "Saved as 17." under a bar
-that still counts 16.
+path than its own, shows "No state named <name>". A button that sends nothing still works from a named
+state, such as change the scene. A button that calls the API sends the state's own interview id, such
+as `bakery`, which the API never holds, so it gets a 404 and the failure state with the scene kept.
+Opening a named state saves nothing, so `forge-saved` says "Saved as 17." under a bar that counts the
+saves the API holds.
 
 ## The API
 
 `NpcForge.Api` is a minimal API on the core and the adapters, for the website (ADR-019). It has six
 routes: two reads of the saves and four for the forge. It is a `Microsoft.NET.Sdk.Web` project. DI holds
-an `ICharacterStore`, a `FileCharacterStore`, a `ModelChoice` and one `Forge`. The pages do not call
-the forge's four routes yet.
+an `ICharacterStore`, a `FileCharacterStore`, a `ModelChoice` and one `Forge`. Each route is one function
+of `src/api.ts`, and the pages call all six.
 
 | Route | Answers |
 | --- | --- |
@@ -815,18 +817,28 @@ A test that asserts on `Tool failed:` must give arguments that would otherwise s
 for the wrong reason (lesson 004).
 
 The pages have their own free suite. `npm --prefix NpcForge.Web test` runs `tsc --noEmit`, then
-Playwright at phone (390 by 844) and desktop (1280 by 800) width. `flow.spec.ts` walks the whole
-flow: it describes a scene, confirms the scene, reads the first character, rolls again and reads the
-second, saves, sees the bar reach 17, opens the list of 17 and the new save. Each character is read
-word for word against the made-up sheet. A second run ends with leave and finds the list still at
-16. Shorter tests turn the brief down, answer a question, and roll again or change the scene after
-no name. `character.spec.ts` shows no brief, and save, roll again and leave in the window with no
-scrolling. `flame.spec.ts` steps the flame 1,000 frames and finds no lit cell on its top, left or
-right edge. `wait.spec.ts` holds the seam to look at the wait: black at once with a still flame
-under less motion, a burning flame and a fade at normal motion, and a wait that ends when the seam
-answers and not later. `confirmation.spec.ts` and `sentences.spec.ts` hold the sentences. A data test holds each made-up sheet to the run file, byte for byte. `sheet.spec.ts` opens
-each of the 16 saves from the list and checks that the sheet holds every word of the saved text, in order, and that
-the shown name is the saved one or `(no name)`. `states.spec.ts` takes its list from the table's
+Playwright at phone (390 by 844) and desktop (1280 by 800) width. Playwright starts its own API and
+dev server on ports 5381 and 5382, and reuses neither. The API runs on the stand-in model with
+`NPCFORGE_PROVIDER=stand-in`, `NPCFORGE_SEED=14` and `NPCFORGE_OFFLINE=1` beside it, so no test can
+reach a paid model, and its saves are a temp copy of `src/madeUp/saves.json`. Tests run in parallel
+on that one copy, so a test checks the save it made, by the number the page shows, and never a total.
+`flow.spec.ts` walks the whole flow through the API: it describes a scene, answers the place and the
+role the stand-in leaves to the GM, confirms, reads the character the API sent and checks its sheet is
+the stand-in's, rolls again for a new name, saves, finds the save's number in the list with its name,
+role and place, and opens it. A second run ends with leave and sends no save, and changing the scene
+on the confirmation sends no roll. `failure.spec.ts` aborts the page's `/api` requests to show the
+failure state on a scene sent, on a save, on the saved list and on an opened save, and rolls again
+from `forge-no-name` to get the API's own 404 for an interview it never held. `character.spec.ts`
+shows no brief, and save, roll again and leave in the window with no scrolling, also after ROLL IT
+from a scrolled confirmation. `flame.spec.ts` steps the flame 1,000 frames and finds no lit cell on
+its top, left or right edge. `wait.spec.ts` holds the API's answer with `page.route` to look at the
+wait: the request reaches the API at once and its answer reaches the page only when the test says.
+It checks black at once with a still flame under less motion, a burning flame and a fade at normal
+motion, and a wait that ends when the answer arrives and not later. `confirmation.spec.ts` and
+`sentences.spec.ts` hold the sentences. A data test holds the made-up sheet to the run file, byte for
+byte. `header.spec.ts` finds each of the 16 seeded saves by number and name. `sheet.spec.ts` opens
+each of the 16 saves from the list and checks that the sheet holds every word of the saved text, in
+order, and that the shown name is the saved one or `(no name)`. `states.spec.ts` takes its list from the table's
 keys. For each state at both widths it checks that the state opened, and what a user sees there for
 each state its `seen` map describes. Both run axe's `color-contrast` rule through
 `tests/contrast.ts`: on every state, and after each step of the flow. A result axe cannot judge
@@ -892,3 +904,4 @@ agents and named, not numbered.
 | Ready to grow (epic 5) | One core, `NpcForge.Core`, called in-process by the console; saves behind `ICharacterStore`, with a file store and an in-memory store passing the same tests; the MCP server retired, with the replay and roll-again recordings passing unchanged and `--list` and `--load` printing what they printed | |
 | A front end to click through (epic 12) | The website's two pages run on made-up data behind one seam, `src/api.ts`; browser tests walk the whole flow and a run that leaves, read every word of every sheet, and pass AA contrast on all 16 named states at phone and desktop width | |
 | A forge in a cavern (epic 13) | The pages look like a forge in a cavern: a header, a cavern, a title drawn as a picture, a confirmation in sentences, a character page with save, roll again and leave at the top and no brief, and a black wait with a flame that holds still under less motion. Browser tests pass AA contrast on all 17 named states at both widths, with a screenshot of each in `docs/design/epic-13/` | |
+| The website makes real characters (epic 14) | The pages call `NpcForge.Api` for everything, and the API calls the core in-process with the console's model clients and file store, moved to `NpcForge.Adapters`; one command starts both under Aspire. The interview takes one answer at a time, a second save of one draft saves nothing new, and the file store's lock holds between the console and the API. Free tests walk the API on a stand-in model and hold what it sends the model equal to the console's; the browser walks scene to reopened save on the stand-in, every fault ends in a failure state, and AA contrast passes on all 19 named states at both widths | |
