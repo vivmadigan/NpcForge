@@ -64,7 +64,7 @@ public class LabRunTests : IDisposable
             [.. labFlags, "--seed", Seed.ToString(), "--setting", "a farm", "--out", out_ ?? TempFolder()]);
         var dice = new Dice(run.Seed);
 
-        var options = new ChatOptions { ModelId = "stand-in", MaxOutputTokens = 5000 };
+        var options = ModelOptions.New("stand-in");
         var capture = new StringWriter();
         var before = Console.Error;
         Console.SetError(capture);
