@@ -205,10 +205,10 @@ that rewrites the character calls the model, so its checks are paid.
   signatures and lost its made-up bodies; the model clients and the file store moved to
   `NpcForge.Adapters`, which the console and the API share. A second save of one draft saves nothing
   new, the file store holds a lock across a save, and every fault ends in each page's one failure
-  state, with the scene kept. Free tests walk the API on a stand-in model, hold what it sends the model
+  state, with the scene kept and, after a failed save, the character. Free tests walk the API on a stand-in model, hold what it sends the model
   equal to what the console sends for one seed, reach the cap, and hold the field names to
   `Dice.Fields`; the browser walks from a scene to the reopened save on the stand-in, and AA contrast
-  passes on all 19 named states at both widths. The open choices held their defaults: a scene's line
+  passes on all 20 named states at both widths. The open choices held their defaults: a scene's line
   breaks are sent as typed, and the AppHost stays in the solution. The paid make, save and reopen in the
   browser, the Aspire dashboard and the failure state's look were left to my eyes in the last PR. See
   ADR-019 and ADR-020.

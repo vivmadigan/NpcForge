@@ -51,9 +51,13 @@ call gets a 502 from the dev server, so the message is `502 Bad Gateway`. A requ
 answer at all, such as one the browser drops, is an `ApiError` with status 0 and the message
 `The API did not answer.` Each page then shows its one failure state (ADR-019 decision 4). The forge
 page's shows the scene, `Failed:` and the message, and BACK TO YOUR SCENE puts the scene back in the
-box, whatever step failed. The saved page's says the saves could not be read, with the message, and
-TRY AGAIN opens the same page. The header shows no count while the API faults. A 404 from
-`loadSave` is not a fault: it is "no save numbered", as before there was an API.
+box, whatever step failed. After a failed save it also keeps the character, says "<name> is kept, so
+you can try the save again." and offers TRY THE SAVE AGAIN first, because a new roll costs money and
+a second save of one draft is safe. It does not say nothing was saved: a lost answer may hide a save
+that landed, and the retry then gets that save's number. The saved page's says the saves could not
+be read, with the message, and TRY AGAIN opens the same page. The header shows no count while the
+API faults. A 404 from `loadSave` is not a fault: it is "no save numbered", as before there was an
+API.
 
 There are two pages. The forge page at `/` is where a GM describes a scene and gets a character.
 The saved page lists the saves at `/saved` and opens one at `/saved/<number>`. The top bar counts
@@ -113,6 +117,7 @@ Each state can be opened by name, on its own path:
 /?state=forge-no-name                no name followed the dice
 /?state=forge-cap                    the spending cap reached
 /?state=forge-failed                 the failure state: the API's 503 for a key never set, the scene kept
+/?state=forge-save-failed            a save with no answer: AldoBun Sourdough kept, the save offered again
 /?state=forge-saved                  saved as 17
 /?state=forge-left                   a character left: the scene back in the box
 /saved?state=saved-empty             a list with no saves
@@ -223,6 +228,10 @@ its own `--port` to the dev script and Vite honours the last one, so the npm scr
 5173. `WithReference` gives Vite `API_HTTP`. The API listens behind Aspire's proxy on 5180, its launch
 profile's port, and Vite takes a port Aspire picks. The dashboard's address and login are in the AppHost's
 output. The AppHost's launch profile is http only, so nothing needs a trusted development certificate.
+The AppHost's environment passes through to the API, so `NPCFORGE_PROVIDER=stand-in`,
+`NPCFORGE_OFFLINE=1` and an absolute scratch `NPCFORGE_CHARACTERS`, set before the command, make a
+free run that writes no save of the owner's. A reviewer showed this on 13.6.5: a bad `NPCFORGE_SEED`
+stopped the API, and a good one gave the stand-in's sheet.
 Aspire is pinned to 13.6.5 (ADR-020). ADR-019's spike ran 13.4.2, whose dashboard and host packages
 carry audit advisories that 13.6.5 does not. A first restore puts 336 MB of Aspire packages in the
 NuGet cache, once.
@@ -828,7 +837,10 @@ the stand-in's, rolls again for a new name, saves, finds the save's number in th
 role and place, and opens it. A second run ends with leave and sends no save, and changing the scene
 on the confirmation sends no roll. `failure.spec.ts` aborts the page's `/api` requests to show the
 failure state on a scene sent, on a save, on the saved list and on an opened save, and rolls again
-from `forge-no-name` to get the API's own 404 for an interview it never held. `character.spec.ts`
+from `forge-no-name` to get the API's own 404 for an interview it never held. It aborts one save
+alone, tries the save again, and finds the save's number in the list with the character's name. Each
+of its tests fails when the page reports an error, so a fault handler that is missing shows even
+where the page looks the same without it, as the header's empty count does. `character.spec.ts`
 shows no brief, and save, roll again and leave in the window with no scrolling, also after ROLL IT
 from a scrolled confirmation. `flame.spec.ts` steps the flame 1,000 frames and finds no lit cell on
 its top, left or right edge. `wait.spec.ts` holds the API's answer with `page.route` to look at the
@@ -904,4 +916,4 @@ agents and named, not numbered.
 | Ready to grow (epic 5) | One core, `NpcForge.Core`, called in-process by the console; saves behind `ICharacterStore`, with a file store and an in-memory store passing the same tests; the MCP server retired, with the replay and roll-again recordings passing unchanged and `--list` and `--load` printing what they printed | |
 | A front end to click through (epic 12) | The website's two pages run on made-up data behind one seam, `src/api.ts`; browser tests walk the whole flow and a run that leaves, read every word of every sheet, and pass AA contrast on all 16 named states at phone and desktop width | |
 | A forge in a cavern (epic 13) | The pages look like a forge in a cavern: a header, a cavern, a title drawn as a picture, a confirmation in sentences, a character page with save, roll again and leave at the top and no brief, and a black wait with a flame that holds still under less motion. Browser tests pass AA contrast on all 17 named states at both widths, with a screenshot of each in `docs/design/epic-13/` | |
-| The website makes real characters (epic 14) | The pages call `NpcForge.Api` for everything, and the API calls the core in-process with the console's model clients and file store, moved to `NpcForge.Adapters`; one command starts both under Aspire. The interview takes one answer at a time, a second save of one draft saves nothing new, and the file store's lock holds between the console and the API. Free tests walk the API on a stand-in model and hold what it sends the model equal to the console's; the browser walks scene to reopened save on the stand-in, every fault ends in a failure state, and AA contrast passes on all 19 named states at both widths | |
+| The website makes real characters (epic 14) | The pages call `NpcForge.Api` for everything, and the API calls the core in-process with the console's model clients and file store, moved to `NpcForge.Adapters`; one command starts both under Aspire. The interview takes one answer at a time, a second save of one draft saves nothing new, and the file store's lock holds between the console and the API. Free tests walk the API on a stand-in model and hold what it sends the model equal to the console's; the browser walks scene to reopened save on the stand-in, every fault ends in a failure state, a failed save keeps the character for a retry, and AA contrast passes on all 20 named states at both widths | |

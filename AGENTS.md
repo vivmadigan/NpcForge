@@ -138,7 +138,7 @@ dotnet run --project NpcForge.Console -- --load 3  # no model call, no API key n
 dotnet run --project NpcForge.Console -- --list    # no model call: every save, one row each
 dotnet run --project NpcForge.Console              # paid: OpenAI, default model
 dotnet run --project NpcForge.Console -- --provider anthropic --model claude-opus-5   # paid
-dotnet run --project NpcForge.AppHost              # starts NpcForge.Api and the pages; the dashboard's address is in its output; paid once the forge page sends a scene
+dotnet run --project NpcForge.AppHost              # starts NpcForge.Api and the pages; the dashboard's address is in its output; paid once the forge page sends a scene, free on the stand-in (below)
 npm --prefix NpcForge.Web start                    # the pages alone, at localhost:5173; installs first; every call needs the API at localhost:5180, and a page shows its failure state without it
 npm --prefix NpcForge.Web test                     # free: type check, then the browser tests on their own API, on the stand-in model, and dev server; needs the .NET SDK; first run downloads Chromium
 npm --prefix NpcForge.Web run screenshots          # free: rewrites docs/design/epic-13/*.png; npm test never does
@@ -162,6 +162,10 @@ npm --prefix NpcForge.Web run screenshots          # free: rewrites docs/design/
   which holds my saves, unless `NPCFORGE_CHARACTERS` is set. For any run of yours, set it to the
   absolute path of a scratch file. The API refuses to start with no path or a relative one, and never
   guesses one.
+- The AppHost is paid once the forge page sends a scene, unless the API runs on the stand-in model.
+  For a free run, set `NPCFORGE_PROVIDER=stand-in`, `NPCFORGE_OFFLINE=1` and an absolute scratch
+  `NPCFORGE_CHARACTERS` before `dotnet run --project NpcForge.AppHost`. The AppHost's environment
+  passes through to the API, so all three reach it. `NPCFORGE_SEED=<n>` fixes the dice the same way.
 - The full suite takes about 25 s (24 to 25 s over five runs on 2026-11-10, once no test started a
   server), and longer beside other work. Run the fast part between edits and the full suite before
   saying a task is done. A test that starts the console carries `[Trait("Category", "Process")]`, or
