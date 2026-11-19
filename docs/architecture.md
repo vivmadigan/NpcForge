@@ -454,9 +454,9 @@ so the console and the API send the same.
   field nobody recorded, sent to the roll as null. An interview never uses a flag default.
 - **The questions** (ADR-010, decision 4): after the interviewer's loop, code asks one question for
   each Ask field nobody recorded, in schema order, built from the field's name and description. An
-  empty line asks again, and end of input rolls nothing. The answer enters through `SceneDraft.Answer`,
-  which records it with `SceneDraft.RecordAsked`. That takes only an Ask field and a value that is not blank, and is shown
-  as *my words*, "typed when asked". An answer carries its evidence: `Quoted` from `record_answer`,
+  empty line asks again, and end of input rolls nothing. The answer enters through
+  `SceneDraft.Answer`, which records it with `SceneDraft.RecordAsked`. That takes only an Ask field
+  and a value that is not blank, and is shown as *my words*, "typed when asked". An answer carries its evidence: `Quoted` from `record_answer`,
   `Asked` from a question. `SceneDraft.Lines` throws while an Ask field has no answer, so a
   confirmation or a roll with a hole cannot be built. The answer reaches the writer through the
   brief only; the scene stays the line the GM typed (ADR-008).

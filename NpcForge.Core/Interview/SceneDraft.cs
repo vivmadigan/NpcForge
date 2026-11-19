@@ -48,7 +48,8 @@ public sealed record RecordResult(Rejection Reason, string Message)
 public sealed record ConfirmationLine(RollField Field, string? Value, Label Label, Evidence? Evidence);
 
 // What the interview has gathered from the GM's scene. Pure: no model, no dice, no console, so
-// every check has a free test. The interview only ever adds to it through Record.
+// every check has a free test. The interview only ever adds to it through Record, for the model, and
+// Answer, for the GM.
 public sealed class SceneDraft(string scene, IReadOnlyList<RollField> fields)
 {
     // The scene's rule from 2026-09-26 (step 13 in `git show eddc444:ROADMAP.md`): a quote is one
@@ -166,7 +167,8 @@ public sealed class SceneDraft(string scene, IReadOnlyList<RollField> fields)
 
     // The GM's typed answer to a question the interview asked (ADR-010, decision 4). The GM typed it for
     // this very field, so it needs no quote; but only an Ask field is ever asked, and a blank is not an
-    // answer. Each refusal has its own reason (lesson 004). The model's door, Record, is unchanged.
+    // answer. Each refusal has its own reason (lesson 004). The model's door, Record, is unchanged. A
+    // front end answers through Answer, which picks the field; this stays public for its tests.
     public RecordResult RecordAsked(string field, string typed)
     {
         var target = fields.FirstOrDefault(f => f.Name == field);
