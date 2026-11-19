@@ -1,7 +1,10 @@
 import { expect, test } from '@playwright/test';
+import { savedList } from '../src/madeUp/saves';
 
 // Epic 13: a header on every page links to the saved characters. Both Playwright projects run each
-// test, so the link is found and used at phone and at desktop width.
+// test, so the link is found and used at phone and at desktop width. Other tests save to the same
+// copy of the saves file while these run, so the list is checked for the 16 seeded saves, each by its
+// number and name, and never by its length (ADR-019, "Consequences").
 const pages = [
   { name: 'the forge page', path: '/' },
   { name: 'an opened save', path: '/saved/3' },
@@ -14,7 +17,10 @@ for (const { name, path } of pages) {
 
     await expect(page).toHaveURL(/\/saved$/);
     await expect(page.getByRole('heading', { name: 'SAVED CHARACTERS' })).toBeVisible();
-    await expect(page.getByRole('list').getByRole('link')).toHaveCount(16);
+    const list = page.getByRole('list');
+    for (const { number, name } of savedList) {
+      await expect(list.getByRole('link', { name: new RegExp(`^${number} `) })).toContainText(name ?? '(no name)');
+    }
     // The header says which page the visitor is on.
     await expect(page.getByRole('navigation').getByRole('link', { name: /^SAVED CHARACTERS/ })).toHaveAttribute(
       'aria-current',

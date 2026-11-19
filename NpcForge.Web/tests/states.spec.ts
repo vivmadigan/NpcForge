@@ -1,7 +1,25 @@
+import { readFileSync } from 'node:fs';
 import { expect, test, type Page } from '@playwright/test';
-import { bakeryScene, marketScene } from '../src/madeUp/bakery';
+import { bakeryCharacter, bakeryScene, marketScene } from '../src/madeUp/bakery';
 import { namedStates } from '../src/madeUp/states';
 import { contrastFindings } from './contrast';
+
+// The run forge-written's character is copied from. A Windows checkout may hold it with CRLF line ends.
+const runFile = readFileSync(
+  new URL('../../docs/runs/raw/2026-11-08-01-epic4-bakery-roll-again.md', import.meta.url),
+  'utf8',
+).replace(/\r\n/g, '\n');
+
+test('the made-up sheet is the bakery run file, byte for byte', () => {
+  const { name, sheet } = bakeryCharacter;
+  // The whole sheet: from the line after the writer's last `[loop] ... out` trace line to the line
+  // before the console's keep question.
+  const at = runFile.indexOf(` out\n${sheet}\nKeep this character?`);
+  expect(at, `${name}'s sheet is in the run file, whole`).toBeGreaterThan(-1);
+  // The last name the run accepted before this sheet is this character's name.
+  const named = runFile.slice(runFile.lastIndexOf('[app] name ', at));
+  expect(named.startsWith(`[app] name ${name} (`), `the run named this sheet's character ${name}`).toBe(true);
+});
 
 // Every step after the first keeps the GM's scene above it.
 async function sceneShown(page: Page, scene: string) {

@@ -15,12 +15,18 @@ const words = (text: string) => text.match(/[\p{L}\p{N}]+/gu) ?? [];
 const answered = (path: string) => (response: { url(): string; ok(): boolean }) =>
   new URL(response.url()).pathname === path && response.ok();
 
-test('the saved list shows all 16 saves the API sent', async ({ page }) => {
+// Other tests save to the same copy while these run, so no test here holds a total (ADR-019,
+// "Consequences"). The header and the list each ask for the saves, and a save can land between the
+// two answers, so the list holds every row of the answer waited for, and may hold more.
+test('the saved list shows every save the API sent, and the 16 seeded ones', async ({ page }) => {
   const listed = page.waitForResponse(answered('/api/saves'));
   await page.goto('/saved');
-  const rows: unknown[] = await (await listed).json();
-  expect(rows).toHaveLength(16);
-  await expect(page.getByRole('list').getByRole('link')).toHaveCount(rows.length);
+  const rows: { number: number }[] = await (await listed).json();
+  expect(rows.length).toBeGreaterThanOrEqual(Object.keys(saves).length);
+  const list = page.getByRole('list');
+  for (const { number } of rows) {
+    await expect(list.getByRole('link', { name: new RegExp(`^${number} `) })).toBeVisible();
+  }
 });
 
 for (const [number, save] of Object.entries(saves)) {
@@ -41,7 +47,10 @@ for (const [number, save] of Object.entries(saves)) {
     const name = save.name ? `${save.name.syllables.join('')} ${save.name.family}` : '(no name)';
     await expect(page.getByRole('heading', { level: 1 })).toHaveText(name);
 
-    // The header counts the saves on a page that does not hold the list.
-    await expect(page.getByRole('link', { name: 'SAVED CHARACTERS 16' })).toBeVisible();
+    // The header counts the saves on a page that does not hold the list: the 16 seeded saves, and
+    // any another test has made since.
+    const count = page.getByRole('navigation').getByRole('link', { name: /^SAVED CHARACTERS/ });
+    await expect(count).toHaveText(/^SAVED CHARACTERS \d+$/);
+    expect(Number((await count.innerText()).match(/\d+/)![0])).toBeGreaterThanOrEqual(16);
   });
 }

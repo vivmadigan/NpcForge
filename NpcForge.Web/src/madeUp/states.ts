@@ -1,10 +1,13 @@
 // ADR-017 decision 6: the one table of named states. A name, the path it opens on and the page's
 // own state value live here and nowhere else, typed against the page's union so a state that no
 // longer fits its page fails tsc. main.tsx looks a name up; tests/states.spec.ts walks the keys.
+// The pages call the API from a named state as from any other, and an interview id here, such as
+// 'bakery', is one the API never holds. So a button that calls the seam from a named state gets a
+// 404 and shows the failure state, with the scene kept (ADR-019 decision 4).
 import type { SavedCharacter } from '../api';
 import type { ForgeState } from '../ForgePage';
 import type { SavedState } from '../SavedPage';
-import { bakeryCharacters, bakeryFields, bakeryScene, marketFields, marketScene } from './bakery';
+import { bakeryCharacter, bakeryFields, bakeryScene, marketFields, marketScene } from './bakery';
 import { savedCharacters, savedList } from './saves';
 
 // One variant for each page, so main.tsx can hand each page only its own states.
@@ -67,7 +70,7 @@ export const namedStates: Record<string, NamedState> = {
       kind: 'written',
       scene: bakeryScene,
       interview: 'bakery',
-      character: { kind: 'written', draft: '0', name: bakeryCharacters[0].name, sheet: bakeryCharacters[0].sheet },
+      character: { kind: 'written', draft: '0', name: bakeryCharacter.name, sheet: bakeryCharacter.sheet },
     },
   },
   // The dice in the console's own example of this line (docs/architecture.md, "The namer").

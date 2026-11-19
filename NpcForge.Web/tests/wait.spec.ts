@@ -1,5 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 import { contrastFindings } from './contrast';
+import { sceneBox, toConfirmation } from './forge';
 
 // ADR-018 decision 8: sending a scene and rolling fade to black, a flame burns while the seam
 // answers, and a device that asks for less motion gets black at once and a still flame. The config
@@ -23,31 +24,29 @@ const fadeOf = (page: Page) =>
     opacity: getComputedStyle(wait).opacity,
   }));
 
-// The made-up seam answers after a second (ADR-018 decision 6), by a one-second timer in the page. A
-// test that has to look at the wait holds that timer: the page keeps it and runs it only when the test
-// says. The wait stays up until then, and ends the moment the seam answers. The page adds no timer of
-// its own, so nothing else waits on it.
-async function holdTheSeam(page: Page) {
-  await page.addInitScript(() => {
-    const held: (() => void)[] = [];
-    const real = window.setTimeout.bind(window);
-    window.setTimeout = ((handler: () => void, ms?: number, ...args: unknown[]) => {
-      if (ms !== 1000) return real(handler, ms, ...args);
-      held.push(() => handler());
-      return 0;
-    }) as typeof window.setTimeout;
-    (window as unknown as { answerTheSeam: () => void }).answerTheSeam = () => held.splice(0).forEach((run) => run());
+// The stand-in answers in a few milliseconds, so a test that has to look at the wait holds the API's
+// answer: the request goes to the API at once, and its answer reaches the page only when the test
+// says (lesson 021, with the seam now the API). The wait stays up until then, and ends the moment the
+// answer arrives. The API's own time is spent before the hold ends, so it is not inside `soon` below.
+// The page adds no timer of its own, so nothing else waits on it. Every timer is the real one, so axe
+// runs.
+async function holdTheAnswer(page: Page, route: string): Promise<() => void> {
+  let answer!: () => void;
+  const answered = new Promise<void>((resolve) => (answer = resolve));
+  await page.route(route, async (held) => {
+    const response = await held.fetch();
+    await answered;
+    await held.fulfill({ response });
   });
+  return answer;
 }
 
-const answerTheSeam = (page: Page) =>
-  page.evaluate(() => (window as unknown as { answerTheSeam: () => void }).answerTheSeam());
-
-async function sendTheScene(page: Page) {
-  await holdTheSeam(page);
+async function sendTheScene(page: Page): Promise<() => void> {
   await page.goto('/');
-  await page.getByRole('textbox', { name: 'DESCRIBE YOUR SCENE' }).fill('An inn in a major city.');
+  const answer = await holdTheAnswer(page, '**/api/interviews');
+  await sceneBox(page).fill('We want the name of a fence.');
   await page.getByRole('button', { name: 'SEND THE SCENE' }).click();
+  return answer;
 }
 
 test.describe('with less motion asked for', () => {
@@ -118,32 +117,35 @@ test.describe('with normal motion', () => {
   });
 });
 
-// The page adds no wait of its own: the screen is up for as long as the seam has not answered, and
-// gone the moment it does. The seam is held, so the wait cannot end any other way. "The moment" is
+// The page adds no wait of its own: the screen is up for as long as the API has not answered, and
+// gone the moment it does. The answer is held, so the wait cannot end any other way. "The moment" is
 // half a second, far under a wait a page might add.
 const soon = 500;
-test('the wait is shown after SEND THE SCENE and gone when the confirmation shows', async ({ page }) => {
-  await sendTheScene(page);
+test('the wait is shown after SEND THE SCENE and gone when the first question shows', async ({ page }) => {
+  const answer = await sendTheScene(page);
+  const question = page.getByRole('heading', { name: 'ONE QUESTION' });
   await expect(status(page)).toBeVisible();
   await page.waitForTimeout(1500);
   await expect(status(page)).toBeVisible();
-  await expect(page.getByRole('region', { name: 'Who is being made' })).toHaveCount(0);
+  await expect(question).toHaveCount(0);
 
-  await answerTheSeam(page);
-  await expect(page.getByRole('region', { name: 'Who is being made' })).toBeVisible({ timeout: soon });
+  answer();
+  await expect(question).toBeVisible({ timeout: soon });
   await expect(status(page)).toHaveCount(0, { timeout: soon });
 });
 
 test('the wait is shown after ROLL IT and gone when the character shows', async ({ page }) => {
-  await holdTheSeam(page);
-  await page.goto('/?state=forge-confirm');
+  await page.goto('/');
+  await toConfirmation(page, 'We want the name of a fence.');
+  const answer = await holdTheAnswer(page, '**/api/interviews/*/characters');
+  const sheet = page.getByRole('region', { name: 'Character sheet' });
   await page.getByRole('button', { name: 'ROLL IT' }).click();
   await expect(status(page)).toBeVisible();
   await page.waitForTimeout(1500);
   await expect(status(page)).toBeVisible();
-  await expect(page.getByRole('heading', { level: 1, name: 'AldoBun Sourdough' })).toHaveCount(0);
+  await expect(sheet).toHaveCount(0);
 
-  await answerTheSeam(page);
-  await expect(page.getByRole('heading', { level: 1, name: 'AldoBun Sourdough' })).toBeVisible({ timeout: soon });
+  answer();
+  await expect(sheet).toBeVisible({ timeout: soon });
   await expect(status(page)).toHaveCount(0, { timeout: soon });
 });
