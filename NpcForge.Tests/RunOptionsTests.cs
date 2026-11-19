@@ -304,28 +304,24 @@ public class RunOptionsTests
         Assert.Equal(@"C:\mine\saves.json", RunOptions.Parse(args).CharactersPath(@"C:\mine\saves.json"));
     }
 
-    // A path rooted at no drive, or a drive with no root, is read from the current drive or folder,
-    // so the save lands where nobody named: /c/Users/me/saves.json saved under C:\c\Users\me. Git Bash
-    // turns /c/... into C:/... before a program it starts sees it, so the raw form reaches the console
-    // from PowerShell, a script or a test that sets the variable. The API refuses these too (SavesPath).
+    // A path that is not a full path with its drive is read from the current drive or folder, so the
+    // save lands where nobody named: /c/Users/me/saves.json saved under C:\c\Users\me, and a bare
+    // saves.json crashed the save after the run. Git Bash turns /c/... into C:/... before a program it
+    // starts sees it, so the raw form reaches the console from PowerShell, a script or a test that sets
+    // the variable. The API refuses the same paths (SavesPath). The control is A_file_the_caller_named_wins.
     [Theory]
     [InlineData("/c/Users/me/saves.json")]
     [InlineData(@"\Users\me\saves.json")]
     [InlineData(@"C:saves.json")]
-    public void A_file_named_from_the_current_drive_is_refused_and_names_the_variable(string told)
+    [InlineData(@"scratch\saves.json")]
+    [InlineData("saves.json")]
+    [InlineData(" /c/Users/me/saves.json")]
+    public void A_file_that_is_not_a_full_path_is_refused_and_names_the_variable(string told)
     {
         var refusal = Assert.Throws<ArgumentException>(() => RunOptions.Parse([]).CharactersPath(told));
 
         Assert.Contains("NPCFORGE_CHARACTERS", refusal.Message);
         Assert.Contains(told, refusal.Message);
-    }
-
-    // A relative path is read from the folder the console was started in, which is the caller's own
-    // folder, so it stays allowed. Only the API, which DCP starts in its own folder, refuses one.
-    [Fact]
-    public void A_relative_file_the_caller_named_still_wins()
-    {
-        Assert.Equal(@"scratch\saves.json", RunOptions.Parse([]).CharactersPath(@"scratch\saves.json"));
     }
 
     // ADR-007: no answer flag and no --load means the GM describes the scene instead.
