@@ -21,6 +21,9 @@ public enum Rejection
     LongChoiceNotFromAScene,
     NotAnAskField,
     BlankAnswer,
+    // Answer was called with no Ask field left open. Its own reason, so a test can tell it from a
+    // refusal of the typed text (lesson 004), and a front end that answers twice is told so.
+    NothingToAsk,
 }
 
 // What backs an answer (ADR-010). Quoted is the GM's words as typed, cut from the scene, and the whole
@@ -62,6 +65,9 @@ public sealed class SceneDraft(string scene, IReadOnlyList<RollField> fields)
     private readonly Dictionary<string, Answer> _answers = [];
 
     public IReadOnlyDictionary<string, Answer> Answers => _answers;
+
+    // The scene as the GM typed it: the writer is given it word for word (ADR-008).
+    public string Scene => scene;
 
     // The only way in. Each check has its own reason, in this order. A rejection changes nothing, and
     // a second answer for a field replaces the first, so a model that retries or repeats itself
@@ -147,6 +153,17 @@ public sealed class SceneDraft(string scene, IReadOnlyList<RollField> fields)
     public IReadOnlyList<RollField> StillToAsk =>
         [.. fields.Where(f => f.WhenMissing == WhenMissing.Ask && !_answers.ContainsKey(f.Name))];
 
+    // The question to ask next, in the roll's order, or null when every Ask field is answered and the
+    // draft is ready to confirm. A front end asks this, shows it, and sends the reply to Answer.
+    public RollField? NextQuestion => StillToAsk.FirstOrDefault();
+
+    // The GM's reply to NextQuestion. With nothing to ask there is no field to answer, so it is
+    // refused rather than recorded against some other field.
+    public RecordResult Answer(string typed) =>
+        NextQuestion is { } question
+            ? RecordAsked(question.Name, typed)
+            : Reject(Rejection.NothingToAsk, "there is no question to answer.");
+
     // The GM's typed answer to a question the interview asked (ADR-010, decision 4). The GM typed it for
     // this very field, so it needs no quote; but only an Ask field is ever asked, and a blank is not an
     // answer. Each refusal has its own reason (lesson 004). The model's door, Record, is unchanged.
@@ -179,12 +196,14 @@ public sealed class SceneDraft(string scene, IReadOnlyList<RollField> fields)
             }),
     ];
 
-    // roll_character's arguments. A rolled field is left out, so the dice pick it; a NotGiven
-    // field with no answer goes as null, the key present, so the roll takes it as "not given".
+    // What the GM settles with a yes: Lines() without the rolled fields, which the dice pick after it.
+    public IReadOnlyList<ConfirmationLine> Settled() =>
+        [.. Lines().Where(line => line.Label != Label.Rolled)];
+
+    // roll_character's arguments, built from Settled() so what a page confirms is what is rolled. A
+    // NotGiven field with no answer goes as null, the key present, so the roll takes it as "not given".
     public Dictionary<string, object?> RollArguments() =>
-        Lines()
-            .Where(line => line.Label != Label.Rolled)
-            .ToDictionary(line => line.Field.Name, line => (object?)line.Value);
+        Settled().ToDictionary(line => line.Field.Name, line => (object?)line.Value);
 
     // The first sentence of the scene that holds the quote as whole words, and where in it.
     private (Words.Sentence Sentence, int At)? Find(IReadOnlyList<Words.Word> quote)
