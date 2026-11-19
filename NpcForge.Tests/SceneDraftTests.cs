@@ -486,6 +486,106 @@ public class SceneDraftTests
         return draft;
     }
 
+    // The step-by-step door (ADR-019, decision 2): a front end asks NextQuestion, shows it, and sends
+    // the reply to Answer, one request at a time.
+    [Fact]
+    public void NextQuestion_walks_the_ask_fields_in_roll_order_and_is_null_once_they_are_answered()
+    {
+        var draft = Draft();
+        Assert.Equal("setting", draft.NextQuestion?.Name);
+
+        draft.Answer("a harbour");
+        Assert.Equal("occupation", draft.NextQuestion?.Name);
+
+        draft.Answer("a smith");
+        Assert.Null(draft.NextQuestion);
+    }
+
+    [Fact]
+    public void NextQuestion_skips_an_ask_field_the_scene_already_answered()
+    {
+        var draft = Draft();
+        draft.Record("setting", "his tavern", "at his tavern");
+
+        Assert.Equal("occupation", draft.NextQuestion?.Name);
+    }
+
+    [Fact]
+    public void Answer_records_what_the_GM_typed_for_the_next_question()
+    {
+        var draft = Draft();
+
+        var result = draft.Answer("  a harbour  ");
+
+        Assert.Equal(Rejection.None, result.Reason);
+        Assert.Equal(new Answer("a harbour", Label.MyWords, new Asked()), draft.Answers["setting"]);
+        Assert.False(draft.Answers.ContainsKey("occupation"));
+    }
+
+    [Fact]
+    public void Answer_refuses_a_blank_reply_and_asks_the_same_question_again()
+    {
+        var draft = Draft();
+
+        var result = draft.Answer("   ");
+
+        Assert.Equal(Rejection.BlankAnswer, result.Reason);
+        Assert.Equal("setting", draft.NextQuestion?.Name);
+        Assert.Empty(draft.Answers);
+    }
+
+    [Fact]
+    public void Answer_with_nothing_asked_is_refused_for_that_reason_and_records_nothing()
+    {
+        var draft = Asked(Draft());
+        var before = draft.Answers.ToDictionary(a => a.Key, a => a.Value);
+
+        var result = draft.Answer("a harbour");
+
+        Assert.Equal(Rejection.NothingToAsk, result.Reason);
+        Assert.Equal(before, draft.Answers.ToDictionary(a => a.Key, a => a.Value));
+    }
+
+    [Fact]
+    public void Scene_is_the_text_as_the_GM_typed_it()
+    {
+        Assert.Equal(Tavern, Draft().Scene);
+    }
+
+    [Fact]
+    public void Settled_is_every_line_except_the_rolled_fields_in_the_rolls_order()
+    {
+        var draft = Asked(Draft());
+
+        var settled = draft.Settled();
+
+        Assert.Equal(
+            draft.Lines().Where(l => l.Field.WhenMissing != WhenMissing.Roll).Select(l => l.Field.Name),
+            settled.Select(l => l.Field.Name));
+        Assert.DoesNotContain(settled, l => l.Label == Label.Rolled);
+        Assert.Equal(["setting", "playersWant", "occupation"], settled.Select(l => l.Field.Name));
+    }
+
+    [Fact]
+    public void Settled_keeps_a_rolled_field_the_scene_did_record()
+    {
+        var draft = Asked(Draft());
+        draft.Record("obstacle", "Cant", "knows nothing about the guild");
+
+        Assert.Contains(draft.Settled(), l => l.Field.Name == "obstacle" && l.Value == "Cant");
+    }
+
+    [Fact]
+    public void RollArguments_is_Settled_as_name_to_value()
+    {
+        var draft = Asked(Draft());
+        draft.Record("obstacle", "Cant", "knows nothing about the guild");
+
+        Assert.Equal(
+            draft.Settled().ToDictionary(l => l.Field.Name, l => (object?)l.Value),
+            draft.RollArguments());
+    }
+
     [Fact]
     public void A_second_answer_replaces_the_first_and_a_rejection_changes_nothing()
     {

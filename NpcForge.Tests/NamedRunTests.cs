@@ -74,7 +74,7 @@ public class NamedRunTests
             var brief = BriefJson.Of(new Dice(run.Seed).Roll(run.RollArguments()));
 
             // The options Program.cs builds, so the replay compares like with like.
-            var options = new ChatOptions { ModelId = run.Model, MaxOutputTokens = 5000 };
+            var options = ModelOptions.New(run.Model);
             var client = new RecordingChatClient(model, file, run.RecordedFlags());
             try
             {

@@ -142,13 +142,7 @@ if (recordTo is not null)
 // one allowance, and a refused call is never recorded or sent.
 client = new SpendingCap(client, SpendingCap.TokensPerSession);
 
-// Shared by every request. Step 4 fills in Tools from the tool source before the first turn.
-var options = new ChatOptions
-{
-    ModelId = model,
-    // No Temperature: claude-opus-5 and claude-sonnet-5 reject it with a 400.
-    MaxOutputTokens = 5000,
-};
+var options = ModelOptions.New(model);
 
 // The dice: one Dice for the whole run, seeded by --seed or random. Every roll in the run casts from
 // it, a lab's variants and each roll again included, so under --seed the next roll takes the next
