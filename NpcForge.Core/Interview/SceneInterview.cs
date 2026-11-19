@@ -34,6 +34,42 @@ public static class SceneInterview
         if (scene is null)
             return null;
 
+        var draft = await ReadAsync(client, options, fields, scene, ct);
+
+        // A field the scene left out and the dice cannot pick is asked for, in the roll's order
+        // (ADR-010, decision 4). End of input here rolls nothing. The text comes from the field's own
+        // name and description, so no field is named in code.
+        while (draft.NextQuestion is { } field)
+        {
+            var typed = await AskAsync(gm, screen, field);
+            if (typed is null)
+                return null;
+            draft.Answer(typed);
+        }
+
+        screen.WriteLine();
+        WriteConfirmation(screen, draft.Lines());
+        screen.WriteLine();
+        screen.Write(Question + " ");
+
+        var answer = await gm.ReadLineAsync(ct);
+        if (answer is null)
+            screen.WriteLine();         // end of input left the cursor after the question
+        return answer?.Trim().Equals("yes", StringComparison.OrdinalIgnoreCase) == true
+            ? new Told(draft.Scene, draft.RollArguments())
+            : null;
+    }
+
+    // The model's turns over the scene, with no screen and no GM: what the console and the website's
+    // API both run first, so they cannot drift apart. The draft it returns holds what the scene said;
+    // the front end then asks NextQuestion until it is null (ADR-019, decision 2).
+    public static async Task<SceneDraft> ReadAsync(
+        IChatClient client,
+        ChatOptions options,
+        IReadOnlyList<RollField> fields,
+        string scene,
+        CancellationToken ct)
+    {
         var draft = new SceneDraft(scene, fields);
 
         // Guidance at index 0, the scene at index 1, word for word: the only words the model can
@@ -62,28 +98,7 @@ public static class SceneInterview
         // never parse the model's prose).
         Console.Error.WriteLine($"[interview] {closing}");
 
-        // A field the scene left out and the dice cannot pick is asked for, in the roll's order
-        // (ADR-010, decision 4). End of input here rolls nothing. The text comes from the field's own
-        // name and description, so no field is named in code.
-        foreach (var field in draft.StillToAsk)
-        {
-            var typed = await AskAsync(gm, screen, field);
-            if (typed is null)
-                return null;
-            draft.RecordAsked(field.Name, typed);
-        }
-
-        screen.WriteLine();
-        WriteConfirmation(screen, draft.Lines());
-        screen.WriteLine();
-        screen.Write(Question + " ");
-
-        var answer = await gm.ReadLineAsync(ct);
-        if (answer is null)
-            screen.WriteLine();         // end of input left the cursor after the question
-        return answer?.Trim().Equals("yes", StringComparison.OrdinalIgnoreCase) == true
-            ? new Told(scene, draft.RollArguments())
-            : null;
+        return draft;
     }
 
     // One question, asked again while the answer is blank. Null at end of input.
