@@ -1,10 +1,13 @@
 // ADR-017 decision 6: the one table of named states. A name, the path it opens on and the page's
 // own state value live here and nowhere else, typed against the page's union so a state that no
 // longer fits its page fails tsc. main.tsx looks a name up; tests/states.spec.ts walks the keys.
+// The pages call the API from a named state as from any other, and an interview id here, such as
+// 'bakery', is one the API never holds. So a button that calls the seam from a named state gets a
+// 404 and shows the failure state, with the scene kept (ADR-019 decision 4).
 import type { SavedCharacter } from '../api';
 import type { ForgeState } from '../ForgePage';
 import type { SavedState } from '../SavedPage';
-import { bakeryCharacters, bakeryFields, bakeryScene, marketFields, marketScene } from './bakery';
+import { bakeryCharacter, bakeryFields, bakeryScene, marketFields, marketScene } from './bakery';
 import { savedCharacters, savedList } from './saves';
 
 // One variant for each page, so main.tsx can hand each page only its own states.
@@ -27,6 +30,9 @@ export const namedStates: Record<string, NamedState> = {
   // the contrast check.
   'saved-open-unnamed': { page: 'saved', path: '/saved/8', state: { kind: 'open', character: save(8) } },
   'saved-missing': { page: 'saved', path: '/saved/99', state: { kind: 'missing', number: 99 } },
+  // The words api.ts gives a request that got no answer at all, such as one the browser dropped. With
+  // the dev server up and no API behind it, the message is the proxy's 502 instead.
+  'saved-failed': { page: 'saved', path: '/saved', state: { kind: 'failed', reason: 'The API did not answer.' } },
 
   'forge-describe': { page: 'forge', path: '/', state: { kind: 'describe', scene: '' } },
   'forge-reading': { page: 'forge', path: '/', state: { kind: 'reading', scene: bakeryScene } },
@@ -64,7 +70,7 @@ export const namedStates: Record<string, NamedState> = {
       kind: 'written',
       scene: bakeryScene,
       interview: 'bakery',
-      character: { kind: 'written', draft: '0', name: bakeryCharacters[0].name, sheet: bakeryCharacters[0].sheet },
+      character: { kind: 'written', draft: '0', name: bakeryCharacter.name, sheet: bakeryCharacter.sheet },
     },
   },
   // The dice in the console's own example of this line (docs/architecture.md, "The namer").
@@ -81,6 +87,31 @@ export const namedStates: Record<string, NamedState> = {
       kind: 'stopped',
       scene: bakeryScene,
       reason: 'Spending cap reached: this session has used 201,342 tokens of 200,000. Nothing more is sent to the model.',
+    },
+  },
+  // The 503 the owner is likeliest to meet: ModelClients' words for a key that was never set. It is
+  // long, so it puts a notice of several lines under the contrast check at phone width.
+  'forge-failed': {
+    page: 'forge',
+    path: '/',
+    state: {
+      kind: 'failed',
+      scene: bakeryScene,
+      reason: 'Missing user secret \'OpenAI:ApiKey\'. Set it with: dotnet user-secrets set "OpenAI:ApiKey" "<value>"',
+    },
+  },
+  // A save that got no answer: the character is kept, with the save offered again.
+  'forge-save-failed': {
+    page: 'forge',
+    path: '/',
+    state: {
+      kind: 'failed',
+      scene: bakeryScene,
+      reason: 'The API did not answer.',
+      written: {
+        interview: 'bakery',
+        character: { kind: 'written', draft: '0', name: bakeryCharacter.name, sheet: bakeryCharacter.sheet },
+      },
     },
   },
   'forge-saved': { page: 'forge', path: '/', state: { kind: 'saved', scene: bakeryScene, interview: 'bakery', number: 17 } },

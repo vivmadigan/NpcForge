@@ -1,5 +1,5 @@
 // The made-up saves as typed values, so a named state can hold them without awaiting the seam
-// (ADR-017 decision 6). No page imports from madeUp/ (decision 3).
+// (ADR-017 decision 6). No page imports this file; only the named states do (decision 3).
 import rawSaves from './saves.json' with { type: 'json' };
 import type { ListedCharacter, SavedCharacter } from '../api';
 

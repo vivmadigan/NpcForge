@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type ReactElement } from 'react';
 import {
   answer,
+  ApiError,
   rollAndWrite,
   save,
   startInterview,
@@ -17,6 +18,7 @@ import { Title } from './Title';
 import { Wait } from './Wait';
 
 type Written = Extract<RunResult, { kind: 'written' }>;
+type Kept = { interview: InterviewId; character: Written };
 
 // A step the GM can read and act on.
 type Settled =
@@ -28,6 +30,10 @@ type Settled =
   | { kind: 'written'; scene: string; interview: InterviewId; character: Written }
   | { kind: 'no-name'; scene: string; interview: InterviewId; reason: string }
   | { kind: 'stopped'; scene: string; reason: string } // the spending cap
+  // The API's fault, as it sent it (ADR-019 decision 4). `written` is the character a failed save
+  // was keeping. A new roll costs money and a repeated save is safe (decision 3), so the page keeps
+  // it and offers the save again.
+  | { kind: 'failed'; scene: string; reason: string; written?: Kept }
   | { kind: 'saved'; scene: string; interview: InterviewId; number: number };
 
 // A call to the seam is out. `from` is the step the GM just left, drawn under the fade (ADR-018
@@ -94,24 +100,42 @@ export function ForgePage({
   // The step on screen when a wait begins, to fade out from.
   const leaving = (): Settled | undefined => (isWaiting(state) ? state.from : state);
 
+  // A call to the seam, and the step it leads to. A fault from the API ends it in the failure state
+  // with the scene kept, whatever step it came from (ADR-019 decision 4), and with the character
+  // when the call was its save. Anything else thrown is a bug, and is left to surface.
+  async function settle(scene: string, next: () => Promise<ForgeState>, written?: Kept) {
+    try {
+      setState(await next());
+    } catch (fault) {
+      if (!(fault instanceof ApiError)) throw fault;
+      setState({ kind: 'failed', scene, reason: fault.message, written });
+    }
+  }
+
   // Each wait ends when the seam answers and not before: the page sets no timer (the epic's
   // constraint, ADR-018 decision 8).
   async function send(scene: string) {
     setState({ kind: 'reading', scene, from: leaving() });
-    setState(afterInterview(scene, await startInterview(scene)));
+    await settle(scene, async () => afterInterview(scene, await startInterview(scene)));
   }
   async function reply(scene: string, interview: InterviewId, text: string) {
     setState({ kind: 'reading', scene, from: leaving() });
-    setState(afterInterview(scene, await answer(interview, text)));
+    await settle(scene, async () => afterInterview(scene, await answer(interview, text)));
   }
   async function roll(scene: string, interview: InterviewId) {
     setState({ kind: 'writing', scene, interview, from: leaving() });
-    setState(afterRoll(scene, interview, await rollAndWrite(interview)));
+    await settle(scene, async () => afterRoll(scene, interview, await rollAndWrite(interview)));
   }
   async function keep(scene: string, interview: InterviewId, character: Written) {
-    const number = await save(character.draft);
-    recount();
-    setState({ kind: 'saved', scene, interview, number });
+    await settle(
+      scene,
+      async () => {
+        const number = await save(character.draft);
+        recount();
+        return { kind: 'saved', scene, interview, number };
+      },
+      { interview, character },
+    );
   }
 
   // The return type has no `undefined` in it, so a step with no case here fails tsc and cannot
@@ -243,6 +267,48 @@ export function ForgePage({
             </div>
           </>
         );
+      case 'failed': {
+        const { scene, written } = s;
+        const back = (
+          <button
+            className={written ? 'button' : 'button button-main'}
+            type="button"
+            onClick={() => setState({ kind: 'describe', scene })}
+          >
+            BACK TO YOUR SCENE
+          </button>
+        );
+        // After a failed save the page names the character and does not say "nothing was saved": an
+        // answer lost on the way back may hide a save that landed, and a second save of the same
+        // draft returns the first one's number (ADR-019 decision 3).
+        return (
+          <>
+            <ScenePanel scene={scene} />
+            <h1 className="page-title">FAILED</h1>
+            <p className="notice">Failed: {s.reason}</p>
+            {written ? (
+              <>
+                <p>{written.character.name} is kept, so you can try the save again.</p>
+                <div className="actions">
+                  <button
+                    className="button button-main"
+                    type="button"
+                    onClick={() => keep(scene, written.interview, written.character)}
+                  >
+                    TRY THE SAVE AGAIN
+                  </button>
+                  {back}
+                </div>
+              </>
+            ) : (
+              <>
+                <p>Your scene is kept, so you can send it again.</p>
+                <div className="actions">{back}</div>
+              </>
+            )}
+          </>
+        );
+      }
       case 'saved': {
         const { scene, interview, number } = s;
         return (

@@ -1,7 +1,25 @@
+import { readFileSync } from 'node:fs';
 import { expect, test, type Page } from '@playwright/test';
-import { bakeryScene, marketScene } from '../src/madeUp/bakery';
+import { bakeryCharacter, bakeryScene, marketScene } from '../src/madeUp/bakery';
 import { namedStates } from '../src/madeUp/states';
 import { contrastFindings } from './contrast';
+
+// The run forge-written's character is copied from. A Windows checkout may hold it with CRLF line ends.
+const runFile = readFileSync(
+  new URL('../../docs/runs/raw/2026-11-08-01-epic4-bakery-roll-again.md', import.meta.url),
+  'utf8',
+).replace(/\r\n/g, '\n');
+
+test('the made-up sheet is the bakery run file, byte for byte', () => {
+  const { name, sheet } = bakeryCharacter;
+  // The whole sheet: from the line after the writer's last `[loop] ... out` trace line to the line
+  // before the console's keep question.
+  const at = runFile.indexOf(` out\n${sheet}\nKeep this character?`);
+  expect(at, `${name}'s sheet is in the run file, whole`).toBeGreaterThan(-1);
+  // The last name the run accepted before this sheet is this character's name.
+  const named = runFile.slice(runFile.lastIndexOf('[app] name ', at));
+  expect(named.startsWith(`[app] name ${name} (`), `the run named this sheet's character ${name}`).toBe(true);
+});
 
 // Every step after the first keeps the GM's scene above it.
 async function sceneShown(page: Page, scene: string) {
@@ -30,6 +48,10 @@ const seen: Record<string, (page: Page) => Promise<void>> = {
     await expect(page.getByText('No save numbered 99.')).toBeVisible();
     // A page this short is exactly one window tall: the cave takes what the header leaves.
     expect(await page.evaluate(() => document.documentElement.scrollHeight <= window.innerHeight)).toBe(true);
+  },
+  'saved-failed': async (page) => {
+    await expect(page.getByText('The saves could not be read: The API did not answer.')).toBeVisible();
+    await expect(page.getByRole('link', { name: 'TRY AGAIN' })).toHaveAttribute('href', '/saved');
   },
   'forge-describe': async (page) => {
     await expect(page.getByRole('heading', { name: 'DESCRIBE YOUR SCENE' })).toBeVisible();
@@ -102,6 +124,21 @@ const seen: Record<string, (page: Page) => Promise<void>> = {
     // Nothing on the page asks the model for more.
     await expect(page.getByRole('button')).toHaveCount(0);
     await expect(page.getByRole('link', { name: 'OPEN THE SAVED CHARACTERS' })).toBeVisible();
+  },
+  'forge-failed': async (page) => {
+    await sceneShown(page, bakeryScene);
+    await expect(page.getByText(/^Failed: Missing user secret 'OpenAI:ApiKey'\./)).toBeVisible();
+    await expect(page.getByRole('button', { name: 'BACK TO YOUR SCENE' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'TRY THE SAVE AGAIN' })).toHaveCount(0);
+  },
+  'forge-save-failed': async (page) => {
+    await sceneShown(page, bakeryScene);
+    await expect(page.getByText('Failed: The API did not answer.')).toBeVisible();
+    // The name only, not the sheet.
+    await expect(page.getByText('AldoBun Sourdough is kept, so you can try the save again.')).toBeVisible();
+    await expect(page.getByRole('region', { name: 'Character sheet' })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'TRY THE SAVE AGAIN' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'BACK TO YOUR SCENE' })).toBeVisible();
   },
   'forge-saved': async (page) => {
     await expect(page.getByText('Saved as 17.')).toBeVisible();

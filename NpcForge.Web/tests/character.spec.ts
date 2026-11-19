@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { toConfirmation } from './forge';
 
 // ADR-018 decision 9: no page shows the rolled brief, on the forge page or on an opened save.
 async function expectNoBrief(page: Page) {
@@ -37,10 +38,13 @@ test('save, roll again and leave are in view when the character page opens, with
 
 test('save, roll again and leave are in view when the character page opens after ROLL IT', async ({ page }) => {
   await page.goto('/');
-  await page.getByRole('textbox', { name: 'DESCRIBE YOUR SCENE' }).fill('An inn in a major city.');
-  await page.getByRole('button', { name: 'SEND THE SCENE' }).click();
+  await toConfirmation(page, 'We want the name of a fence.');
+  // A GM who read to the foot of the confirmation, so the character page opens from a scrolled
+  // window, and the page has to scroll back up itself (lesson 022: the test reaches the case).
+  await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+  expect(await page.evaluate(() => window.scrollY)).toBeGreaterThan(0);
   await page.getByRole('button', { name: 'ROLL IT' }).click();
-  await expect(page.getByRole('heading', { level: 1 })).toHaveText('AldoBun Sourdough');
+  await expect(page.getByRole('region', { name: 'Character sheet' })).toBeVisible();
   await expectTopButtonsInView(page);
 });
 

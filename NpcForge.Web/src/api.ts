@@ -1,10 +1,8 @@
-// ADR-017 decision 3: the one place a page gets data. Epic 14 replaces the bodies below with calls
-// to NpcForge.Api and keeps these signatures, one PR at a time (ADR-019, decision 11). The saves are
-// real now: `listSaves` and `loadSave` read the API through the dev server's /api proxy
-// (vite.config.ts). The forge page's four calls still answer from madeUp/, and its made-up saves
-// live in sessionStorage after the real ones, until the forge page calls the API. No page imports
-// from madeUp/.
-import { bakeryCharacters, bakeryFields, type BriefEntry } from './madeUp/bakery';
+// ADR-017 decision 3: the one place a page gets data. Every function here calls one route of
+// NpcForge.Api through the dev server's /api proxy (vite.config.ts), and returns the API's answer
+// alone (ADR-019, decisions 3 and 8). Outcomes are bodies; every fault, or no answer at all, throws
+// the one ApiError, which each page shows in its failure state (decision 4). No page imports the
+// made-up data, which only the named states hold.
 
 // A page passes an id back and never reads it.
 export type InterviewId = string;
@@ -52,41 +50,9 @@ export type SavedCharacter = {
   sheet: string;
 };
 
-// The made-up run is the bakery run for any scene, so the confirmation never reads the scene.
-const bakeryInterview: InterviewId = 'bakery';
-
-// A real model takes many seconds to roll, name and write, and to read a scene. A short wait lets
-// someone clicking through the made-up run see the wait screen, as they will in epic 6.
-const aSecond = () => new Promise((resolve) => setTimeout(resolve, 1000));
-
-// The scene in one go. Returns the next question, the confirmation, or the cap.
-export async function startInterview(_scene: string): Promise<InterviewStep> {
-  // ADR-018 decision 6: the wait, as `rollAndWrite` has, so the flame shows on send.
-  await aSecond();
-  return { kind: 'confirm', interview: bakeryInterview, entries: bakeryFields };
-}
-
-// One answer to the last question (ADR-014: one answer in, the next step out).
-export async function answer(_interview: InterviewId, _text: string): Promise<InterviewStep> {
-  return { kind: 'confirm', interview: bakeryInterview, entries: bakeryFields };
-}
-
-// The bakery run's three characters in turn, then the first again. The draft id is the character's
-// place in that list, so `save` keeps the one on the screen.
-let written = 0;
-
-// The yes, and "again": new dice for the same scene and answers, a name, a sheet. Saves nothing.
-export async function rollAndWrite(_interview: InterviewId): Promise<RunResult> {
-  await aSecond();
-  const place = written % bakeryCharacters.length;
-  written += 1;
-  const { name, sheet } = bakeryCharacters[place];
-  return { kind: 'written', draft: String(place), name, sheet };
-}
-
-// Every fault from the API, as one type that carries the problem's detail (ADR-019 decision 4). A
-// 404 for a save is not one the saved page shows, so `loadSave` reads it as "none". No page shows
-// the rest yet: the failure state arrives with the forge page's call to the API.
+// Every fault from the API, as one type that carries the problem's detail (ADR-019 decision 4). Each
+// page shows it in its failure state. A 404 for a save is not a fault the saved page shows, so
+// `loadSave` reads it as "none". `status` is 0 when no answer came at all.
 export class ApiError extends Error {
   constructor(
     readonly status: number,
@@ -106,60 +72,62 @@ async function faultOf(response: Response): Promise<ApiError> {
   );
 }
 
-async function getJson<Body>(path: string): Promise<Body> {
-  const response = await fetch(path);
+// fetch rejects only when no answer came, such as a dropped connection, and its error names no
+// status. It becomes the same ApiError, so a page catches one type (ADR-019 decision 4, its last row).
+async function call<Body>(path: string, init?: RequestInit): Promise<Body> {
+  let response: Response;
+  try {
+    response = await fetch(path, init);
+  } catch {
+    throw new ApiError(0, 'The API did not answer.');
+  }
   if (!response.ok) throw await faultOf(response);
   return response.json();
 }
 
-const realSaves = () => getJson<ListedCharacter[]>('/api/saves');
+// A request that sends a body sends it as JSON, which is what the API's minimal routes read.
+const sending = (method: 'POST' | 'PUT', body?: object): RequestInit => ({
+  method,
+  headers: body === undefined ? undefined : { 'Content-Type': 'application/json' },
+  body: body === undefined ? undefined : JSON.stringify(body),
+});
 
-// A new save lives in sessionStorage, read and written only here, so it survives the page load of a
-// plain link as it would on a server, and each Playwright test starts with none (ADR-017 decision 3).
-// A save keeps its brief, because `listSaves` reads the occupation and the setting from it. The brief
-// stays inside the made-up code, and no type a page sees holds it (ADR-018 decision 9). The forge page
-// calls the API instead in epic 14's last PR, and this store goes then.
-const sessionKey = 'npcforge-saves';
+// An id goes into a path, so it is escaped there, though the API makes them of letters and digits.
+const at = (id: string) => encodeURIComponent(id);
 
-type KeptSave = SavedCharacter & { brief: BriefEntry[] };
-
-function sessionSaves(): KeptSave[] {
-  return JSON.parse(sessionStorage.getItem(sessionKey) ?? '[]');
+// The scene in one go. Returns the next question, the confirmation, or the cap.
+export async function startInterview(scene: string): Promise<InterviewStep> {
+  return call('/api/interviews', sending('POST', { scene }));
 }
 
-// Keeps a written character and returns its number: after the highest real save and every kept one,
-// so a made-up save never takes the number of a save the API holds (ADR-019 decision 8).
+// One answer to the last question (ADR-014: one answer in, the next step out).
+export async function answer(interview: InterviewId, text: string): Promise<InterviewStep> {
+  return call(`/api/interviews/${at(interview)}/answers`, sending('POST', { text }));
+}
+
+// The yes, and "again": new dice for the same scene and answers, a name, a sheet. Saves nothing.
+export async function rollAndWrite(interview: InterviewId): Promise<RunResult> {
+  return call(`/api/interviews/${at(interview)}/characters`, sending('POST'));
+}
+
+// Keeps a written character and returns its number. A second save of one draft returns the first
+// save's number and saves nothing more (ADR-019 decision 3).
 export async function save(draft: DraftId): Promise<number> {
-  const kept = sessionSaves();
-  const highest = Math.max(0, ...(await realSaves()).map(({ number }) => number));
-  const number = highest + kept.length + 1;
-  const { name, brief, sheet } = bakeryCharacters[Number(draft)];
-  sessionStorage.setItem(sessionKey, JSON.stringify([...kept, { number, name, brief, sheet }]));
+  const { number } = await call<{ number: number }>(`/api/drafts/${at(draft)}/save`, sending('PUT'));
   return number;
 }
 
-function briefValue(brief: BriefEntry[], field: string): string | null {
-  return brief.find((entry) => entry.field === field)?.value ?? null;
-}
-
-// Every save in number order: the API's, then the kept ones. Never the text.
+// Every save in number order. Never the text.
 export async function listSaves(): Promise<ListedCharacter[]> {
-  const kept = sessionSaves().map(({ number, name, brief }) => ({
-    number,
-    name,
-    occupation: briefValue(brief, 'occupation'),
-    setting: briefValue(brief, 'setting'),
-  }));
-  return [...(await realSaves()), ...kept];
+  return call('/api/saves');
 }
 
-// The save under this number, or null. A kept save is looked for only after the API says it holds none.
+// The save under this number, or null when the API holds none.
 export async function loadSave(number: number): Promise<SavedCharacter | null> {
   try {
-    return await getJson<SavedCharacter>(`/api/saves/${number}`);
+    return await call<SavedCharacter>(`/api/saves/${number}`);
   } catch (fault) {
-    if (!(fault instanceof ApiError && fault.status === 404)) throw fault;
+    if (fault instanceof ApiError && fault.status === 404) return null;
+    throw fault;
   }
-  const found = sessionSaves().find((character) => character.number === number);
-  return found ? { number: found.number, name: found.name, sheet: found.sheet } : null;
 }
