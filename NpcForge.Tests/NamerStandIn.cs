@@ -1,5 +1,4 @@
 using Microsoft.Extensions.AI;
-using System.Text.RegularExpressions;
 
 namespace NpcForge.Tests;
 
@@ -36,13 +35,9 @@ internal sealed class NamerStandIn : IChatClient
     public static NamerStandIn FollowsTheDice() => new(request =>
         request.Messages[^1].Role == ChatRole.Tool ? new Turn() : new Turn(NameFor(request.FirstUser)));
 
-    public static (string[] Syllables, string Family) NameFor(string namerMessage)
-    {
-        var first = Regex.Match(namerMessage, @"First name: starts with (\w), (\d) syllable");
-        var family = Regex.Match(namerMessage, @"Family name: starts with (\w)");
-        string[] sounds = [first.Groups[1].Value + "a", "ra", "na"];
-        return ([.. sounds.Take(int.Parse(first.Groups[2].Value))], family.Groups[1].Value + "ale");
-    }
+    // The rule lives in the API's stand-in, so the tests' namer and the website's cannot disagree about
+    // what a name that follows the dice is (ADR-019, decision 7).
+    public static (string[] Syllables, string Family) NameFor(string namerMessage) => NpcForge.Api.StandInChatClient.NameFor(namerMessage);
 
     public List<Request> NamerCalls { get; } = [];
     public List<Request> WriterCalls { get; } = [];
