@@ -261,11 +261,21 @@ public sealed class RunOptions
     // characters.json stays the owner's. A normal run and --load keep the tracked file (null: the
     // console opens FileCharacterStore.DefaultPath). `told` is NPCFORGE_CHARACTERS as the caller set it, and
     // always wins: the tests name their own file. Either way the answer is returned, so the
-    // console can say where it saved.
+    // console can say where it saved. A `told` rooted at no drive (/c/Users/..., \Users\...) or naming a
+    // drive with no root (C:saves.json) is refused: Windows reads it from the current drive or folder, so
+    // a Git Bash path saved under C:\c\Users\... while the console said it saved in /c/Users/.... A plain
+    // relative path is the caller's own folder, so it stays.
     public string? CharactersPath(string? told)
     {
         if (!string.IsNullOrEmpty(told))
+        {
+            if (Path.IsPathRooted(told) && !Path.IsPathFullyQualified(told))
+                throw new ArgumentException(
+                    $"NPCFORGE_CHARACTERS is \"{told}\", which Windows reads from the current drive, so it would save "
+                    + "somewhere you did not name. A Git Bash path such as /c/Users/... is one. Set it to a full path "
+                    + @"with its drive, such as C:\Users\you\saves.json.");
             return told;
+        }
 
         // A lab saves nothing. This is the second, independent stop behind that: even a bug in the
         // lab could only write a temp file, never the owner's characters.json.

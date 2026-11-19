@@ -570,7 +570,9 @@ the console's rule, and the website's API never reads it (ADR-019, decision 1).
 
 A replay or a recording run is not a real character, so it never uses the tracked file.
 `RunOptions.CharactersPath` decides the file for every run: an `NPCFORGE_CHARACTERS` the caller set
-wins; otherwise `--provider replay`, `--record` and `--lab` get a fresh `npcforge-replay-<guid>.json`,
+wins, unless Windows would read it from the current drive (`/c/Users/...`, `\Users\...`,
+`C:saves.json`), which stops the run before anything is saved; a plain relative path is read from the
+folder the console started in. Otherwise `--provider replay`, `--record` and `--lab` get a fresh `npcforge-replay-<guid>.json`,
 `npcforge-record-<guid>.json` or `npcforge-lab-<guid>.json` in the OS temp folder; a normal run and `--load` keep the tracked file.
 The console builds the store on the answer and ends with `[app] saved as N in <path>` whenever it
 chose the file, so the temp file can be found. The temp file is left in place on purpose.
