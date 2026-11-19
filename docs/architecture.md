@@ -423,6 +423,15 @@ anything else, end of input included, and `Program.cs` rolls only on the argumen
 one turn per field plus three; out of turns (`TurnCapReachedException`) it goes on to the
 confirmation with what was recorded, since every answer there already passed its checks.
 
+The interview comes in steps, so a front end that gets one answer per request runs the same rules as
+the console (ADR-019, decision 2). `SceneInterview.ReadAsync` is the model's half: the loop over the
+scene, the turn-cap catch and the traces, returning the `SceneDraft`. The draft then says what comes
+next: `NextQuestion` is the first Ask field with no answer, or null when the draft is ready to
+confirm; `Answer` records the GM's reply to it; `Settled()` is the confirmation without the rolled
+fields, and `RollArguments()` is built from it. `RunAsync` drives these same members with a
+`TextReader` and a `TextWriter`. `ModelOptions.New` builds the `ChatOptions` every model call is sent,
+so the console and the API send the same.
+
 - **The fields** come from the roll's schema, `Dice.Fields` (`RollField.ListFrom`): name, order,
   description, choices for an enum, and what a missing one gets (`WhenMissing`, ADR-010): not in
   `required` is *Roll*; required with a type that admits null is *NotGiven*; any other required field
@@ -445,8 +454,8 @@ confirmation with what was recorded, since every answer there already passed its
   field nobody recorded, sent to the roll as null. An interview never uses a flag default.
 - **The questions** (ADR-010, decision 4): after the interviewer's loop, code asks one question for
   each Ask field nobody recorded, in schema order, built from the field's name and description. An
-  empty line asks again, and end of input rolls nothing. The answer enters through
-  `SceneDraft.RecordAsked`, which takes only an Ask field and a value that is not blank, and is shown
+  empty line asks again, and end of input rolls nothing. The answer enters through `SceneDraft.Answer`,
+  which records it with `SceneDraft.RecordAsked`. That takes only an Ask field and a value that is not blank, and is shown
   as *my words*, "typed when asked". An answer carries its evidence: `Quoted` from `record_answer`,
   `Asked` from a question. `SceneDraft.Lines` throws while an Ask field has no answer, so a
   confirmation or a roll with a hole cannot be built. The answer reaches the writer through the

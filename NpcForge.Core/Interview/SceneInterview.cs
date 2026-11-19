@@ -38,7 +38,8 @@ public static class SceneInterview
 
         // A field the scene left out and the dice cannot pick is asked for, in the roll's order
         // (ADR-010, decision 4). End of input here rolls nothing. The text comes from the field's own
-        // name and description, so no field is named in code.
+        // name and description, so no field is named in code. AskAsync never hands back a blank, so
+        // Answer always records NextQuestion and the loop moves on to the next one.
         while (draft.NextQuestion is { } field)
         {
             var typed = await AskAsync(gm, screen, field);

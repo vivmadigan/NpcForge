@@ -2,8 +2,8 @@ using Microsoft.Extensions.AI;
 
 namespace NpcForge;
 
-// What every model call of a run is sent besides its messages. One place builds it, so the console
-// and the website's API cannot drift apart, and a recording made from one replays against the other.
+// What every model call of a run is sent besides its messages and tools. One place builds it, so the
+// console and the website's API cannot drift apart (ADR-019, decision 2).
 public static class ModelOptions
 {
     // Shared by every request. Step 4 fills in Tools from the tool source before the first turn.
