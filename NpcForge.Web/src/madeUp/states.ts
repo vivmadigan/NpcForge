@@ -100,6 +100,20 @@ export const namedStates: Record<string, NamedState> = {
       reason: 'Missing user secret \'OpenAI:ApiKey\'. Set it with: dotnet user-secrets set "OpenAI:ApiKey" "<value>"',
     },
   },
+  // A save that got no answer: the character is kept, with the save offered again.
+  'forge-save-failed': {
+    page: 'forge',
+    path: '/',
+    state: {
+      kind: 'failed',
+      scene: bakeryScene,
+      reason: 'The API did not answer.',
+      written: {
+        interview: 'bakery',
+        character: { kind: 'written', draft: '0', name: bakeryCharacter.name, sheet: bakeryCharacter.sheet },
+      },
+    },
+  },
   'forge-saved': { page: 'forge', path: '/', state: { kind: 'saved', scene: bakeryScene, interview: 'bakery', number: 17 } },
   'forge-left': { page: 'forge', path: '/', state: { kind: 'left', scene: bakeryScene } },
 };

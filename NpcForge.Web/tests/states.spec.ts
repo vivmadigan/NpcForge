@@ -129,6 +129,16 @@ const seen: Record<string, (page: Page) => Promise<void>> = {
     await sceneShown(page, bakeryScene);
     await expect(page.getByText(/^Failed: Missing user secret 'OpenAI:ApiKey'\./)).toBeVisible();
     await expect(page.getByRole('button', { name: 'BACK TO YOUR SCENE' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'TRY THE SAVE AGAIN' })).toHaveCount(0);
+  },
+  'forge-save-failed': async (page) => {
+    await sceneShown(page, bakeryScene);
+    await expect(page.getByText('Failed: The API did not answer.')).toBeVisible();
+    // The name only, not the sheet.
+    await expect(page.getByText('AldoBun Sourdough is kept, so you can try the save again.')).toBeVisible();
+    await expect(page.getByRole('region', { name: 'Character sheet' })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'TRY THE SAVE AGAIN' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'BACK TO YOUR SCENE' })).toBeVisible();
   },
   'forge-saved': async (page) => {
     await expect(page.getByText('Saved as 17.')).toBeVisible();
