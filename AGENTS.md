@@ -173,7 +173,7 @@ npm --prefix NpcForge.Web run screenshots          # free: rewrites docs/design/
 | --- | --- |
 | `README.md` | What NpcForge is, and why it is shaped this way |
 | `ROADMAP.md` | What's next, as epics, with a template for writing one |
-| `NpcForge.Api/` | The website's API: a minimal API over the core. It serves the two save routes so far |
+| `NpcForge.Api/` | The website's API: a minimal API over the core. It serves the saves, the interview, the roll and the save of a draft, and holds the stand-in model |
 | `NpcForge.AppHost/` | Aspire's AppHost. `dotnet run --project NpcForge.AppHost` starts the API and the pages |
 | `NpcForge.Web/` | The website's pages: Vite, React, TypeScript and their Playwright tests. The saved page reads the API, and the forge page is still made-up |
 | `docs/architecture.md` | How it fits together, and behaviour worth knowing |
