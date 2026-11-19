@@ -25,11 +25,22 @@ export default defineConfig({
       name: 'API',
       // The copy comes first and the API reads it. `dotnet run` builds the API, so a cold start waits for
       // a restore and a compile, and the timeout allows for that. The API's store is the file, so a test
-      // that saves changes this copy and never the owner's characters.json. NPCFORGE_OFFLINE is here so
-      // that a model client built later by mistake fails, and no route calls one yet.
+      // that saves changes this copy and never the owner's characters.json.
+      //
+      // The forge's routes call a model, and the API carries the console's UserSecretsId, so a run in
+      // Development would find the owner's real key (ADR-019, decision 6). Two stops keep every test
+      // free: the stand-in is the model (decision 7), and NPCFORGE_OFFLINE refuses a paid provider if
+      // the first stop is ever lost. The seed fixes the dice, so each interview names the same
+      // characters in the same order on every run.
       command: `node tests/copySaves.mjs "${savesFile}" && dotnet run --project ../NpcForge.Api --no-launch-profile`,
       url: `http://localhost:${apiPort}/api/saves`,
-      env: { ASPNETCORE_URLS: `http://localhost:${apiPort}`, NPCFORGE_CHARACTERS: savesFile, NPCFORGE_OFFLINE: '1' },
+      env: {
+        ASPNETCORE_URLS: `http://localhost:${apiPort}`,
+        NPCFORGE_CHARACTERS: savesFile,
+        NPCFORGE_PROVIDER: 'stand-in',
+        NPCFORGE_SEED: '14',
+        NPCFORGE_OFFLINE: '1',
+      },
       reuseExistingServer: false,
       timeout: 240_000,
     },
