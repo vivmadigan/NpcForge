@@ -4,14 +4,18 @@
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <!-- The console's secrets id, so the owner sets no new key: the API reads the same OpenAI and
+         Anthropic keys the console does (ADR-019, decision 6). -->
+    <UserSecretsId>bbb51e16-4872-4fa3-afdc-121ca0f172de</UserSecretsId>
     <!-- Not NpcForge: the core's types live there, and a type here with the same name as one there
          would shadow it (ADR-019, decision 3). -->
     <RootNamespace>NpcForge.Api</RootNamespace>
   </PropertyGroup>
 
   <ItemGroup>
-    <!-- The website's back end: the core for every rule, the adapters for the file store. No model
-         code yet, so no user secrets and no vendor package of its own (ADR-019, decision 11). -->
+    <!-- The website's back end: the core for every rule, the adapters for the file store and the model
+         clients. The vendor packages come through the adapters, so none is named here
+         (ADR-019, decision 1). -->
     <ProjectReference Include="..\NpcForge.Core\NpcForge.Core.csproj" />
     <ProjectReference Include="..\NpcForge.Adapters\NpcForge.Adapters.csproj" />
   </ItemGroup>

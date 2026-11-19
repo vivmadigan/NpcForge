@@ -12,7 +12,7 @@ NpcForge.slnx
 ├── NpcForge.Adapters  what two front ends share from the outside world: the model clients and their
 │                      default provider and model, record and replay, and the file store
 ├── NpcForge.Console   the app: flags, the lab, the save question, the list and the owner's characters.json
-├── NpcForge.Api       the website's API, a minimal API on the core: the two save routes so far
+├── NpcForge.Api       the website's API, a minimal API on the core: the saves, and the forge's interview, roll and save
 ├── NpcForge.AppHost   Aspire's AppHost: starts the API and the pages with one command
 └── NpcForge.Tests     xUnit, free: fake models, the real dice and tools, the whole app against a recording,
                        and the API run in-process
@@ -132,14 +132,26 @@ that still counts 16.
 
 ## The API
 
-`NpcForge.Api` is a minimal API on the core and the adapters, for the website (ADR-019). It has two
-routes, both reads, and no model code yet. It is a `Microsoft.NET.Sdk.Web` project with one
-`ICharacterStore`, a `FileCharacterStore`, registered in DI.
+`NpcForge.Api` is a minimal API on the core and the adapters, for the website (ADR-019). It has six
+routes: two reads of the saves and four for the forge. It is a `Microsoft.NET.Sdk.Web` project. DI holds
+an `ICharacterStore`, a `FileCharacterStore`, a `ModelChoice` and one `Forge`. The pages do not call
+the forge's four routes yet.
 
 | Route | Answers |
 | --- | --- |
 | `GET /api/saves` | Every save in number order, as `{ number, name, occupation, setting }`. `name` is the joined name, or null for a save from before the namer. `occupation` and `setting` are null when the brief lacks them. |
 | `GET /api/saves/{number}` | `{ number, name, sheet }`, where `sheet` is the saved text as written. A number no save holds is a 404 problem. A number that is no `int` matches no route and is a 404 with no body. |
+| `POST /api/interviews` with `{ scene }` | The first step. The scene is trimmed, and a blank one is a 400 problem. |
+| `POST /api/interviews/{id}/answers` with `{ text }` | The next step. A blank answer, or an answer with no question open, is a 422 problem and changes nothing. |
+| `POST /api/interviews/{id}/characters` | The character the dice and the writer made, from the settled answers. A second call is a roll again, on the interview's next dice. A question still open is a 409 problem. |
+| `PUT /api/drafts/{id}/save` | `{ number }`. A second save of one draft saves nothing and returns the first's number. |
+
+A step is a 200 body with a `kind`. It is `question`, with the interview's id and the next field's name
+and description. Or it is `confirm`, with the settled fields as `{ field, value }` in the roll's order,
+and a null value for a want the scene never gave. A field the dice will pick has no entry. Or it is
+`stopped`, with the spending cap's message. A roll is `written`, with the draft's id, the joined name
+and the sheet, or `no-name`, with the console's words, or `stopped`. The brief does not cross. The
+records that carry these, in `ForgeBodies.cs`, are the API's own, as the saves' are.
 
 The JSON field names are the ones in `ListedCharacter` and `SavedCharacter` in `src/api.ts`. The API's
 own records, `SaveRow` and `SaveSheet`, carry them, so no core type is serialised and a rename in the
@@ -164,6 +176,44 @@ message, the one the console prints for the same file (ADR-015, decision 4). The
 A file held for more than 5 s reaches the host too ("Storage"). The host answers it with its own 500,
 not problem details. In Development the body is the exception and its stack trace, and otherwise it
 is empty.
+
+`Forge` is one singleton. It holds every interview and every kept draft in memory until the process
+stops, and nothing expires, so after a restart the page's ids are 404s. An interview holds its
+`SceneDraft`, one `Dice` from the `NPCFORGE_SEED` setting, one `SpendingCap` of `TokensPerSession`, and a gate
+that lets one request at a time work on it, because the dice and the cap are not safe across threads.
+Each model-calling step gets options of its own from `ModelOptions.New`. The interview runs
+`SceneInterview.ReadAsync` and a roll runs `CharacterRun.RollAndWriteAsync`, as the console runs them,
+so the requests a model is sent are the console's. A kept draft holds the task of its first save. A
+second save awaits that task and so returns its number and saves nothing. A save that faulted is
+forgotten, so a retry after the owner mends the file can try again.
+
+The model comes from three settings that an environment variable can fill: `NPCFORGE_PROVIDER` and
+`NPCFORGE_MODEL`, which default to the console's, and `NPCFORGE_SEED`, which fixes every interview's
+dice as `--seed` does. They carry the app's prefix because the host reads every environment variable
+as a setting, so a bare `Model` would take a variable another tool set (`ForgeSettings`). A
+`ModelChoice` record in DI holds them and a factory for the client, so a test can put its own client
+under the forge. The client is made at the first model call and not at start-up, so the saved page
+works with no key. A factory that throws is not kept, so a key set later is found without a restart.
+The 503 is mapped around that call alone, as `InvalidOperationException` is the type the cap and a bug
+elsewhere throw too. Its message is `ModelClients`', so with `NPCFORGE_OFFLINE=1` it is the offline
+stop's. The API carries the console's user-secrets id, so a Development run finds the console's keys.
+`ToneFiles.Require` and `NotGivenFiles.Require` run at start-up, as the console runs them before its
+interview. So does the provider check: the API calls `stand-in`, `openai` or `anthropic`, and any other
+name stops it at start-up and names `NPCFORGE_PROVIDER`. `replay` is the console's, because it needs a
+recording the API has no setting for.
+
+The other faults are problem details too. An interview or draft the API does not hold is a 404. A roll
+the dice refuse is a 422 with the reason. The spending cap and no name are 200 bodies, because the
+page shows them as states and not as failures.
+
+`StandInChatClient` is the model for the provider `stand-in`, which the API picks before it calls
+`ModelClients.Create`. It is scripted and free. It tells the namer by its system message, the
+interviewer by the `record_answer` tool it is offered, and the writer is the rest. The interviewer
+records each choice field whose choice a short sentence of the scene names, quoting that sentence. It
+records no free-text field, so the interview asks for those. The namer names the character inside the
+dice it is sent, by `StandInChatClient.NameFor`, which the tests' `NamerStandIn` calls too. The writer
+returns one fixed sheet. Each response reports `TokensPerCall` tokens, 1,000 by default, so a test can
+reach the cap.
 
 `dotnet run --project NpcForge.AppHost` starts the API and the pages. The AppHost adds the API as a
 project and the pages through `AddViteApp`, with `WithReference(api)` and `WaitFor(api)`. Aspire adds
@@ -641,9 +691,9 @@ One real run is recorded once, and the whole app replays against it for free (AD
 
 ## Tests
 
-`dotnet test` is free: no network and no model. The whole suite, 525 tests, takes about 25 s. A test
+`dotnet test` is free: no network and no model. The whole suite, 562 tests, takes about 25 s. A test
 that starts the console carries `[Trait("Category", "Process")]`, so
-`dotnet test --filter "Category!=Process"` runs the 472 tests that start none in a few seconds. No test
+`dotnet test --filter "Category!=Process"` runs the 508 tests that start none in a few seconds. No test
 starts a server since the server retired. `LabRunTests` runs alone because the lab swaps the
 process-wide `Console.Error`.
 - `SavesApiTests`: the API's two routes, run in-process with `WebApplicationFactory` on a temp saves
@@ -655,6 +705,22 @@ process-wide `Console.Error`.
   message, and any other fault in the store is not reported as one. A blank saves path stops the API
   at start-up and names the variable, and a relative one stops it and asks for an absolute path. Each
   expected value is read off the file the test wrote.
+- `ForgeApiTests`: the forge's four routes, run in-process on a temp saves file and the stand-in, keyed
+  on `Forge`. The walk goes from a scene through each question, the confirmation, a roll and a save to
+  the list and a load, read against the temp file and the roll's own field list. The equality test runs
+  one seed and one scene through the core as `Program.cs` calls it and through the API. A recorder
+  keeps every request, and the test compares `Recording.Describe` of each in order, so the website
+  cannot send a model what the console would not. Two saves of one draft at once return one number and
+  save once, and a save into a file that will not parse is a 500 that a retry after mending the file
+  clears. A stand-in that reports a whole cap's tokens stops an interview after the one call that
+  spent it, and a roll again stops at the cap with the first character standing. The faults are a 404
+  for an interview or draft not held, a 400 for a blank scene, a 409 for a roll with a question open,
+  a 422 for a blank answer, and a 503 with the offline stop's message, which Production's lack of user
+  secrets backs with a second stop that fails for free. A model that could not be built is built on
+  the next interview. A provider the API cannot build stops it at start-up. A namer that never names
+  inside the dice gives the no-name body and no writer call.
+- `ApiFieldNamesTests`: reads `NpcForge.Web/src/api.ts` as text, found from the test's own source path
+  (lesson 015), and holds its `briefFields` list equal to `Dice.Fields` in order.
 - `AgentLoopTests`: the loop exits when the model sends no tool calls, throws at the cap, and runs a
   tool call through the writer's real tool. Fake models throughout.
 - `RollArgumentsTests`: what `Dice.Roll(arguments)` binds, pinned on the binder before it learned to

@@ -13,11 +13,15 @@ export type DraftId = string;
 // The spending cap, at any model call. Nothing was saved.
 export type Stopped = { kind: 'stopped'; reason: string };
 
-// The brief's field names, in the order the roll lists them (ADR-018 decision 1).
-export type BriefField =
-  | 'setting' | 'playersWant' | 'occupation' | 'difficulty' | 'characterWants' | 'obstacle'
-  | 'attitude' | 'mannerism' | 'weakness' | 'willNotDiscuss' | 'wrongAbout' | 'tone' | 'race'
-  | 'nameLetter' | 'nameSyllables' | 'familyLetter' | 'gender' | 'age' | 'look';
+// The brief's field names, in the order the roll lists them (ADR-018 decision 1). One list, and the
+// type comes from it, so a .NET test can read the names as text and hold them equal to the roll's own
+// (ADR-019 decision 8). Keep the list a plain array of quoted names.
+export const briefFields = [
+  'setting', 'playersWant', 'occupation', 'difficulty', 'characterWants', 'obstacle',
+  'attitude', 'mannerism', 'weakness', 'willNotDiscuss', 'wrongAbout', 'tone', 'race',
+  'nameLetter', 'nameSyllables', 'familyLetter', 'gender', 'age', 'look',
+] as const;
+export type BriefField = (typeof briefFields)[number];
 
 // One field the scene settled, in the roll's order, with the value the brief will hold. null is
 // "not given" (ADR-010 decision 2). A field the dice will pick has no entry. The page writes the
