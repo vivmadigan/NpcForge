@@ -198,7 +198,9 @@ The 503 is mapped around that call alone, as `InvalidOperationException` is the 
 elsewhere throw too. Its message is `ModelClients`', so with `NPCFORGE_OFFLINE=1` it is the offline
 stop's. The API carries the console's user-secrets id, so a Development run finds the console's keys.
 `ToneFiles.Require` and `NotGivenFiles.Require` run at start-up, as the console runs them before its
-interview.
+interview. So does the provider check: the API calls `stand-in`, `openai` or `anthropic`, and any other
+name stops it at start-up and names `NPCFORGE_PROVIDER`. `replay` is the console's, because it needs a
+recording the API has no setting for.
 
 The other faults are problem details too. An interview or draft the API does not hold is a 404. A roll
 the dice refuse is a 422 with the reason. The spending cap and no name are 200 bodies, because the
@@ -689,9 +691,9 @@ One real run is recorded once, and the whole app replays against it for free (AD
 
 ## Tests
 
-`dotnet test` is free: no network and no model. The whole suite, 558 tests, takes about 25 s. A test
+`dotnet test` is free: no network and no model. The whole suite, 562 tests, takes about 25 s. A test
 that starts the console carries `[Trait("Category", "Process")]`, so
-`dotnet test --filter "Category!=Process"` runs the 504 tests that start none in a few seconds. No test
+`dotnet test --filter "Category!=Process"` runs the 508 tests that start none in a few seconds. No test
 starts a server since the server retired. `LabRunTests` runs alone because the lab swaps the
 process-wide `Console.Error`.
 - `SavesApiTests`: the API's two routes, run in-process with `WebApplicationFactory` on a temp saves
@@ -714,7 +716,9 @@ process-wide `Console.Error`.
   spent it, and a roll again stops at the cap with the first character standing. The faults are a 404
   for an interview or draft not held, a 400 for a blank scene, a 409 for a roll with a question open,
   a 422 for a blank answer, and a 503 with the offline stop's message, which Production's lack of user
-  secrets backs with a second stop that fails for free.
+  secrets backs with a second stop that fails for free. A model that could not be built is built on
+  the next interview. A provider the API cannot build stops it at start-up. A namer that never names
+  inside the dice gives the no-name body and no writer call.
 - `ApiFieldNamesTests`: reads `NpcForge.Web/src/api.ts` as text, found from the test's own source path
   (lesson 015), and holds its `briefFields` list equal to `Dice.Fields` in order.
 - `AgentLoopTests`: the loop exits when the model sends no tool calls, throws at the cap, and runs a

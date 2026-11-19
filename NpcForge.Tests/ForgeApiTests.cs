@@ -364,4 +364,58 @@ public class ForgeApiTests : IDisposable
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
     }
+
+    // A refused build is not kept: a key the owner sets after the first refusal is found on the next
+    // interview, without a restart. The factory refuses once, as a missing key does, then builds.
+    [Fact]
+    public async Task A_model_that_could_not_be_built_is_built_on_the_next_interview()
+    {
+        var tries = 0;
+        using var api = new ForgeHost(NewSavesPath(), builder =>
+            builder.ConfigureTestServices(services => services.AddSingleton(new ModelChoice("stand-in", Model, () =>
+                ++tries == 1 ? throw new InvalidOperationException("no key yet") : new StandInChatClient()))));
+        var client = api.CreateClient();
+
+        var refused = await client.PostAsJsonAsync("/api/interviews", new { scene = Scene });
+        var step = await Start(client);
+
+        Assert.Equal(HttpStatusCode.ServiceUnavailable, refused.StatusCode);
+        Assert.Equal("question", Text(step, "kind"));
+    }
+
+    // A provider the API cannot build stops it at start-up, as a missing tone file does, and not at the
+    // first interview as a bare 500. Replay is the console's and needs a recording the API never has.
+    [Theory]
+    [InlineData("replay")]
+    [InlineData("stand_in")]
+    public void A_provider_the_API_cannot_build_stops_it_at_start_up(string provider)
+    {
+        using var api = new ForgeHost(NewSavesPath(), builder => builder.UseSetting(ForgeSettings.Provider, provider));
+
+        var refused = Assert.Throws<InvalidOperationException>(() => api.CreateClient());
+
+        Assert.Contains(ForgeSettings.Provider, refused.Message);
+    }
+
+    // No name followed the dice: a 200 with the page's no-name body, the namer's own reason, and no
+    // writer call, so there is no draft to save. The namer always gives a name the dice refuse.
+    [Fact]
+    public async Task A_roll_with_no_name_after_the_dice_is_the_no_name_body_and_calls_no_writer()
+    {
+        var model = NamerStandIn.Always(new NamerStandIn.Turn((["Qq", "q"], "Q")));
+        using var api = new ForgeHost(NewSavesPath(), builder =>
+            builder.ConfigureTestServices(services => services.AddSingleton(new ModelChoice("stand-in", Model, () => model))));
+        var client = api.CreateClient();
+        var confirm = await AnswerEverything(client, await Start(client));
+        // The interviewer's calls land with the writer's in this stand-in, so the count before the roll
+        // is the baseline.
+        var before = model.WriterCalls.Count;
+
+        var run = await Roll(client, Text(confirm, "interview")!);
+
+        Assert.Equal("no-name", Text(run, "kind"));
+        Assert.StartsWith("no name followed the dice", Text(run, "reason"));
+        Assert.Equal(before, model.WriterCalls.Count);
+        Assert.NotEmpty(model.NamerCalls);
+    }
 }

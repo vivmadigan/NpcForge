@@ -13,6 +13,12 @@ var provider = builder.Configuration[ForgeSettings.Provider] ?? ModelClients.Def
 var model = builder.Configuration[ForgeSettings.Model] ?? ModelClients.DefaultModel;
 var seed = builder.Configuration.GetValue<int?>(ForgeSettings.Seed);
 
+// A provider the API cannot build stops it here, as a missing tone file does, and not at the first
+// interview as a bare 500. Replay is the console's: it needs a recording, which the API has no setting for.
+if (provider is not ("stand-in" or "openai" or "anthropic"))
+    throw new InvalidOperationException(
+        $"{ForgeSettings.Provider} is \"{provider}\". The API calls stand-in, openai or anthropic.");
+
 // The stand-in is picked here, before ModelClients.Create, which knows no such provider, so the
 // console's providers do not change (ADR-019, decision 7). Any other provider is the console's, built
 // at the forge's first model call. The offline stop is read from configuration, which holds the
