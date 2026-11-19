@@ -18,7 +18,7 @@ internal sealed class ForgeHost(string savesPath, Action<IWebHostBuilder>? confi
         // secret is loaded: a key on the owner's machine is never found from here.
         builder.UseEnvironment(Environments.Production);
         builder.UseSetting(SavesPath.Variable, savesPath);
-        builder.UseSetting("Provider", "stand-in");
+        builder.UseSetting(ForgeSettings.Provider, "stand-in");
         configure?.Invoke(builder);
     }
 }

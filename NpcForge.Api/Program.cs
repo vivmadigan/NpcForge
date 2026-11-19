@@ -8,10 +8,10 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddSingleton<ICharacterStore>(new FileCharacterStore(SavesPath.From(builder.Configuration).Value));
 
 // The model the forge calls, from the console's own defaults so the site calls the model the console
-// calls (ADR-019, decision 6). `Seed` fixes the dice of every interview, as --seed does the console's.
-var provider = builder.Configuration["Provider"] ?? ModelClients.DefaultProvider;
-var model = builder.Configuration["Model"] ?? ModelClients.DefaultModel;
-var seed = builder.Configuration.GetValue<int?>("Seed");
+// calls (ADR-019, decision 6). The seed fixes the dice of every interview, as --seed does the console's.
+var provider = builder.Configuration[ForgeSettings.Provider] ?? ModelClients.DefaultProvider;
+var model = builder.Configuration[ForgeSettings.Model] ?? ModelClients.DefaultModel;
+var seed = builder.Configuration.GetValue<int?>(ForgeSettings.Seed);
 
 // The stand-in is picked here, before ModelClients.Create, which knows no such provider, so the
 // console's providers do not change (ADR-019, decision 7). Any other provider is the console's, built

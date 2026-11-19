@@ -179,7 +179,7 @@ is empty.
 
 `Forge` is one singleton. It holds every interview and every kept draft in memory until the process
 stops, and nothing expires, so after a restart the page's ids are 404s. An interview holds its
-`SceneDraft`, one `Dice` from the `Seed` setting, one `SpendingCap` of `TokensPerSession`, and a gate
+`SceneDraft`, one `Dice` from the `NPCFORGE_SEED` setting, one `SpendingCap` of `TokensPerSession`, and a gate
 that lets one request at a time work on it, because the dice and the cap are not safe across threads.
 Each model-calling step gets options of its own from `ModelOptions.New`. The interview runs
 `SceneInterview.ReadAsync` and a roll runs `CharacterRun.RollAndWriteAsync`, as the console runs them,
@@ -187,8 +187,10 @@ so the requests a model is sent are the console's. A kept draft holds the task o
 second save awaits that task and so returns its number and saves nothing. A save that faulted is
 forgotten, so a retry after the owner mends the file can try again.
 
-The model comes from three settings that an environment variable can fill: `Provider` and `Model`,
-which default to the console's, and `Seed`, which fixes every interview's dice as `--seed` does. A
+The model comes from three settings that an environment variable can fill: `NPCFORGE_PROVIDER` and
+`NPCFORGE_MODEL`, which default to the console's, and `NPCFORGE_SEED`, which fixes every interview's
+dice as `--seed` does. They carry the app's prefix because the host reads every environment variable
+as a setting, so a bare `Model` would take a variable another tool set (`ForgeSettings`). A
 `ModelChoice` record in DI holds them and a factory for the client, so a test can put its own client
 under the forge. The client is made at the first model call and not at start-up, so the saved page
 works with no key. A factory that throws is not kept, so a key set later is found without a restart.

@@ -165,7 +165,7 @@ public class ForgeApiTests : IDisposable
         var apiLog = new RequestLog(new StandInChatClient());
         using var api = new ForgeHost(NewSavesPath(), builder =>
         {
-            builder.UseSetting("Seed", Seed.ToString());
+            builder.UseSetting(ForgeSettings.Seed, Seed.ToString());
             builder.ConfigureTestServices(services => services.AddSingleton(new ModelChoice("stand-in", Model, () => apiLog)));
         });
         var http = api.CreateClient();
@@ -326,17 +326,19 @@ public class ForgeApiTests : IDisposable
         Assert.Equal(Asked[1].Name, Text(next, "field"));
     }
 
-    // ADR-019, decision 4: the offline stop answers 503 with ModelClients' own message. Production loads
-    // no user secrets, so if the stop were not passed through the answer would be the missing key's
-    // message and this would fail for free: nothing paid is reached either way.
+    // ADR-019, decision 4: the offline stop answers 503 with ModelClients' own message. The second stop is
+    // that the API sees no key: Production loads no user secrets, and the test checks that no environment
+    // variable hands it one before it sends anything. So if the offline stop were not passed through, the
+    // answer would be the missing key's message and this would fail for free: nothing paid is reached.
     [Fact]
     public async Task A_provider_the_offline_stop_refuses_is_a_503_problem_with_the_stops_message()
     {
         using var api = new ForgeHost(NewSavesPath(), builder =>
         {
-            builder.UseSetting("Provider", "openai");
+            builder.UseSetting(ForgeSettings.Provider, "openai");
             builder.UseSetting(ModelClients.OfflineVariable, "1");
         });
+        Assert.Null(api.Services.GetRequiredService<Microsoft.Extensions.Configuration.IConfiguration>()["OpenAI:ApiKey"]);
         var expected = Assert.Throws<InvalidOperationException>(
             () => ModelClients.Create("openai", Model, new Microsoft.Extensions.Configuration.ConfigurationBuilder().Build(), offline: true)).Message;
 
@@ -354,7 +356,7 @@ public class ForgeApiTests : IDisposable
     {
         using var api = new ForgeHost(NewSavesPath(), builder =>
         {
-            builder.UseSetting("Provider", "openai");
+            builder.UseSetting(ForgeSettings.Provider, "openai");
             builder.UseSetting(ModelClients.OfflineVariable, "1");
         });
 
