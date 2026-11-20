@@ -30,14 +30,19 @@ if ($env:VERIFY_KNOWN -and (Test-Path $env:VERIFY_KNOWN)) {
     }
 }
 
+# A known pid vouches for its children only while it is dead or is still the process we recorded. Once
+# Windows has given a dead member's pid to another program, that program and its children are not ours,
+# even though they started after the member did.
+function Test-Ours($pid_) { $start.ContainsKey($pid_) -and (-not $live[$pid_] -or $member[$pid_]) }
+
 do {
     $grew = $false
     foreach ($p in $live.Values) {
         $id = [int]$p.ProcessId
         if ($member[$id]) { continue }
         $parent = [int]$p.ParentProcessId
-        $byParent = $start.ContainsKey($parent) -and (Get-Start $p) -ge $start[$parent]
-        $watches = $p.Name -eq 'dcp.exe' -and ([string]$p.CommandLine) -match '--monitor (\d+)' -and $start.ContainsKey([int]$Matches[1])
+        $byParent = (Test-Ours $parent) -and (Get-Start $p) -ge $start[$parent]
+        $watches = $p.Name -eq 'dcp.exe' -and ([string]$p.CommandLine) -match '--monitor (\d+)' -and (Test-Ours ([int]$Matches[1]))
         if ($byParent -or $watches) {
             $member[$id] = $true
             $start[$id] = Get-Start $p
