@@ -234,7 +234,10 @@ free run that writes no save of the owner's. A reviewer showed this on 13.6.5: a
 stopped the API, and a good one gave the stand-in's sheet.
 Aspire is pinned to 13.6.5 (ADR-020). ADR-019's spike ran 13.4.2, whose dashboard and host packages
 carry audit advisories that 13.6.5 does not. A first restore puts 336 MB of Aspire packages in the
-NuGet cache, once.
+NuGet cache, once. The root `Directory.Build.props` makes an audit advisory of moderate, high or
+critical severity (NU1902 to NU1904) a build error in every project, transitive packages included, so
+a vulnerable pin fails the build instead of printing a warning. A new advisory on a package already
+in use will fail a build the same way, and the fix is to bump the package or write an ADR.
 
 ## One run, end to end
 
