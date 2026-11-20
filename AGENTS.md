@@ -167,21 +167,21 @@ npm --prefix NpcForge.Web run screenshots          # free: rewrites docs/design/
   `NPCFORGE_CHARACTERS` before `dotnet run --project NpcForge.AppHost`. The AppHost's environment
   passes through to the API, so all three reach it. `NPCFORGE_SEED=<n>` fixes the dice the same way.
 - The full suite takes about 25 s (24 to 25 s over five runs on 2026-11-10, once no test started a
-  server), and longer beside other work. Run the fast part between edits and the full suite before
-  saying a task is done. A test that starts the console carries `[Trait("Category", "Process")]`, or
-  it hides in the fast part (`NpcForge.Tests/ConsoleProcess.cs`).
-- Run each check once, at the cheapest level that proves it. On 2026-11-19 one session ran `npm test`
-  40 times and `dotnet test` 58 times, mostly repeats of a result already shown:
+  server), and longer beside other work. A test that starts the console carries
+  `[Trait("Category", "Process")]`, or it hides in the fast part (`NpcForge.Tests/ConsoleProcess.cs`).
+- Run each check once, at the cheapest level that proves it. Most of epic 14's test time went to
+  repeats of a result already shown.
+  - Between edits, run the fast part, one test class (`--filter`), or one spec with
+    `npm --prefix NpcForge.Web test -- tests/<name>.spec.ts --project desktop`, which keeps the type
+    check and leaves out the screenshots. After a comment-only edit outside `NpcForge.Core/skills/`,
+    `dotnet build` or the two `tsc --noEmit` checks that `npm test` runs are enough. A docs edit needs
+    neither.
   - A break-it's red run happens once. A test that fails on every run proves it in one; only a pass
     that might be flaky earns a loop.
-  - Between edits, run one test class (`--filter`) or one spec (`npx playwright test
-    tests/<name>.spec.ts --project desktop`). After an edit to comments or docs only, `dotnet build`
-    or `tsc` is enough.
-  - A reviewer reruns what it doubts and cites the builder's output for the rest. The lead runs each
-    full suite once, on the PR's final commit, and checks once, on the final history, that each
-    commit builds and passes the fast part.
-  - A timing quoted in a doc takes three runs a side. pstack's `benchmark-checklist` is for a
-    performance claim a change rests on.
+  - A reviewer cites the builder's suite runs and spends its own runs on break-its of its own. The
+    lead runs each full suite once, on the PR's final commit, before saying the task is done, and
+    checks once, on the final history, that each commit builds and passes the fast part.
+  - Three runs are enough to update a timing in a doc. Skip pstack's `benchmark-checklist` for that.
 
 ## Where things are
 
