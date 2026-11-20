@@ -12,8 +12,29 @@ namespace NpcForge;
 // store, so the lock is the operating system's, on the file, and it holds between the two processes
 // (ADR-019, decision 5). A database store awaits for real, so the port is async from the start
 // (ADR-014, decision 2).
-public sealed class FileCharacterStore(string path) : ICharacterStore
+public sealed class FileCharacterStore : ICharacterStore
 {
+    private readonly string _path;
+
+    // The one place the rule "a saves path is a full path with its drive" lives, so the console and the
+    // API both have it and a new front end cannot forget it (docs/architecture.md "Storage"). Windows reads
+    // any other path from the current drive or folder: a Git Bash /c/Users/... was saved under
+    // C:\c\Users\... while the console said it saved in /c/Users/..., and a bare saves.json was read from
+    // wherever the program started, which under the AppHost is not the caller's folder. Each front end
+    // builds its store before anything is paid for, so the refusal comes first. The store cannot know
+    // where the path came from, so the message names the variable that most often supplies it.
+    public FileCharacterStore(string path)
+    {
+        if (!Path.IsPathFullyQualified(path))
+            throw new ArgumentException(
+                $"\"{path}\" is not a full path with its drive, so the save would land somewhere nobody named: "
+                + "Windows reads such a path from the current drive or folder. A Git Bash path such as /c/Users/... "
+                + "is one, and so is a relative path. If it came from NPCFORGE_CHARACTERS, set that variable to a "
+                + @"full path such as C:\Users\you\saves.json.",
+                nameof(path));
+        _path = path;
+    }
+
     // The owner's saves when nothing names another file: NpcForge.Console/characters.json, three folders
     // up from bin\Debug\net10.0, where you can find it. AppContext.BaseDirectory is the folder of the
     // program that is running, not of this assembly, so this finds the console's file only when the
@@ -43,7 +64,7 @@ public sealed class FileCharacterStore(string path) : ICharacterStore
     public async Task<int> SaveAsync(SavedCharacter character, CancellationToken ct)
     {
         // The folder does not exist before the first save.
-        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+        Directory.CreateDirectory(Path.GetDirectoryName(_path)!);
         using var file = await OpenAsync(FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None, ct);
         var all = ReadAll(file);
 
@@ -101,7 +122,7 @@ public sealed class FileCharacterStore(string path) : ICharacterStore
         {
             try
             {
-                return new FileStream(path, mode, access, share);
+                return new FileStream(_path, mode, access, share);
             }
             catch (IOException ex) when (ex is not (FileNotFoundException or DirectoryNotFoundException)
                                          && waited.Elapsed < HeldFor)
@@ -133,7 +154,7 @@ public sealed class FileCharacterStore(string path) : ICharacterStore
         }
         catch (JsonException ex)
         {
-            throw new InvalidDataException($"Could not read {path}: {ex.Message}", ex);
+            throw new InvalidDataException($"Could not read {_path}: {ex.Message}", ex);
         }
 
         // The JSON parses, but a hand edit left an entry that is not a save: the brief or the text is
@@ -141,7 +162,7 @@ public sealed class FileCharacterStore(string path) : ICharacterStore
         // refused here, by its number, and not later as a crash in whoever reads it.
         foreach (var (number, saved) in all)
             if (saved is null || saved.Brief.ValueKind != JsonValueKind.Object || saved.Text is null)
-                throw new InvalidDataException($"Could not read {path}: entry {number} has no brief or no text.");
+                throw new InvalidDataException($"Could not read {_path}: entry {number} has no brief or no text.");
 
         return all;
     }
