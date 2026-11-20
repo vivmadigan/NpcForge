@@ -1,4 +1,5 @@
-import { expect, test, type Page } from '@playwright/test';
+import type { Page } from '@playwright/test';
+import { expect, test } from './fixture';
 import { contrastFindings } from './contrast';
 import { sceneBox, toConfirmation } from './forge';
 
@@ -14,20 +15,15 @@ const back = (page: Page) => page.getByRole('button', { name: 'BACK TO YOUR SCEN
 const keepBar = (page: Page) => page.getByRole('region', { name: 'Keep, roll again or leave', exact: true });
 
 // A fault the page catches must not also escape it. The header's count shows nothing whether its
-// handler ran or not, so the error the browser reports is the one place a missing handler shows.
-// On /saved/3 the header's answer can come after the page's. Each test's last check waits for its own
-// answer, and every /api request here is aborted at once, so by then the header's has failed too; the
-// load-state wait and the one task turn let its rejection reach the page. networkidle is not a wait
-// for every request in a long test: once it has fired for a document, it returns at once.
-let pageErrors: Error[] = [];
-test.beforeEach(({ page }) => {
-  pageErrors = [];
-  page.on('pageerror', (error) => pageErrors.push(error));
-});
+// handler ran or not, so the error the browser reports is the one place a missing handler shows, and
+// the shared fixture (fixture.ts) fails any test whose page reported one. It reads the errors at the
+// end of the test, though, and on /saved/3 the header's answer can come after the page's. Each test's
+// last check waits for its own answer, and every /api request here is aborted at once, so by then the
+// header's has failed too; this wait lets its rejection reach the page before the fixture looks.
+// networkidle is not a wait for every request in a long test: once it has fired for a document, it
+// returns at once.
 test.afterEach(async ({ page }) => {
   await page.waitForLoadState('networkidle');
-  await page.evaluate(() => new Promise((resolve) => setTimeout(resolve)));
-  expect(pageErrors.map((error) => error.message)).toEqual([]);
 });
 
 test('with no answer from the API, sending the scene shows the failure state, with the scene kept', async ({

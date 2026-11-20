@@ -829,7 +829,13 @@ A test that asserts on `Tool failed:` must give arguments that would otherwise s
 for the wrong reason (lesson 004).
 
 The pages have their own free suite. `npm --prefix NpcForge.Web test` runs `tsc --noEmit`, then
-Playwright at phone (390 by 844) and desktop (1280 by 800) width. Playwright starts its own API and
+`tests/checkSpecImports.mjs`, then Playwright at phone (390 by 844) and desktop (1280 by 800) width.
+Every spec takes `test` and `expect` from `tests/fixture.ts`, which fails any test whose page
+raised an uncaught error or left a promise rejected with no handler, and names the error. A missing
+fault handler shows there even where the page looks the same without it, as the header's empty count
+does. The check script fails a spec that takes them from `@playwright/test`, which would skip that
+fixture; only types may come from the package. A test that throws on purpose opts out with
+`test.use({ allowPageErrors: true })`, and none does. Playwright starts its own API and
 dev server on ports 5381 and 5382, and reuses neither. The API runs on the stand-in model with
 `NPCFORGE_PROVIDER=stand-in`, `NPCFORGE_SEED=14` and `NPCFORGE_OFFLINE=1` beside it, so no test can
 reach a paid model, and its saves are a temp copy of `src/madeUp/saves.json`. Tests run in parallel
@@ -841,9 +847,8 @@ role and place, and opens it. A second run ends with leave and sends no save, an
 on the confirmation sends no roll. `failure.spec.ts` aborts the page's `/api` requests to show the
 failure state on a scene sent, on a save, on the saved list and on an opened save, and rolls again
 from `forge-no-name` to get the API's own 404 for an interview it never held. It aborts one save
-alone, tries the save again, and finds the save's number in the list with the character's name. Each
-of its tests fails when the page reports an error, so a fault handler that is missing shows even
-where the page looks the same without it, as the header's empty count does. `character.spec.ts`
+alone, tries the save again, and finds the save's number in the list with the character's name.
+`character.spec.ts`
 shows no brief, and save, roll again and leave in the window with no scrolling, also after ROLL IT
 from a scrolled confirmation. `flame.spec.ts` steps the flame 1,000 frames and finds no lit cell on
 its top, left or right edge. `wait.spec.ts` holds the API's answer with `page.route` to look at the

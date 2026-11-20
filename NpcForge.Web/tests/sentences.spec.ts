@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from './fixture';
 import type { BriefField, ConfirmEntry } from '../src/api';
 import { plain, sentences, type Part } from '../src/sentences';
 

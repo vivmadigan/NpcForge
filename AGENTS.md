@@ -28,6 +28,9 @@ pstack, decide how to build it.
   profile, even when a test covers it.
 - Work until "Done when" holds, then report the evidence: what you ran and what it showed. A clean
   build is not evidence that it works. For a new test, show it fail with the code it guards removed.
+  A PR also shows its headline claim fail with the change reverted: the test that proves the PR's
+  point goes red on master's version of the code the PR changed. In epic 14, master's made-up
+  `api.ts` still passed the saved page's tests, so those tests did not prove the page called the API.
 - If an epic or task is ambiguous, or a constraint blocks it, stop and ask. Do not widen the scope.
 - When an epic is done: shrink it to one line under "Done" in `ROADMAP.md`, bring
   `docs/architecture.md` (and README's "Status") into line with the code, add the epic to the

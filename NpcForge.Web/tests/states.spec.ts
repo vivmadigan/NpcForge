@@ -1,5 +1,6 @@
 import { readFileSync } from 'node:fs';
-import { expect, test, type Page } from '@playwright/test';
+import type { Page } from '@playwright/test';
+import { expect, test } from './fixture';
 import { bakeryCharacter, bakeryScene, marketScene } from '../src/madeUp/bakery';
 import { namedStates } from '../src/madeUp/states';
 import { contrastFindings } from './contrast';

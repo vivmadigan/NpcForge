@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from './fixture';
 import rawSaves from '../src/madeUp/saves.json' with { type: 'json' };
 
 // The saved text and the saved name are read from the file itself, so a page that drops or adds a
