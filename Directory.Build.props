@@ -1,0 +1,15 @@
+<Project>
+
+  <PropertyGroup>
+    <!-- A NuGet audit advisory of moderate, high or critical severity (NU1902, NU1903, NU1904) fails the
+         build, so one cannot be scrolled past. In epic 14 the Aspire trial build printed 30 of them
+         (critical on Aspire.Dashboard.Sdk, high on the hosting packages), nobody read them, and ADR-019 then
+         pinned the vulnerable version. PR 3 hit it and ADR-020 replaced the pin. NU1901 (low) stays a
+         warning. The price is that a new advisory on a package already in use will fail a build some
+         morning. That is the point. Bump the package, or write an ADR for keeping it. The list is appended to and
+         never replaced, as the core does for RS0030, and NuGetAuditMode is already all for net10.0, so the
+         transitive packages, where the Aspire advisories were, are audited too. -->
+    <WarningsAsErrors>$(WarningsAsErrors);NU1902;NU1903;NU1904</WarningsAsErrors>
+  </PropertyGroup>
+
+</Project>
