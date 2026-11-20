@@ -4,7 +4,8 @@ using NpcForge.Api;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// One store, on the file the caller named. It is the API's one port (ADR-019, decision 5).
+// One store, on the file the caller named. It is the API's one port (ADR-019, decision 5). The store
+// refuses a path that is not a full path, so the API stops here, at start-up, on one.
 builder.Services.AddSingleton<ICharacterStore>(new FileCharacterStore(SavesPath.From(builder.Configuration).Value));
 
 // The model the forge calls, from the console's own defaults so the site calls the model the console

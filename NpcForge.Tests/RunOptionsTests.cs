@@ -304,26 +304,6 @@ public class RunOptionsTests
         Assert.Equal(@"C:\mine\saves.json", RunOptions.Parse(args).CharactersPath(@"C:\mine\saves.json"));
     }
 
-    // A path that is not a full path with its drive is read from the current drive or folder, so the
-    // save lands where nobody named: /c/Users/me/saves.json saved under C:\c\Users\me, and a bare
-    // saves.json crashed the save after the run. Git Bash turns /c/... into C:/... before a program it
-    // starts sees it, so the raw form reaches the console from PowerShell, a script or a test that sets
-    // the variable. The API refuses the same paths (SavesPath). The control is A_file_the_caller_named_wins.
-    [Theory]
-    [InlineData("/c/Users/me/saves.json")]
-    [InlineData(@"\Users\me\saves.json")]
-    [InlineData(@"C:saves.json")]
-    [InlineData(@"scratch\saves.json")]
-    [InlineData("saves.json")]
-    [InlineData(" /c/Users/me/saves.json")]
-    public void A_file_that_is_not_a_full_path_is_refused_and_names_the_variable(string told)
-    {
-        var refusal = Assert.Throws<ArgumentException>(() => RunOptions.Parse([]).CharactersPath(told));
-
-        Assert.Contains("NPCFORGE_CHARACTERS", refusal.Message);
-        Assert.Contains(told, refusal.Message);
-    }
-
     // ADR-007: no answer flag and no --load means the GM describes the scene instead.
     [Theory]
     [InlineData]

@@ -165,6 +165,38 @@ public sealed class FileCharacterStoreTests : CharacterStoreTests, IDisposable
         File.WriteAllText(_path, all.ToJsonString());
     }
 
+    // The rule that a saves path is a full path with its drive lives in this constructor alone, so each
+    // front end gets it by building a store (docs/architecture.md "Storage"). Windows reads any other
+    // path from the current drive or folder, so the save would land where nobody named: a Git Bash
+    // /c/Users/x/saves.json was saved under C:\c\Users\x while the console said /c/Users/x. Git Bash
+    // turns /c/... into C:/... before a program it starts sees it, so the raw form reaches the console from
+    // PowerShell, a script or a test that sets the variable. The control is the full path in
+    // A_full_path_is_accepted.
+    [Theory]
+    [InlineData("saves.json")]
+    [InlineData(@"..\saves.json")]
+    [InlineData("/c/Users/x/saves.json")]
+    [InlineData(@"\Users\x\saves.json")]
+    [InlineData("C:saves.json")]
+    [InlineData(@"scratch\saves.json")]
+    [InlineData(" /c/Users/x/saves.json")]
+    public void A_path_that_is_not_a_full_path_is_refused_and_named(string path)
+    {
+        var refusal = Assert.Throws<ArgumentException>(() => new FileCharacterStore(path));
+
+        Assert.Contains($"\"{path}\" is not a full path with its drive", refusal.Message);
+        Assert.Contains("NPCFORGE_CHARACTERS", refusal.Message);
+    }
+
+    // DefaultPath is the console's file, found from the running program's folder, and must stay full for
+    // the console's no-variable run to start.
+    [Fact]
+    public void A_full_path_is_accepted()
+    {
+        Assert.Null(Record.Exception(() => new FileCharacterStore(_path)));
+        Assert.Null(Record.Exception(() => new FileCharacterStore(FileCharacterStore.DefaultPath)));
+    }
+
     // The console and the API are two processes on one characters.json, each with its own store
     // (ADR-019, decision 5). Two stores on one file stand for them. The saves come from two real
     // threads: SaveAsync's work runs on the caller's thread when nothing waits, so Task.WhenAll over two

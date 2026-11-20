@@ -8,12 +8,14 @@ var builder = DistributedApplication.CreateBuilder(args);
 var own = builder.Configuration["NPCFORGE_CHARACTERS"];
 
 // `dotnet run` starts this process in its project folder and DCP starts the API in its own, so neither
-// knows the folder a relative path was meant from. The API refuses one too (SavesPath), but under the
-// AppHost that refusal shows only in the dashboard, so the command stops here, in the caller's terminal.
+// knows the folder a relative path was meant from. FileCharacterStore owns the rule and refuses one when
+// the API builds its store, but under the AppHost that refusal shows only in the dashboard, so the
+// command stops here, in the caller's terminal. This is a second check of the rule, not its owner: the
+// launcher cannot reference NpcForge.Adapters without taking the model vendors' packages with it.
 if (!string.IsNullOrWhiteSpace(own) && !Path.IsPathFullyQualified(own))
     throw new InvalidOperationException(
-        $"NPCFORGE_CHARACTERS is \"{own}\", a relative path. The AppHost and the API run in their own project folders, "
-        + "not yours, so it would name a different file. Set it to an absolute path.");
+        $"NPCFORGE_CHARACTERS is \"{own}\", which is not a full path with its drive. The AppHost and the API run in "
+        + @"their own project folders, not yours, so it would name a different file. Set it to a full path such as C:\Users\you\saves.json.");
 
 var saves = string.IsNullOrWhiteSpace(own)
     ? Path.GetFullPath(Path.Combine(builder.AppHostDirectory, "..", "NpcForge.Console", "characters.json"))

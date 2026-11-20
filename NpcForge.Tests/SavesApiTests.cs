@@ -236,18 +236,17 @@ public class SavesApiTests : IDisposable
         Assert.Contains("NPCFORGE_CHARACTERS", refusal.ToString());
     }
 
-    // The positive control is every other test here, which passes an absolute temp path and starts.
-    [Theory]
-    [InlineData("saves.json")]
-    [InlineData(@"scratch\saves.json")]
-    public void With_a_relative_saves_path_the_API_refuses_to_start_and_asks_for_an_absolute_one(string relative)
+    // The rule is FileCharacterStore's, held by FileCharacterStoreTests; this is the one start-up that shows
+    // the API reaches it. The positive control is every other test here, which passes a full temp path and starts.
+    [Fact]
+    public void With_a_relative_saves_path_the_API_refuses_to_start_and_asks_for_a_full_one()
     {
-        using var api = new Api(relative);
+        using var api = new Api("saves.json");
 
         var refusal = Assert.ThrowsAny<Exception>(() => api.CreateClient());
 
+        Assert.Contains("\"saves.json\" is not a full path with its drive", refusal.ToString());
         Assert.Contains("NPCFORGE_CHARACTERS", refusal.ToString());
-        Assert.Contains("absolute path", refusal.ToString());
     }
 
     private sealed class BrokenStore : ICharacterStore

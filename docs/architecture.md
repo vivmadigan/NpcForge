@@ -168,13 +168,16 @@ the console.
 
 The API reads its saves file from `NPCFORGE_CHARACTERS`, a configuration key that an environment
 variable fills. `SavesPath.From` parses it where it enters. A missing or blank value stops the API at
-start-up with a message that names the variable. So does a relative one, because under the AppHost
-DCP starts the API in its own project folder, where a relative path names another file. The API never
-reads `FileCharacterStore.DefaultPath`, which is the console's rule. The AppHost passes the caller's
-own `NPCFORGE_CHARACTERS`, and without one the absolute path of `NpcForge.Console/characters.json`,
-found from the AppHost's folder. It refuses a relative one itself, before it starts anything, because
-`dotnet run` starts it in its project folder too, and the API's refusal would show only in the
-dashboard. The routes only read. A read that overlaps a console save waits for it, through the file
+start-up with a message that names the variable, since the API has no default file. A path that is not
+a full path with its drive stops it too, but that rule is `FileCharacterStore`'s, which the API builds
+at start-up ("Storage"): under the AppHost DCP starts the API in its own project folder, where a
+relative path names another file. The API never reads `FileCharacterStore.DefaultPath`, which is the
+console's rule. The AppHost passes the caller's own `NPCFORGE_CHARACTERS`, and without one the
+absolute path of `NpcForge.Console/characters.json`, found from the AppHost's folder. It checks that
+rule itself, before it starts anything, because `dotnet run` starts it in its project folder too, and
+the store's refusal would show only in the dashboard. That is a second check and not a second owner:
+the AppHost cannot reference `NpcForge.Adapters` without taking the model vendors' packages with it.
+The routes only read. A read that overlaps a console save waits for it, through the file
 store's lock ("Storage").
 
 Faults are problem details. A save file that will not parse is a 500 whose `detail` is the store's
@@ -643,9 +646,10 @@ the console's rule, and the website's API never reads it (ADR-019, decision 1).
 
 A replay or a recording run is not a real character, so it never uses the tracked file.
 `RunOptions.CharactersPath` decides the file for every run: an `NPCFORGE_CHARACTERS` the caller set
-wins, and must be a full path with its drive, the API's rule. Anything else (`/c/Users/...`,
-`\Users\...`, `C:saves.json`, `saves.json`) stops the run before anything is paid for: Windows would
-read it from the current drive or folder. Otherwise `--provider replay`, `--record` and `--lab` get a fresh `npcforge-replay-<guid>.json`,
+wins. `FileCharacterStore` owns the rule that a saves path is a full path with its drive: its constructor
+throws for any other (`/c/Users/...`, `\Users\...`, `C:saves.json`, `saves.json`), because Windows would
+read it from the current drive or folder and the save would land where nobody named. The console and the
+API both build their store before anything is paid for, so both stop there. Otherwise `--provider replay`, `--record` and `--lab` get a fresh `npcforge-replay-<guid>.json`,
 `npcforge-record-<guid>.json` or `npcforge-lab-<guid>.json` in the OS temp folder; a normal run and `--load` keep the tracked file.
 The console builds the store on the answer and ends with `[app] saved as N in <path>` whenever it
 chose the file, so the temp file can be found. The temp file is left in place on purpose.
@@ -705,9 +709,9 @@ One real run is recorded once, and the whole app replays against it for free (AD
 
 ## Tests
 
-`dotnet test` is free: no network and no model. The whole suite, 562 tests, takes about 25 s. A test
+`dotnet test` is free: no network and no model. The whole suite, 563 tests, takes about 25 s. A test
 that starts the console carries `[Trait("Category", "Process")]`, so
-`dotnet test --filter "Category!=Process"` runs the 508 tests that start none in a few seconds. No test
+`dotnet test --filter "Category!=Process"` runs the 509 tests that start none in a few seconds. No test
 starts a server since the server retired. `LabRunTests` runs alone because the lab swaps the
 process-wide `Console.Error`.
 - `SavesApiTests`: the API's two routes, run in-process with `WebApplicationFactory` on a temp saves
@@ -717,7 +721,7 @@ process-wide `Console.Error`.
   saved, with a CRLF and curly quotes kept. A number no save holds is a 404 problem that names it, and a
   number that is no `int` is a 404 and not a 400. A file that will not parse is a 500 with the store's
   message, and any other fault in the store is not reported as one. A blank saves path stops the API
-  at start-up and names the variable, and a relative one stops it and asks for an absolute path. Each
+  at start-up and names the variable, and a relative one stops it through the store's rule. Each
   expected value is read off the file the test wrote.
 - `ForgeApiTests`: the forge's four routes, run in-process on a temp saves file and the stand-in, keyed
   on `Forge`. The walk goes from a scene through each question, the confirmation, a roll and a save to
@@ -802,7 +806,9 @@ process-wide `Console.Error`.
   file deleted, stops before the interview and names the file. An intact copy reaching the interview
   is the control for this run and for `NotGivenFileTests`' (`ConsoleBuildCopy`).
 - `CharacterStoreTests`: the save, load and list rules, written once and run against the file store and
-  the tests' in-memory store. `FileCharacterStoreTests` adds the file's lock: two stores saving at the
+  the tests' in-memory store. `FileCharacterStoreTests` adds the saves-path rule, one table of paths
+  with no drive that the constructor refuses, with the console's one run of it in
+  `SavesPathRefusalTests`, and the file's lock: two stores saving at the
   same moment from two threads give every save a number of its own, a list waits while another handle
   holds the file, a save waits while another program reads it, and a save over a longer file leaves
   none of its old tail. `SaveFileGuardTests`: on a copy of the real `characters.json`, a new
