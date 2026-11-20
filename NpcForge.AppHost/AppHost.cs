@@ -14,8 +14,8 @@ var own = builder.Configuration["NPCFORGE_CHARACTERS"];
 // launcher cannot reference NpcForge.Adapters without taking the model vendors' packages with it.
 if (!string.IsNullOrWhiteSpace(own) && !Path.IsPathFullyQualified(own))
     throw new InvalidOperationException(
-        $"NPCFORGE_CHARACTERS is \"{own}\", a relative path. The AppHost and the API run in their own project folders, "
-        + "not yours, so it would name a different file. Set it to an absolute path.");
+        $"NPCFORGE_CHARACTERS is \"{own}\", which is not a full path with its drive. The AppHost and the API run in "
+        + @"their own project folders, not yours, so it would name a different file. Set it to a full path such as C:\Users\you\saves.json.");
 
 var saves = string.IsNullOrWhiteSpace(own)
     ? Path.GetFullPath(Path.Combine(builder.AppHostDirectory, "..", "NpcForge.Console", "characters.json"))
