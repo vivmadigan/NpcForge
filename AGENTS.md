@@ -170,6 +170,18 @@ npm --prefix NpcForge.Web run screenshots          # free: rewrites docs/design/
   server), and longer beside other work. Run the fast part between edits and the full suite before
   saying a task is done. A test that starts the console carries `[Trait("Category", "Process")]`, or
   it hides in the fast part (`NpcForge.Tests/ConsoleProcess.cs`).
+- Run each check once, at the cheapest level that proves it. On 2026-11-19 one session ran `npm test`
+  40 times and `dotnet test` 58 times, mostly repeats of a result already shown:
+  - A break-it's red run happens once. A test that fails on every run proves it in one; only a pass
+    that might be flaky earns a loop.
+  - Between edits, run one test class (`--filter`) or one spec (`npx playwright test
+    tests/<name>.spec.ts --project desktop`). After an edit to comments or docs only, `dotnet build`
+    or `tsc` is enough.
+  - A reviewer reruns what it doubts and cites the builder's output for the rest. The lead runs each
+    full suite once, on the PR's final commit, and checks once, on the final history, that each
+    commit builds and passes the fast part.
+  - A timing quoted in a doc takes three runs a side. pstack's `benchmark-checklist` is for a
+    performance claim a change rests on.
 
 ## Where things are
 
