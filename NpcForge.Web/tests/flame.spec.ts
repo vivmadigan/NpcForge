@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from './fixture';
 import { burn, HEIGHT, LEVELS, newFlame, seeded, stillFlame, WIDTH, type Flame } from '../src/flameGrid';
 
 // ADR-018 decision 8: the flame is a pure module, so a test steps it with a seeded random source and

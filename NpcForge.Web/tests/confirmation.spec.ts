@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from './fixture';
 import { namedStates } from '../src/madeUp/states';
 import { plain } from '../src/sentences';
 import { contrastFindings } from './contrast';

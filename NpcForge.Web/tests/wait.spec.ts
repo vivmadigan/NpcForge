@@ -1,4 +1,5 @@
-import { expect, test, type Page } from '@playwright/test';
+import type { Page } from '@playwright/test';
+import { expect, test } from './fixture';
 import { contrastFindings } from './contrast';
 import { sceneBox, toConfirmation } from './forge';
 
@@ -73,15 +74,13 @@ test.describe('with less motion asked for', () => {
   }
 
   test('in the real flow the black is there at once and the old step is not drawn', async ({ page }) => {
-    // The cavern redraws when its box changes size, and a box of no size makes its canvas throw.
-    const errors: string[] = [];
-    page.on('pageerror', (error) => errors.push(error.message));
+    // The cavern redraws when its box changes size, and a box of no size makes its canvas throw. The
+    // shared fixture fails the test on that error.
     await sendTheScene(page);
     await expect(status(page)).toBeVisible();
     expect(await fadeOf(page)).toEqual({ animation: 'none', opacity: '1' });
     await expect(page.locator('.under')).toBeHidden();
     expect(await contrastFindings(page)).toEqual([]);
-    expect(errors).toEqual([]);
   });
 
   test('on a phone held sideways the wait fits the window', async ({ page }) => {

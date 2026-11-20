@@ -1,4 +1,5 @@
-import { expect, test, type Page } from '@playwright/test';
+import type { Page } from '@playwright/test';
+import { expect, test } from './fixture';
 import { toConfirmation } from './forge';
 
 // ADR-018 decision 9: no page shows the rolled brief, on the forge page or on an opened save.

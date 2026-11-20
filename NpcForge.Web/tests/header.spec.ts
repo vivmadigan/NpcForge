@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from './fixture';
 import { savedList } from '../src/madeUp/saves';
 
 // Epic 13: a header on every page links to the saved characters. Both Playwright projects run each
