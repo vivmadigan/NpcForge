@@ -9,7 +9,7 @@ This directory is the maintained source for verifying the user-facing behavior o
 - Start every Bash call with `V=.claude/skills/verify/scripts/npcforge-verify.sh; D=$($V dir)`. `V` is the helper and `D` is the evidence directory.
 - Run `$V start` once, then `$V doctor`, and require no `FAIL` line.
 - The answers for a replay are line 1 of `NpcForge.Tests/Fixtures/replay.jsonl`. The helper reads them on every run, so a re-record changes nothing here.
-- Never drive a process that this run did not start. Never run the console except through `$V run`, `$V replay` or `$V load`, which keep every run free.
+- Never drive a process that this run did not start. Never run the console except through `$V run`, `$V replay` or `$V load`, and never start the API or the AppHost except through `$V api start` or `$V apphost start`, which keep every run free.
 
 ## Driving conventions
 
@@ -46,6 +46,7 @@ Keep implementation details out of the map. Name only user paths, stable handles
 - [Load a saved character](./load-saved.md) covers `--load N`, its exact output and its refusal of a number that was never saved.
 - [Flag refusals](./flag-guards.md) covers the bad flag combinations that stop before any cost, and a difficulty or a tone the roll rejects before the model is called.
 - [Scene interview](./scene-interview.md) covers a bare run waiting for the scene, and end of input stopping it with nothing rolled or saved.
+- [The API and the pages](./api-and-pages.md) covers starting and stopping `NpcForge.Api` alone or the AppHost with the pages, on the stand-in model and a saves file of the run's own, and proving that a stop leaves nothing running.
 - [Free test suite](./test-suite.md) covers `dotnet test`, a single test by name, and the break-it loop that shows a new test fail.
 
 Not mapped. The paid run (`dotnet run --project NpcForge.Console` with no `--provider replay`), the interview with a real scene and model, and `--record` for real. Whether a character reads well is *needs my eyes*.

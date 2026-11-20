@@ -1,15 +1,17 @@
 ---
 name: verify
-description: Drive NpcForge, a .NET console app that calls its core library in-process, and prove a change works without paying for a model call. Use after any edit to NpcForge.Console, NpcForge.Core, NpcForge.Adapters, a skill's SKILL.md or the tests, and before saying a task is done. Replays the recorded run, loads a saved character, probes the flag refusals, stops the scene interview at end of input and runs the free test suite.
+description: Drive NpcForge, a .NET console app, the website's API (NpcForge.Api) and its pages (NpcForge.Web, started by NpcForge.AppHost), all over one in-process core, and prove a change works without paying for a model call. Use after any edit to NpcForge.Console, NpcForge.Core, NpcForge.Adapters, NpcForge.Api, NpcForge.AppHost, NpcForge.Web, a skill's SKILL.md or the tests, and before saying a task is done. Replays the recorded run, loads a saved character, probes the flag refusals, stops the scene interview at end of input, starts and stops the API or the AppHost and pages on the stand-in model, and runs the free test suite.
 ---
 
 # Verify NpcForge
 
-NpcForge is a CLI. `dotnet run --project NpcForge.Console` calls `NpcForge.Core` in-process: one process, no ports. The core's dice roll a character brief. A model writes the character, the app saves it, and it prints. The answer is stdout. The trace is stderr, each line prefixed `[app]`, `[skill]`, `[loop]`, `[tool]` or `[interview]`. The core has no surface of its own here. It is driven through the console and through `dotnet test`.
+NpcForge is a CLI. `dotnet run --project NpcForge.Console` calls `NpcForge.Core` in-process: one process, no ports. The core's dice roll a character brief. A model writes the character, the app saves it, and it prints. The answer is stdout. The trace is stderr, each line prefixed `[app]`, `[skill]`, `[loop]`, `[tool]` or `[interview]`. The website is the second front end on the same core: `NpcForge.Api` serves it as JSON, and `NpcForge.AppHost` starts the API and `NpcForge.Web`'s pages together. Those are servers that must be stopped (`features/api-and-pages.md`). The core is driven through the console, the API and `dotnet test`.
 
 ## Nothing here costs money
 
 A normal run calls OpenAI, and the owner's user secrets hold real keys. A run is paid unless it uses `--provider replay` or the roll fails first. AGENTS.md says a paid run needs the owner's yes, with the command and why. A paid run is never part of this skill.
+
+`$V api start` and `$V apphost start` run the API on the stand-in model: `NPCFORGE_PROVIDER=stand-in` and `NPCFORGE_OFFLINE=1`, which refuses a paid provider if the first is ever lost. The helper refuses `--provider` with anything but `stand-in`.
 
 `scripts/npcforge-verify.sh run` is the only way this skill starts the console. It enforces three fences:
 - `--provider replay` answers from the recorded run in `NpcForge.Tests/Fixtures/replay.jsonl`. The helper refuses any other `--provider`.
@@ -27,17 +29,18 @@ $V start                                       # prints the evidence directory
 $V doctor                                      # ready means no FAIL line
 ```
 
-Each drive is one `dotnet run`, with nothing else to start or stop. `--no-build` runs whatever is in `bin/Debug`, so a missing or stale build drives old code. A fresh worktree has no `bin`. The run directory starts empty and the first save creates `save.json` in it. Run `dotnet build` outside the helper, which sets the proxy only for the console.
+A console drive is one `dotnet run`, with nothing to stop. `api` and `apphost` start servers, which `stop` ends (Cleanup). `--no-build` runs whatever is in `bin/Debug`, so a missing or stale build drives old code. A fresh worktree has no `bin`. The run directory starts empty and the first save creates `save.json` in it. Run `dotnet build` outside the helper, which sets the proxy only for the console.
 
 ## Doctor
 
 `$V doctor` is read-only. Run it first, and again whenever anything looks off. It checks:
 - `dotnet` is on `PATH`.
-- Each of the four projects (Core, Adapters, Console, Tests) was built after its newest `.cs` or `.csproj`.
-- `bin` holds the same `npc-writer/SKILL.md` and `scene-interviewer/SKILL.md` as the source. The model is told the `bin` copy.
+- Each of the six projects (Core, Adapters, Console, Api, AppHost, Tests) was built after its newest `.cs` or `.csproj`. `api start` and `apphost start` run `--no-build`.
+- The Console's and the Api's `bin` hold the same `npc-writer/SKILL.md` and `scene-interviewer/SKILL.md` as the source. The model is told the `bin` copy.
 - The fixture exists and its line 1 is a plain JSON array of flags.
 - No `NpcForge.Console` process is running. A hit is not necessarily yours. The owner may have one paused in the debugger. Do not kill it.
 - `NpcForge.Console/characters.json` is unmodified in `git status`.
+- No API or AppHost this run directory started is still recorded. It would lock its dll and fail the next build.
 
 ## Drive
 
@@ -49,6 +52,8 @@ Every Bash call is a fresh shell, so begin each with `V=.claude/skills/verify/sc
 | `$V load N` | `--load N` against `save.json`, split into `.stdout` and `.stderr`. |
 | `$V run [--split] [--save F\|--temp-save] [--answer T] NAME -- flags` | Any console flags, behind the three fences. Its stdin is a file holding the `--answer` text, empty by default, so a run never waits on the caller's terminal. |
 | `$V test [FILTER]` | `dotnet test --no-build`, optionally `--filter "FullyQualifiedName~FILTER"`. The whole suite takes about 25 s. `dotnet test --no-build --filter "Category!=Process"` runs the tests that start no process in about 5 s (`features/test-suite.md`). |
+| `$V api start [--seed N]`, `$V api stop` | NpcForge.Api alone, in the background, on the first free port from 5400, with a copy of `NpcForge.Web/src/madeUp/saves.json` in `$D` as its saves. Start waits until `/api/saves` answers, then prints the URL, also in `$D/api.url`. Stop ends the recorded tree and checks nothing of it is left. |
+| `$V apphost start [--seed N]`, `$V apphost stop` | The AppHost: the API at `http://localhost:5180`, the dashboard at 15180 and the pages, whose URL is in `$D/apphost.pages`. Refuses to start if any fixed port is held. Same saves copy, wait and stop. |
 | `$V fixture-flags` | Prints line 1 of the fixture, one flag per line. |
 
 Each run gets its own save file in the run directory, `save.json` unless `--save` names another. `NPCFORGE_CHARACTERS` is set on the console child only and never exported, so later hand-typed runs in the same shell do not save there. Use `--save` for any run that must not touch `save.json`, such as a refusal or a drift check.
@@ -97,14 +102,15 @@ Replace a value (`= null`, `= []`). Do not comment a line out. Commenting the on
 
 ## Cleanup
 
-- Processes. Every run ends on its own, and the helper's watchdog (GNU `timeout`, `NPCFORGE_VERIFY_TIMEOUT`, 180 seconds) ends a hung run and its children. Run `$V cleanup` to list any `NpcForge.*` process still up. Never kill by name. Stop only a process you started, by PID. One you did not start belongs to the owner.
+- Processes. Every console run ends on its own, and the helper's watchdog (GNU `timeout`, `NPCFORGE_VERIFY_TIMEOUT`, 180 seconds) ends a hung run and its children. Run `$V cleanup` to list any `NpcForge.*` process still up. Never kill by name. Stop only a process you started, by PID. One you did not start belongs to the owner.
+- Servers. A server never ends on its own. `$V api stop` and `$V apphost stop` end the one this run directory started, by its recorded pid and tree, and print what was running before and after. A start that fails stops itself. `cleanup` and `doctor` fail while a server is recorded and not stopped. A new `$V start` hides the old directory's servers from `stop`, so it warns: stop them with that directory in `NPCFORGE_VERIFY_DIR`. Do not stop one by hand with `timeout` or `taskkill` on the root alone: the AppHost's DCP, dashboard, API and Vite are not its children.
 - Source. After a break-it edit, `git checkout -- <file>`, then `git status --short` must show only what the task meant to change, and `dotnet build` again.
 - Shell. Nothing is exported, so nothing needs unsetting.
 - Evidence stays. `cleanup` and the helper never delete the run directory. The OS clears `$TEMP` in time, so copy what a PR needs into the PR.
 
 ## Isolate
 
-Two sessions can drive at once. Each run has its own save file. Each checkout, worktree or clone keeps its own pointer to its newest run directory. Set `NPCFORGE_VERIFY_DIR` on every call when more than one session is verifying in the same checkout, or they share it. Builds are shared. Never `dotnet build` while another session's run is in flight. A build fails with MSB3021 and MSB3027 while a running or debugger-paused `NpcForge` process holds a dll it needs to replace.
+Two sessions can drive at once. Each run has its own save file. Each checkout, worktree or clone keeps its own pointer to its newest run directory. Set `NPCFORGE_VERIFY_DIR` on every call when more than one session is verifying in the same checkout, or they share it. Builds are shared. Never `dotnet build` while another session's run is in flight. A build fails with MSB3021 and MSB3027 while a running or debugger-paused `NpcForge` process holds a dll it needs to replace. The AppHost's ports (5180, 15180, 19180, 20180) are the same in every checkout, so one AppHost runs at a time, and a second `apphost start` is refused while another is up.
 
 ## Gotchas
 
@@ -112,4 +118,5 @@ Two sessions can drive at once. Each run has its own save file. Each checkout, w
 - Plain `--load N` and `--list` run before any client or dice are built, so they need no key (ADR-013). The helper's `load` still passes `--provider replay`.
 - The replay stops at the first line that differs from the recording. After an edit to the npc-writer `SKILL.md`, a tool description or schema, a `ChatOptions` field or `Tables.cs`, that is the signal to re-record. The re-record is paid. Report the drift. Do not re-record to get green.
 - A run with no answer flag and no `--load` waits for the GM to type a scene. Give it `< /dev/null` (`features/scene-interview.md`), or it waits until the watchdog ends it.
+- Poll a server with `curl --max-time 2`. `Invoke-RestMethod` once waited 368 s for rows that `curl.exe` got in 14 s.
 - Not covered. A paid run, an interview with a real scene and model, and `--record` for real. Whether a character reads well is *needs my eyes*.
