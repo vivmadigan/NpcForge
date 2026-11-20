@@ -51,7 +51,8 @@ if (recordTo is not null)
 // The saves: one JSON file, the tracked NpcForge.Console/characters.json unless the run names another.
 // A replay or a recording run saves to a temp file unless NPCFORGE_CHARACTERS says otherwise, so it
 // never writes over the characters.json you keep (docs/architecture.md "Storage"). Nothing is read
-// until a list, a load or a save asks.
+// until a list, a load or a save asks, but the store refuses an NPCFORGE_CHARACTERS that is not a full
+// path here, before anything is paid for.
 var charactersPath = run.CharactersPath(Environment.GetEnvironmentVariable("NPCFORGE_CHARACTERS"));
 ICharacterStore saves = new FileCharacterStore(charactersPath ?? FileCharacterStore.DefaultPath);
 

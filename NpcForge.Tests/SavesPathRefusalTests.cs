@@ -2,8 +2,9 @@ namespace NpcForge.Tests;
 
 // A saves path that is not a full path is refused before the run, through the whole app as a process:
 // before the fix the console saved a /c/Users/... path under C:\c\Users\... and then said it had saved
-// in /c/Users/.... RunOptionsTests holds each form's refusal in process. Free: a replay with the offline
-// stop and the dead proxy.
+// in /c/Users/.... FileCharacterStoreTests holds each form's refusal in process, and this is the one
+// console run that shows the console reaches the store's refusal before anything is paid for. Free: a
+// replay with the offline stop and the dead proxy.
 [Trait("Category", "Process")]
 public class SavesPathRefusalTests : IDisposable
 {
@@ -28,7 +29,8 @@ public class SavesPathRefusalTests : IDisposable
             offline: true, environment: new() { ["NPCFORGE_CHARACTERS"] = DriveRooted }, input: "save\n");
 
         Assert.NotEqual(0, run.ExitCode);
-        Assert.Contains($"NPCFORGE_CHARACTERS is \"{DriveRooted}\"", run.Stderr);
+        Assert.Contains($"\"{DriveRooted}\" is not a full path with its drive", run.Stderr);
+        Assert.Contains("NPCFORGE_CHARACTERS", run.Stderr);
         Assert.DoesNotContain("[app] saved as", run.Stderr);
         Assert.False(File.Exists(_whereABrokenGuardSaves));
     }

@@ -9,10 +9,11 @@ public sealed record SavesPath(string Value)
     public const string Variable = "NPCFORGE_CHARACTERS";
 
     // A missing or blank value refuses to start and names the variable, so a run cannot fall back to
-    // a file nobody chose and save over the owner's characters. So does a relative one. Under the
-    // AppHost, DCP starts the API in its own project folder, so a relative path names a file the caller
-    // never meant. A direct `dotnet run` would read it from the caller's folder, but one rule holds
-    // however the API starts.
+    // a file nobody chose and save over the owner's characters. That is the API's own rule, since the
+    // console has a default file and the API has none. Whether the path is a full one is
+    // FileCharacterStore's rule, which Program.cs meets when it builds the store from this value: under
+    // the AppHost, DCP starts the API in its own project folder, so a relative path would name a file the
+    // caller never meant, and the store refuses it however the API starts.
     public static SavesPath From(IConfiguration configuration)
     {
         var value = configuration[Variable];
@@ -20,10 +21,6 @@ public sealed record SavesPath(string Value)
             throw new InvalidOperationException(
                 $"{Variable} is not set. The API reads and writes saves in the file it names, and never in a default one. "
                 + "The AppHost sets it. Outside the AppHost, set it to a saves file.");
-        if (!Path.IsPathFullyQualified(value))
-            throw new InvalidOperationException(
-                $"{Variable} is \"{value}\", a relative path. Under the AppHost the API runs in its own project folder, "
-                + "not yours, so it would name a different file. Set it to an absolute path.");
         return new SavesPath(value);
     }
 }

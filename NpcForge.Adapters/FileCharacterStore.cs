@@ -30,8 +30,7 @@ public sealed class FileCharacterStore : ICharacterStore
                 $"\"{path}\" is not a full path with its drive, so the save would land somewhere nobody named: "
                 + "Windows reads such a path from the current drive or folder. A Git Bash path such as /c/Users/... "
                 + "is one, and so is a relative path. If it came from NPCFORGE_CHARACTERS, set that variable to a "
-                + @"full path such as C:\Users\you\saves.json.",
-                nameof(path));
+                + @"full path such as C:\Users\you\saves.json.");
         _path = path;
     }
 
