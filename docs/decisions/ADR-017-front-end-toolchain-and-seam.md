@@ -2,7 +2,8 @@
 
 - **Status:** accepted. Amended 2026-11-15: decisions 1, 3 and 6, two defaults and one open item are
   amended for the website by ADR-018. Amended 2026-11-16: decisions 1, 2 and 3, one item left to the
-  owner and one consequence are amended by ADR-019.
+  owner and one consequence are amended by ADR-019. Amended 2026-11-27: decisions 2 and 3 are
+  amended by ADR-021 (`npm test` needs Docker, and `rollAndWrite` gains a step callback).
 - **Date:** 2026-11-14
 - **Supersedes:** no record. It fills in what ADR-014 left open when it named "a React app". It
   amends the INDEX line on tests, which named xUnit alone and now names the front end's own free

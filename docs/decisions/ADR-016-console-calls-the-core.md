@@ -1,6 +1,7 @@
 # ADR-016: The console calls the core in-process: the roll refuses by name, and the shapes as built
 
-- **Status:** accepted
+- **Status:** accepted. Amended 2026-11-27: decision 4's dice line and refused roll are amended by
+  ADR-021.
 - **Date:** 2026-11-10
 - **Supersedes:** the decisions INDEX lines on starting the server and on traces, as ADR-014 planned,
   and the server's part of the lines on structure, storage, tests and replay. It records the owner's
