@@ -193,10 +193,9 @@ try
 
         // The dialogue goes to stderr, so stdout stays the character text alone (lesson 007). The
         // required field the scene never mentions is asked for, not filled from a flag default (ADR-010,
-        // decision 4); flag runs keep their defaults, in the else branch. A copy of the options, so
-        // the interview's tool list never reaches the writer.
+        // decision 4); flag runs keep their defaults, in the else branch.
         var told = await SceneInterview.RunAsync(
-            client, options.Clone(), fields, Console.In, Console.Error, CancellationToken.None);
+            client, options, fields, Console.In, Console.Error, CancellationToken.None);
 
         // Anything but yes, end of input included: nothing is rolled, written or saved.
         if (told is null)

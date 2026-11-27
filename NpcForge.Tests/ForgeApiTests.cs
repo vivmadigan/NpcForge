@@ -150,13 +150,13 @@ public class ForgeApiTests : IDisposable
         var typed = "  " + Scene + "  ";
 
         // Through the core, as Program.cs wires it: the recorder where RecordingChatClient sits, the cap
-        // outside it, one options object for every roll and a copy for the interview, one Dice.
+        // outside it, one options object for the interview and every roll, one Dice.
         var coreLog = new RequestLog(new StandInChatClient());
         IChatClient client = new SpendingCap(coreLog, SpendingCap.TokensPerSession);
         var options = ModelOptions.New(Model);
         var dice = new Dice(Seed);
         var gm = new StringReader(typed + "\n" + string.Concat(Asked.Select(field => TypedFor(field.Name) + "\n")) + "yes\n");
-        var told = await SceneInterview.RunAsync(client, options.Clone(), Dice.Fields, gm, TextWriter.Null, CancellationToken.None);
+        var told = await SceneInterview.RunAsync(client, options, Dice.Fields, gm, TextWriter.Null, CancellationToken.None);
         var ask = new Ask(told!.RollArguments, told.Scene, "stand-in");
         await CharacterRun.RollAndWriteAsync(client, options, dice, ask, CancellationToken.None);
         await CharacterRun.RollAndWriteAsync(client, options, dice, ask, CancellationToken.None);

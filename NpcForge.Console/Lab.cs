@@ -323,7 +323,7 @@ public static class Lab
 
             foreach (var item in name is null ? [] : order)
             {
-                // A copy per variant, so a temperature or a tool list never leaks into the next.
+                // A copy per variant, so a temperature never leaks into the next.
                 var variantOptions = options.Clone();
                 if (item.Variant.Temperature is { } temperature)
                     variantOptions.Temperature = temperature;
