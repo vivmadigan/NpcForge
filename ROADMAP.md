@@ -124,7 +124,8 @@ was built".
   owner's saves. Lesson 008.
 - **The writer reads the scene** (epic 7, 2026-10-25). ADR-008, lesson 009 and
   `docs/runs/2026-10-25-01` to `-03`.
-- **Talk to it** (epic 2, 2026-10-25). The scene interview and the spending cap. ADR-007.
+- **Talk to it** (epic 2, 2026-10-25). The scene interview and the spending cap. The tavern scene
+  passed on OpenAI and Claude, judged by the owner on runs of their own. ADR-007.
 - **Better characters** (epic 3, 2026-10-27). Tone, race and name dice, the namer and the lab.
   ADR-009, lessons 010 and 011 and `docs/runs/2026-10-27-01-epic3-checks.md`.
 - **Fill the gaps in a scene** (epic 8, 2026-11-01). ADR-010, lesson 012 and

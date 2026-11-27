@@ -150,8 +150,10 @@ key, and a factory that throws is not kept, so a key set later is found without 
 carries the console's user-secrets id, so a Development run finds the console's keys. `ToneFiles` and
 `NotGivenFiles` are checked at start-up.
 
-Faults are problem details. A save file that will not parse is a 500 with the store's message; the
-routes catch `InvalidDataException` only. A file held for more than 5 s, and any other fault, reaches
+Faults are problem details. A model that cannot be built (no key, or the offline stop) is a 503,
+mapped around the client's creation alone, because its error type is one a bug elsewhere throws too.
+A save file that will not parse is a 500 with the store's message; the routes catch
+`InvalidDataException` only. A file held for more than 5 s, and any other fault, reaches
 the host as the bug it is. The spending cap and no name are 200 bodies, because the page shows them
 as states.
 
