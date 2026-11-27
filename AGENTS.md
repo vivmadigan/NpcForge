@@ -32,10 +32,13 @@ pstack, decide how to build it.
   point goes red on master's version of the code the PR changed. In epic 14, master's made-up
   `api.ts` still passed the saved page's tests, so those tests did not prove the page called the API.
 - If an epic or task is ambiguous, or a constraint blocks it, stop and ask. Do not widen the scope.
-- When an epic is done: shrink it to one line under "Done" in `ROADMAP.md`, bring
-  `docs/architecture.md` (and README's "Status") into line with the code, add the epic to the
-  build history table there, and write a lesson for each dead end the epic hit, all in the epic's
-  last PR.
+- When an epic is done, in its last PR: add what it proved to the build history table in
+  `docs/architecture.md`, the project's one history; shrink the epic to one line under "Done" in
+  `ROADMAP.md` that names its records; bring the map in `docs/architecture.md` and README's
+  "Status" (what works now and what is next, in a few sentences) into line with the code; and write
+  a lesson for each dead end the epic hit. The map holds what an agent cannot find by looking: a new
+  part or how parts connect, a rule across parts and its reason, or a gotcha. For a test's cases, a
+  config value, a count or a version, it names the file that holds them.
 
 **Ceremony matches risk.**
 
