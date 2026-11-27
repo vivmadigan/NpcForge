@@ -113,7 +113,7 @@ implementation and `haiku` for cheap checks. pstack's defaults name Fable; the m
 - One core, the adapters two front ends share, and front ends around them. An adapter one front end
   uses stays in that front end. A rule both front ends need goes in `NpcForge.Core`; an adapter to
   the outside world that both need goes in `NpcForge.Adapters`, which references the core and the
-  vendor packages and never a front end (`NpcForge.Console`, `NpcForge.Web`, later `NpcForge.Api`).
+  vendor packages and never a front end (`NpcForge.Console`, `NpcForge.Api`, `NpcForge.Web`).
   No Domain and Application split, no use-case handlers, no mediator. Inside the core, folders follow
   the domain: `Brief`, `Interview`, `Writing`, `Loop`, `Saves`. (ADR-014, ADR-019)
 - `NpcForge.Web` is the website's pages: Vite, React and TypeScript, with npm. A page gets data only
@@ -154,7 +154,8 @@ npm --prefix NpcForge.Web run screenshots          # free: rewrites docs/design/
   leave.` after showing it. Only `save` writes to the save file, and `again` rolls a new character for
   the same answers with the run's one set of dice. Piped input answers it: a test or a script ends its input with
   `save`, and an input that ends first saves nothing (`[app] not saved: end of input`).
-- API keys are user-secrets on the console project: `OpenAI:ApiKey` and `Anthropic:ApiKey`.
+- API keys are user-secrets on the console project: `OpenAI:ApiKey` and `Anthropic:ApiKey`. The API
+  carries the same user-secrets id, so a Development run of it finds the same keys.
 - A build fails while the app is running or paused in the debugger: it locks `NpcForge.Console.dll`.
   The same holds for `NpcForge.Api.dll` while the AppHost or `npm test` has the API up.
 - `npm --prefix NpcForge.Web test` builds and starts `NpcForge.Api` on a temp copy of
