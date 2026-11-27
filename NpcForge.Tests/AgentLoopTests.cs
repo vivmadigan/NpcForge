@@ -39,4 +39,41 @@ public class AgentLoopTests
         // The tool's sentence, word for word: the fake echoes whatever the tool returned.
         Assert.Equal("A typical innkeeper is busy, watchful, and knows everyone's business.", text);
     }
+
+    // The fifth rule in docs/architecture.md "The loop": the loop sets its tools on a copy, so one
+    // options object can serve every loop of a run and comes back as it went in.
+    [Fact]
+    public async Task Offers_the_model_its_tools_and_leaves_the_callers_options_as_they_were()
+    {
+        var model = new RecordsToolsChatClient();
+        var options = new ChatOptions { ModelId = "stand-in" };
+
+        await new AgentLoop(model, new FakeToolSource(), options).RunAsync([new(ChatRole.User, "hi")], CancellationToken.None);
+
+        Assert.Equal(["LookupArchetype"], model.Offered);
+        Assert.Null(options.Tools);
+        Assert.Equal("stand-in", model.ModelId);
+    }
+
+    // Answers at once with no tool call, and keeps what the request offered.
+    private sealed class RecordsToolsChatClient : IChatClient
+    {
+        public IReadOnlyList<string> Offered { get; private set; } = [];
+        public string? ModelId { get; private set; }
+
+        public Task<ChatResponse> GetResponseAsync(
+            IEnumerable<ChatMessage> messages, ChatOptions? options = null, CancellationToken cancellationToken = default)
+        {
+            Offered = [.. (options?.Tools ?? []).Select(tool => tool.Name)];
+            ModelId = options?.ModelId;
+            return Task.FromResult(new ChatResponse(new ChatMessage(ChatRole.Assistant, "Done.")));
+        }
+
+        public IAsyncEnumerable<ChatResponseUpdate> GetStreamingResponseAsync(
+            IEnumerable<ChatMessage> messages, ChatOptions? options = null, CancellationToken cancellationToken = default)
+            => throw new NotSupportedException();
+
+        public object? GetService(Type serviceType, object? serviceKey = null) => null;
+        public void Dispose() { }
+    }
 }
