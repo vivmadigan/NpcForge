@@ -94,6 +94,10 @@ behind that.
 - The database store and logins on epic 14's API, tested locally on a stand-in model.
 - Deploy that, with the invite list and both caps, before a paid model is switched on.
 - The pages gain a login. The first paid run by a friend.
+- Close-out: the map in `docs/architecture.md` states five things this epic changes. They are the
+  cap counted once per interview, `Forge` holding interviews in memory with no expiry, the one saves
+  file shared under a lock, the API finding the console's user secrets, and the held file's
+  `IOException` that no front end reports as one line.
 
 **Not in this epic.** Changing a saved character (epic 11). Sharing characters between friends.
 

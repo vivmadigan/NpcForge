@@ -102,37 +102,17 @@ character alone.
 
 ## Status
 
-Works end to end on OpenAI and Anthropic. The success test has passed: the same answers, three
-runs, three genuinely different characters whose levers differ, and a saved one loaded back
-unchanged. The Safety net is in and hardened: `dotnet test` replays the whole app against one
-recorded run, for free, so a later change can be checked without paying. A mistyped flag cannot start
-a paid run, `NPCFORGE_OFFLINE=1` stops a free run reaching a model, a replay never writes over the
-saved characters, and `dotnet test -c Release` tests the Release build. You can talk to it: a
-bare `dotnet run` interviews you about the scene, every trait traces to your words or the dice, and
-it has passed its paid run on OpenAI and Anthropic. The writer is sent your scene as well as the
-brief, so the character acts inside the situation you described. Better characters is done: the
-brief carries a tone, a race and name dice; the writer is told how to write in its tone; a namer
-names each character inside its dice before the writer starts, with the name kept in the save; and a
-writers' lab (`--lab`) writes one brief with two skills, temperatures or tones side by side, or
-blind for you to guess and `--score`. A blind tone check scored 5 of 6. A scene's gaps are filled
-honestly: the interview asks you for a missing place or role, marks a missing want as not given and
-writes the character to be won over, with a hook from your scene, and rolls a missing difficulty.
-Every character now opens with a passage you can read straight to your players, from a rolled
-gender, age and look, and the name fits the gender. Saving is your choice: after each character
-you save it, roll again for the same scene, or leave, and `--list` finds any save by number and
-name. The app is ready to grow: one core, `NpcForge.Core`, holds the dice, the brief, the namer,
-the writer, the interview and the save rules, and the console calls it in-process, as the website
-will. Saving sits behind a store a database can replace, and the MCP server it started with is
-retired. A field the dice cannot read, such as `--tone grumpy`, stops the run with one line naming
-the field and its values. The free tests run in about 25 s, and the part that starts no process in a
-few seconds. The website makes real characters on my machine: `dotnet run --project NpcForge.AppHost`
-starts its API and its pages, and on the forge page you describe a scene, answer its questions,
-confirm, read a character from the real dice and the console's model, and save it, roll again or
-leave. The saved page lists the same saves the console keeps and opens any of them. The pages look
-like a forge in a cavern: a confirmation in a few sentences, a character page with save, roll again
-and leave at the top, a fade to black with a flame while you wait, and a failure state with your
-scene kept when the API faults. Next: logins, a database and a spending cap so friends can use it,
-and later editing a saved character. See [ROADMAP.md](ROADMAP.md).
+Works end to end on OpenAI and Anthropic, from the console and from the website on my machine. You
+describe a scene, the interview asks only for a missing place or role, the dice settle the brief, a
+namer names the character inside its dice, and a writer writes a sheet that opens with a passage to
+read to your players. Then you save it, roll again for the same scene, or leave.
+`dotnet run --project NpcForge.AppHost` starts the website; the console's `--list` and `--load` open
+any save for free, and `--lab` compares writers side by side or blind. A recorded run replays the
+whole app in the free tests, so a change can be checked without paying.
+
+Next: logins, a database and a spending cap so friends can use it, then editing a saved character.
+What each epic proved is in [docs/architecture.md](docs/architecture.md) "How it was built", and what
+comes next is in [ROADMAP.md](ROADMAP.md).
 
 ## Out of scope, for now
 
