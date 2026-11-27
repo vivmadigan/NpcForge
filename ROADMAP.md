@@ -113,102 +113,36 @@ that rewrites the character calls the model, so its checks are paid.
 
 ## Done
 
-- **Steps 1 to 8** (2026-09-12 to 2026-09-22). The agent loop, the MCP server, the dice, the
-  writing skill, and saving. See `docs/architecture.md` "How it was built".
-- **Workflow reset** (2026-10-24). Agents write the code, pstack replaces the crew, the docs are
-  simplified. See ADR-006.
-- **Safety net** (2026-10-24). `--seed` fixes the dice, `--record` records a paid run, and
-  `dotnet test` replays the whole app against one recorded run for free. See
-  `docs/architecture.md` "Replay" and `docs/runs/2026-10-24-01-replay-fixture.md`.
-- **Harden the safety net** (2026-10-25). A mistyped flag stops the run before a model client is built,
-  `NPCFORGE_OFFLINE=1` stops the paid clients, a replay or a recording saves to a temp file, a test
-  replays the build configuration it was built in, and free tests prove the replay fails on a changed
-  prompt, tool list, option or dropped turn. See `docs/architecture.md` "Run options" and lesson 008.
-- **The writer reads the scene** (epic 7, 2026-10-25). The writer is sent the GM's scene word for
-  word beside the brief, plays the traits through it, makes the scene's condition the first lever,
-  and leaves a trouble the scene does not name as a gap for the GM. The control scene passed on three
-  seeds of three. See ADR-008, lesson 009 and `docs/runs/2026-10-25-01` to `-03`.
-- **Talk to it** (epic 2, 2026-10-25). A bare `dotnet run` greets the GM, reads the scene in one
-  go, labels every field of the brief as their words, inferred or rolled, and rolls only after a
-  yes. A spending cap stops a session at 200,000 tokens. The tavern scene passed on OpenAI and
-  Claude, judged by the owner on runs of their own. See ADR-007 and `docs/architecture.md` "The
-  scene interview".
-- **Better characters** (epic 3, 2026-10-27). Every brief carries a tone, a race and name dice;
-  one tone file reaches the writer; a namer names each character inside its dice before the writer
-  starts, and the save keeps the name; a writers' lab compares skills, temperatures or tones side by
-  side or blind. A blind tone check scored 5 of 6 on the second tone files, six runs gave six names
-  that follow their dice, and an elf and a dwarf read as different peoples. See ADR-009, lessons 010
-  and 011 and `docs/runs/2026-10-27-01-epic3-checks.md`.
-- **Fill the gaps in a scene** (epic 8, 2026-11-01). An interview asks the GM for a missing place or
-  role, marks a missing want `[not given]` and writes the character around winning the players'
-  goodwill with a hook from the scene, and rolls a missing difficulty (Easy 1, SomeWork 2, Wall 1).
-  Flag runs keep their defaults, and no unit needed a re-record. The Done when was judged against
-  ADR-010, which replaced its "one question about the want" with `[not given]`. The bakery scene got
-  no question and a baker who offers the thief-catching job, three seeds of three, and a goblin once
-  the interviewer split race from role. See ADR-010, lesson 012 and
+One line per epic, with where its record is. What each proved is in `docs/architecture.md` "How it
+was built".
+
+- **Steps 1 to 8** (2026-09-12 to 09-22). The loop, the dice, the writing skill and saving, typed by hand.
+- **Workflow reset** (2026-10-24). Agents write the code. ADR-006.
+- **Safety net** (2026-10-24). A recorded run replays the whole app for free. ADR-005, lesson 007
+  and `docs/runs/2026-10-24-01-replay-fixture.md`.
+- **Harden the safety net** (2026-10-25). A typo, a free run or a replay cannot reach a model or the
+  owner's saves. Lesson 008.
+- **The writer reads the scene** (epic 7, 2026-10-25). ADR-008, lesson 009 and
+  `docs/runs/2026-10-25-01` to `-03`.
+- **Talk to it** (epic 2, 2026-10-25). The scene interview and the spending cap. The tavern scene
+  passed on OpenAI and Claude, judged by the owner on runs of their own. ADR-007.
+- **Better characters** (epic 3, 2026-10-27). Tone, race and name dice, the namer and the lab.
+  ADR-009, lessons 010 and 011 and `docs/runs/2026-10-27-01-epic3-checks.md`.
+- **Fill the gaps in a scene** (epic 8, 2026-11-01). ADR-010, lesson 012 and
   `docs/runs/2026-11-01-01-epic8-checks.md`.
-- **Read it to the table** (epic 10, 2026-11-03). Every brief rolls a gender, an age and a look
-  from the owner's tables (a d20 of looks whose 20 gives two, with eye and hair colours), with no
-  older die moved, and a scene's words win. The namer is told the gender. Every sheet opens with
-  the name and a passage to read aloud as the party walks in: the scene's room, how they look,
-  their work and their first words. Seven runs of seven passed across the bakery and control
-  scenes. See ADR-011, lesson 013 and `docs/runs/2026-11-03-01-epic10-checks.md`.
-- **Faster tests** (epic 9, 2026-11-05). The free suite went from 12 m 19 s to a median 71 s, all 455
-  tests kept and passing, and a break-it check on three random guards failed all three. Each server
-  had waited 5 s to close: the console's MCP client moved to 2.3.1, which closes the server's stdin
-  first, and the server stays on 2.2.0. The console starts the server's launcher instead of
-  `dotnet run`. The owner allowed both app changes, which the epic had ruled out; stdout is
-  unchanged, and each run's stderr now ends with the server's own shutdown lines.
-  `dotnet test --filter "Category!=Process"` runs the 331 tests that start no process in about 5 s.
-  See lesson 014.
-- **Save what I like** (epic 4, 2026-11-08). After each character the app asks `save`, `again` or
-  `leave`, in flag runs too, and only `save` saves. `again` rolls new dice for the same answers and
-  scene on the same server, so a seeded run gives the same characters every time. `--list` shows
-  every save by number, name, role and place from an app-only `list_characters` tool, `--load` of a
-  number never saved stops with the reason, and the spending cap stops a run with `[app] stopped`
-  and exit 1. The bakery scene rolled again twice and saved the third, found by `--list` and opened
-  by `--load`. See ADR-013 and `docs/runs/2026-11-08-01-epic4-checks.md`.
-- **Ready to grow** (epic 5, 2026-11-10). One core, `NpcForge.Core`, holds the dice, the brief, the
-  namer, the writer, the interview and the save rules, and the console calls it in-process, as the
-  website will. Saves sit behind `ICharacterStore`; the file store and an in-memory store pass the
-  same tests, and the compiler keeps vendors, MCP, screens and files out of the core. The MCP server
-  is retired. The replay and roll-again tests pass on the unchanged fixtures, a seeded run gives the
-  same brief and character, `--list` and `--load` print what they printed, and a field the dice
-  cannot read stops the run with one line. See ADR-014, ADR-015, ADR-016 and lesson 017.
-- **A front end to click through** (epic 12, 2026-11-15). `NpcForge.Web` holds the website's two
-  pages on made-up data, with no backend. On the forge page a GM describes a scene, confirms the
-  brief, reads the character and saves it, rolls again or leaves; the saved page lists the saves and
-  opens one. A page gets data only through the six functions of `src/api.ts`, which epic 6
-  replaces. Free browser tests walk the whole flow and a run that leaves, read every word of every
-  sheet, and check text contrast at AA on all 16 named states at phone and desktop width, with a
-  screenshot of each in `docs/design/epic-12/`. The four defaults held: phones and computers,
-  nothing moves, the name NpcForge, and the rolled brief beside the character. See ADR-017, lessons
-  018 to 020 and `docs/design/epic-12-api-needs.md`.
-- **A forge in a cavern** (epic 13, 2026-11-16). The pages look like a forge in a cavern: a flat header
-  with a link to the saved characters, a large NPC FORGE title drawn as a picture over a cavern that
-  falls from dark rock to lava, and panels with no text on the picture. The confirmation is the GM's
-  scene and a few sentences the page writes from the fields the scene settled, with no field name,
-  label or rolled field. The character page has save, roll again and leave at the top beside the
-  scene, the parchment centred, the same buttons below it, and no brief. Sending a scene and rolling
-  fade to black while a flame burns for as long as the seam takes, and a device that asks for less
-  motion gets black at once and a still flame. Browser tests pass AA contrast on all 17 named
-  states at both widths, with a screenshot of each in `docs/design/epic-13/`, and the Core, Console
-  and Tests folders did not change. The two open choices held their defaults: an opened save shows
-  no brief, and the console does not show the confirmation as sentences. Left out: the sheet still
-  repeats the name and names brief fields in its lever headings, which needs a paid re-record. See
-  ADR-018, lessons 021 and 022 and `docs/design/epic-12-api-needs.md`.
-- **The website makes real characters** (epic 14, 2026-11-19). On my machine the browser describes a
-  scene, answers the interview one question at a time, and gets a character from the real dice and
-  the console's model, saves it to `NpcForge.Console/characters.json` and opens it again.
-  `dotnet run --project NpcForge.AppHost` starts `NpcForge.Api` and the pages under Aspire. The API is
-  a minimal API with one route for each of the six functions of `src/api.ts`, which keeps its
-  signatures and lost its made-up bodies; the model clients and the file store moved to
-  `NpcForge.Adapters`, which the console and the API share. A second save of one draft saves nothing
-  new, the file store holds a lock across a save, and every fault ends in each page's one failure
-  state, with the scene kept and, after a failed save, the character. Free tests walk the API on a stand-in model, hold what it sends the model
-  equal to what the console sends for one seed, reach the cap, and hold the field names to
-  `Dice.Fields`; the browser walks from a scene to the reopened save on the stand-in, and AA contrast
-  passes on all 20 named states at both widths. The open choices held their defaults: a scene's line
-  breaks are sent as typed, and the AppHost stays in the solution. The paid make, save and reopen in the
-  browser, the Aspire dashboard and the failure state's look were left to my eyes in the last PR. See
-  ADR-019 and ADR-020.
+- **Read it to the table** (epic 10, 2026-11-03). Look dice and a passage read aloud. ADR-011, lesson
+  013 and `docs/runs/2026-11-03-01-epic10-checks.md`.
+- **Faster tests** (epic 9, 2026-11-05). The free suite from 12 minutes to about one. ADR-012 and
+  lesson 014.
+- **Save what I like** (epic 4, 2026-11-08). Saving is the GM's choice; roll again, `--list` and
+  `--load`. ADR-013, lessons 015 and 016 and `docs/runs/2026-11-08-01-epic4-checks.md`.
+- **Ready to grow** (epic 5, 2026-11-10). One core called in-process; the MCP server retired. ADR-014
+  to ADR-016 and lesson 017.
+- **A front end to click through** (epic 12, 2026-11-15). The two pages on made-up data. ADR-017,
+  lessons 018 to 020 and `docs/design/epic-12-api-needs.md`.
+- **A forge in a cavern** (epic 13, 2026-11-16). The pages' look. ADR-018 and lessons 021 and 022.
+  Left open: the sheet still repeats the name and names brief fields in its lever headings, which
+  needs a paid re-record.
+- **The website makes real characters** (epic 14, 2026-11-19). The pages call `NpcForge.Api`. ADR-019
+  and ADR-020. Left to my eyes: the paid make, save and reopen in the browser, the Aspire dashboard
+  and the failure state's look.

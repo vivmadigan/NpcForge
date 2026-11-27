@@ -30,7 +30,7 @@ Preconditions:
 
 ## Gotchas
 
-- What each class guards, from `docs/architecture.md`. `AgentLoopTests` covers the exit on no tool calls, the turn cap and a tool call through the writer's real tool. `RollArgumentsTests` covers what the roll binds and what it refuses by name. `CharacterStoreTests` and `SaveFileGuardTests` cover a save loading back as saved and the owner's file kept byte for byte. `SeededRollTests` covers a handed-in value replacing its die without moving the others, and `DiceOrderTests` covers seeds 1 to 12 rolling their golden briefs. `ReplayTests` covers the whole app against the recording.
+- What each class guards. `AgentLoopTests` covers the exit on no tool calls, the turn cap and a tool call through the writer's real tool. `RollArgumentsTests` covers what the roll binds and what it refuses by name. `CharacterStoreTests` and `SaveFileGuardTests` cover a save loading back as saved and the owner's file kept byte for byte. `SeededRollTests` covers a handed-in value replacing its die without moving the others, and `DiceOrderTests` covers seeds 1 to 12 rolling their golden briefs. `ReplayTests` covers the whole app against the recording.
 - A test that asserts on `Tool failed:` must pass arguments that would otherwise succeed, or it passes for the wrong reason (lesson 004). Check that when you add one.
 - `ReplayTests` starts the console with `--no-build`, so it runs the last build of the console. Build first.
 - Replace a value to break a test (`= null`, `= []`). Commenting out the body of an unbraced `if` gives CS1023 and no test runs.
