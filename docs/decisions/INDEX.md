@@ -10,7 +10,7 @@ Decision, Why, Consequences.
 | Decision | Choice | Why, or the record |
 | --- | --- | --- |
 | How work is done | Agents write the code from epics in ROADMAP.md, on their own branches, and open PRs; the owner merges and owns `master`. | [ADR-006](ADR-006-agents-write-the-code.md), superseding [ADR-001](ADR-001-crew-and-living-memory.md) |
-| Model access | `IChatClient` (Microsoft.Extensions.AI), OpenAI and Anthropic behind `--provider` | The loop is written once and tested against two vendors |
+| Model access | `IChatClient` (Microsoft.Extensions.AI), OpenAI and Anthropic behind `--provider`, or `NPCFORGE_PROVIDER` on the API, which also has a free stand-in | The loop is written once and tested against two vendors |
 | `IChatModel` from the original design | Not written. `IChatClient` is it. | It already does the job |
 | `IToolSource` | Hand-written seam: `ListAsync` and `InvokeAsync` | Swaps a test's fake for the app's own `ConsoleTool` without touching the loop |
 | `UseFunctionInvocation` | Off | It would run the tool loop for you, and the loop is the thing this app is built around |
@@ -18,14 +18,14 @@ Decision, Why, Consequences.
 | `AgentLoop.RunAsync` | Takes `List<ChatMessage>`; `ChatOptions` comes in through the constructor | The caller builds the history, with the skill at index 0; the loop never changes |
 | Skills | `SKILL.md` files in the repo, read by the app into a system message | Works with both providers; a vendor's server-side skills would tie the app to one |
 | OpenAI endpoint | Responses, not Chat Completions | Chat Completions rejects function tools on reasoning models. [Lesson 001](../lessons/001-openai-responses-endpoint.md) |
-| Traces | stderr, one prefix per source: `[app]`, `[skill]`, `[loop]`, `[tool]`, `[interview]` | Stdout is the answer. [ADR-016](ADR-016-console-calls-the-core.md) |
-| Structure | One core, `NpcForge.Core`, holds every shared rule; `NpcForge.Adapters` holds what the front ends share from outside; two ports, `IChatClient` and `ICharacterStore` | [ADR-014](ADR-014-one-core-called-in-process.md), as built in [ADR-016](ADR-016-console-calls-the-core.md); the adapters and the API from [ADR-019](ADR-019-the-website-calls-the-core-through-an-api.md) |
+| Traces | stderr, one prefix per source: `[app]`, `[skill]`, `[loop]`, `[tool]`, `[interview]`, and the lab's `[lab]` and `[score]` | Stdout is the answer. [ADR-016](ADR-016-console-calls-the-core.md) |
+| Structure | One core, `NpcForge.Core`, holds every shared rule; `NpcForge.Adapters` holds what the front ends share from outside; two ports, `IChatClient` and `ICharacterStore`, with one store per person, so the core names no owner | [ADR-014](ADR-014-one-core-called-in-process.md), as built in [ADR-016](ADR-016-console-calls-the-core.md); the adapters and the API from [ADR-019](ADR-019-the-website-calls-the-core-through-an-api.md) |
 | Occupation | Supplied like the setting, default `"innkeeper"`, not rolled | [ADR-002](ADR-002-occupation-in-the-brief.md) |
 | Storage | One JSON file behind `ICharacterStore`; a run saves only when the GM types `save` | [ADR-003](ADR-003-saved-character-is-brief-and-text.md), its "every run saved" superseded by [ADR-013](ADR-013-saving-is-a-choice.md); numbering in [ADR-015](ADR-015-store-numbers-and-guards.md) |
 | Tests | Free: fake models, the real dice and tools, no network. The pages have their own Playwright suite, which starts the API; `dotnet test` never starts Node | Anything that costs money is not a test. [ADR-017](ADR-017-front-end-toolchain-and-seam.md) adds the pages' suite |
-| Recording paid runs | One file per run in `docs/runs/`, committed first; the `[skill]` line carries a fingerprint | [docs/runs/README.md](../runs/README.md) |
+| Recording paid runs | One file per run in `docs/runs/`, with the code committed before the run; the `[skill]` line carries a fingerprint | [docs/runs/README.md](../runs/README.md) |
 | Replay | A recorded run replays the whole app for free, compared request by request; re-recorded only after a behavior change, never for a restructure | [ADR-005](ADR-005-replay-a-recorded-run.md), amended twice |
-| The scene interview | The model records answers through `record_answer`; code decides each label, and only a choice may be inferred | [ADR-007](ADR-007-scene-interview-labels.md) |
+| The scene interview | The model records answers through `record_answer`; code decides each label, and only a choice of six or fewer values may be inferred | [ADR-007](ADR-007-scene-interview-labels.md) |
 | What the writer is sent | The skill, then the GM's scene word for word and the brief last; the brief wins where they disagree | [ADR-008](ADR-008-writer-reads-the-scene.md), superseding one line of ADR-007 |
 | Tone, race and name dice | Five brief fields, given, inferred or rolled; one tone file joins the writer's skill; a namer names inside the dice; a lab compares writers | [ADR-009](ADR-009-tone-race-and-name-dice.md) |
 | Gaps in a scene | A missing place or role is asked for, a missing want is null (`[not given]`), and a missing difficulty is rolled | [ADR-010](ADR-010-scene-gaps-asked-not-given-or-rolled.md), superseding ADR-007's default rule for interviews |

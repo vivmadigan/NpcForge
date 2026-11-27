@@ -118,8 +118,8 @@ was built".
 
 - **Steps 1 to 8** (2026-09-12 to 09-22). The loop, the dice, the writing skill and saving, typed by hand.
 - **Workflow reset** (2026-10-24). Agents write the code. ADR-006.
-- **Safety net** (2026-10-24). A recorded run replays the whole app for free. ADR-005 and
-  `docs/runs/2026-10-24-01-replay-fixture.md`.
+- **Safety net** (2026-10-24). A recorded run replays the whole app for free. ADR-005, lesson 007
+  and `docs/runs/2026-10-24-01-replay-fixture.md`.
 - **Harden the safety net** (2026-10-25). A typo, a free run or a replay cannot reach a model or the
   owner's saves. Lesson 008.
 - **The writer reads the scene** (epic 7, 2026-10-25). ADR-008, lesson 009 and
@@ -132,9 +132,10 @@ was built".
   `docs/runs/2026-11-01-01-epic8-checks.md`.
 - **Read it to the table** (epic 10, 2026-11-03). Look dice and a passage read aloud. ADR-011, lesson
   013 and `docs/runs/2026-11-03-01-epic10-checks.md`.
-- **Faster tests** (epic 9, 2026-11-05). The free suite from 12 minutes to about one. Lesson 014.
+- **Faster tests** (epic 9, 2026-11-05). The free suite from 12 minutes to about one. ADR-012 and
+  lesson 014.
 - **Save what I like** (epic 4, 2026-11-08). Saving is the GM's choice; roll again, `--list` and
-  `--load`. ADR-013 and `docs/runs/2026-11-08-01-epic4-checks.md`.
+  `--load`. ADR-013, lessons 015 and 016 and `docs/runs/2026-11-08-01-epic4-checks.md`.
 - **Ready to grow** (epic 5, 2026-11-10). One core called in-process; the MCP server retired. ADR-014
   to ADR-016 and lesson 017.
 - **A front end to click through** (epic 12, 2026-11-15). The two pages on made-up data. ADR-017,
