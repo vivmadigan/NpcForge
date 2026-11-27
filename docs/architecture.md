@@ -472,7 +472,8 @@ lessons in `docs/lessons/`, whose INDEX is loaded into every session.
 
 Steps 1 to 8 were typed by hand, one proof at a time. Comments that mention a step mean these. Their
 full notes are in `docs/plans/steps-1-to-8.md` at commit `cd20b60`. Epics since then are built by
-agents and named, not numbered.
+agents and named, not numbered. This table is the project's one history: each epic's last PR adds
+its row, `ROADMAP.md` "Done" names its records, and README's "Status" says only what works now.
 
 | Step | Proved | Tag |
 | --- | --- | --- |
