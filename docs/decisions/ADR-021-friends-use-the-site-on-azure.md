@@ -2,9 +2,9 @@
 
 - **Status:** accepted
 - **Date:** 2026-11-27
-- **Supersedes:** no record whole. It amends ADR-014 (decision 4's traces, and three
-  consequences), ADR-017 (decision 3's signatures) and ADR-019 (decisions 2, 3, 5, 6, 8 and 9, one
-  line of its context and two consequences). It changes AGENTS.md lines in the PRs listed in
+- **Supersedes:** no record whole. It amends ADR-014 (decisions 3, 4 and 7, and three
+  consequences), ADR-016 (decision 4), ADR-017 (decisions 2 and 3) and ADR-019 (decisions 2 to 10,
+  one line of its context and three consequences). It changes AGENTS.md lines in the PRs listed in
   Consequences.
 
 ## Context
@@ -32,7 +32,7 @@ The code showed these facts:
   `ChatAgent`, `Namer`, `CharacterRun` and `SceneInterview`. In the API's log two interviews'
   lines interleave with nothing to tell them apart.
 - `Forge` holds every interview and draft in memory. A second copy of the API would not see them.
-- 20 test call sites build `AgentLoop`, `ConsoleTool` or call `ChatAgent.WriteAsync`,
+- 21 test call sites build `AgentLoop`, `ConsoleTool` or call `ChatAgent.WriteAsync`,
   `SceneInterview.RunAsync`, `ReadAsync` or `Namer.RunAsync` directly.
 - `NpcForge.Console/characters.json` holds the owner's 16 saves.
 - The 2026-11-08 bakery run, one interview and three characters, used 18,298 input and 10,338
@@ -122,7 +122,7 @@ What a run reports, and how the page hears it:
 
 1. **The site runs on Azure Container Apps, deployed by `aspire deploy`.** The AppHost gains a
    Container Apps environment. The API runs as one copy at most, because `Forge` holds interviews in
-   memory. The pages are built into the API's container with `PublishWithContainerFiles(web,
+   memory, and by default one copy stays running ("Left to the owner"). The pages are built into the API's container with `PublishWithContainerFiles(web,
    "./wwwroot")`, and the API serves them, answering `/`, `/saved` and `/saved/{number}` with
    `index.html`. So the page and the API share one address and the sign-in cookie needs no
    cross-site rule. On the owner's machine `npm start` and `AddViteApp` stay as they are, and
@@ -131,13 +131,15 @@ What a run reports, and how the page hears it:
 
 2. **The database is Postgres, from one line of the AppHost.**
    `AddAzurePostgresFlexibleServer("postgres").RunAsContainer()` gives a Postgres container on the
-   owner's machine and Azure's Flexible Server when deployed, at Aspire's default size. In Azure the
-   API signs in to it with its managed identity, so no database password exists there.
+   owner's machine and Azure's Flexible Server when deployed, at Aspire's default size. On the
+   owner's machine the container keeps its data in a Docker volume (`WithDataVolume`), so saves
+   outlive a restart. In Azure the API signs in to it with its managed identity, so no database
+   password exists there.
 
    | Table | Holds |
    | --- | --- |
    | `saves` | person, number, the brief as text, the name's syllables and family, the text. One row per save, keyed by person and number |
-   | `people` | person, the email seen at the latest sign-in |
+   | `people` | person, the email seen at the latest sign-in. The copy in decision 5 finds the owner's shelf by it |
    | `spend` | person, month in UTC, dollars |
    | `keys` | ASP.NET Core's data protection keys |
 
@@ -145,7 +147,9 @@ What a run reports, and how the page hears it:
    byte for byte (ADR-009, ADR-014 decision 2). The Postgres store lives in `NpcForge.Api`, its only
    user, and the API builds one per person for each request, as ADR-014's Consequences planned. It
    passes `CharacterStoreTests`. A save takes one past that person's highest number inside one
-   transaction, so two saves at the same moment get different numbers (ADR-015). The data
+   transaction that first locks that person's numbers (`pg_advisory_xact_lock`), so two saves at
+   the same moment get different numbers (ADR-015). Postgres's default isolation alone would let
+   both read the same highest number. The data
    protection keys live in the database, so a restart does not sign everyone out. Whether the store
    uses EF Core or Npgsql alone is the build's choice.
 
@@ -163,9 +167,11 @@ What a run reports, and how the page hears it:
    - **The pages gain a sign-in, a sign-out and a not-invited state.** A 401 from any call shows the
      sign-in.
    - **Free tests and free runs sign in through a stand-in scheme**, picked by a setting, as the
-     stand-in model is. The API refuses to start with the stand-in sign-in or the stand-in model when
-     Container Apps runs it, which it tells by an environment variable Container Apps sets. The first
-     deploy confirms which variable. A test holds the refusal.
+     stand-in model is. Two locks keep it off the deployed site. The API refuses to start the
+     stand-in sign-in with any model but the stand-in, and the deployed site always runs a paid
+     model. The API also refuses either stand-in when Container Apps runs it, which it tells by an
+     environment variable Container Apps sets. The first deploy confirms which variable, and the
+     first lock does not depend on it. A test holds each refusal.
 
 4. **Three caps, each checked before a model call.**
 
@@ -185,8 +191,10 @@ What a run reports, and how the page hears it:
    It refuses by throwing `SpendingCapReachedException`, which gains a constructor that takes a
    message. The message says whose cap stopped the run and when it resets, for example "Your $2.00
    for November is used up. It resets on 1 December, UTC." The run turns any cap refusal into its
-   `Stopped` outcome, so the page shows its cap state as now. As today, one call can overshoot. Two
-   interviews of one person at once can overshoot by two. The owner is one of the people.
+   `Stopped` outcome, so the page shows its cap state as now. As today, one call can overshoot. A
+   person's cap can overshoot by one call for each of their interviews running at once, and the
+   total by one call for each interview running anywhere on the site. The owner's own use of the
+   site has the same $2 cap.
 
    The backstop is a separate OpenAI project and key for the site, with a hard limit of $15 a month,
    above the $10 total so the site's own cap stops first. The console keeps the owner's own key.
@@ -195,8 +203,9 @@ What a run reports, and how the page hears it:
    from the file store and saved through the Postgres store into the owner's shelf, in number order,
    so they keep the numbers 1 to 16 and their briefs byte for byte. The copy refuses a shelf that
    holds anything, so a second run changes nothing. It runs once, after the owner's first sign-in on
-   the deployed site and with the owner's yes. How it reaches the Azure database is the build's
-   design. Console saves made later stay in the file. Under the AppHost the API uses the local
+   the deployed site and with the owner's yes. Aspire's firewall rule lets only Azure reach the
+   database, so the copy most likely runs inside the API. PR 11 decides how. While the copy uses
+   `FileCharacterStore`, the store stays in `NpcForge.Adapters`. Console saves made later stay in the file. Under the AppHost the API uses the local
    Postgres container, so the local site no longer shows `characters.json`.
 
 6. **The owner opens the accounts, and a merge to master deploys.** The owner opens an Azure
@@ -206,14 +215,25 @@ What a run reports, and how the page hears it:
 
    - **The first deploy is by hand.** An agent shows the `aspire deploy` command and runs it on the
      owner's Azure login after the owner's yes.
-   - **Then one PR adds two GitHub Actions workflows.** On each PR they build and run the free .NET
-     suite and the pages' suite on `ubuntu-latest`, because the Postgres tests need a Linux
-     container. On each push to master they run the same, then `aspire deploy`.
+   - **The checks come first.** A PR before the restructures adds a GitHub Actions workflow that
+     builds and runs the free .NET suite and the pages' suite on each PR, on `ubuntu-latest`,
+     because the Postgres tests will need a Linux container. It needs no Azure, so every PR after it
+     proves itself on Linux as well as on the owner's machine.
+   - **The deploy on each merge comes after the first deploy.** On each push to master a second
+     workflow runs the same checks, then `aspire deploy`.
    - **The deploy signs in to Azure with a federated credential** that Azure trusts for this
      repository's `production` environment, so no Azure secret is stored in GitHub. The OpenAI key
-     and the External ID secret are that environment's secrets. GitHub gives no secret to a PR from
-     a fork. Aspire's deployment state is cached between runs.
-   - **The environment asks for no reviewer.** The owner's merge is the go.
+     and the External ID secret are that environment's secrets, passed to `aspire deploy` as
+     parameters on every run. GitHub gives no secret to a PR from a fork.
+   - **Nothing from a deploy is cached.** Aspire's deployment state holds parameter values in plain
+     text, secrets included, and a cache saved on master can be restored by other branches' runs.
+   - **Only `master` may deploy to `production`.** The environment asks for no reviewer, so its
+     branch rule is the lock. The owner's merge is the go.
+   - **The site's key reaches the container as a secret parameter in publish mode only.** Local
+     runs keep reading the console's user secrets, so the API keeps its `UserSecretsId`.
+   - **The owner installs the Azure CLI and brings Aspire's CLI to 13.6.5** before the first deploy.
+     ADR-020 turned Aspire's CLI bundle off for `dotnet run`, and PR 9 checks that `aspire deploy`
+     works with that setting.
 
 7. **`CharacterRun` becomes one interview's run.** It holds the model client inside its own
    `SpendingCap`, one `ChatOptions` from `ModelOptions.New`, one `Dice` and the run's report
@@ -236,8 +256,8 @@ What a run reports, and how the page hears it:
    - **The run puts its token cap outermost**, around whatever client it is given, so a refused call
      is still never recorded or sent.
    - **`Ask` no longer names the provider**, which the run holds.
-   - **`SceneInterview.RunAsync` and `ReadAsync` keep their signatures.** The run calls them, so
-     `SceneInterviewTests` does not change. `InterviewAsync` is there until the console's dialogue
+   - **`SceneInterview.RunAsync` and `ReadAsync` keep their signatures in this PR.** The run calls
+     them, so `SceneInterviewTests` does not change here. Decision 8 then gives them the report. `InterviewAsync` is there until the console's dialogue
      moves out of the core (the review's third candidate), when the console calls `ReadAsync` and
      asks its own questions.
    - **`Program.cs` still reads in the order things happen**: connect, the run (which prints the dice
@@ -259,7 +279,9 @@ What a run reports, and how the page hears it:
    ```
 
    - **The run hands its report to everything that traces.** The namer, the writer, the loop, the
-     tools and the interview all get it, and all 12 trace lines go through it. The core then writes
+     tools and the interview all get it, and all 12 trace lines go through it, with the dice line the
+     run now prints. Every member that writes a trace takes the report, so its test call sites
+     change, `SceneInterviewTests` included. The core then writes
      nothing to the console, and `BannedSymbols.txt` gains `Console.Error`.
    - **The console's report writes each line to stderr as today, byte for byte**, so the replay and
      every line in `docs/runs/` stay the same.
@@ -278,10 +300,12 @@ What a run reports, and how the page hears it:
 
    - **Faults keep their statuses until the first event.** A 404, a 409 or a 503 found before then
      is still its status. A fault after it arrives as a `failed` event with the same problem
-     details, and `api.ts` throws the same `ApiError` for both.
+     details, and `api.ts` throws the same `ApiError` for both. A roll the dice refuse ends after the
+     rolling step, so today's 422 always arrives as a `failed` event.
    - **`rollAndWrite(interview, onStep)` gains the step callback**, and the wait screen marks the
      step.
-   - **Closing the tab cancels the request**, and with it the roll and its spending.
+   - **Closing the tab cancels the request**, and with it the roll. A model call already sent may
+     still be billed, and the cap counts only the answers it receives.
    - **Starting an interview stays one JSON answer.** It is one model loop with no steps inside it.
    - **The Vite proxy and Container Apps' ingress must pass the stream on as it comes.** The PR that
      streams checks both.
@@ -298,33 +322,35 @@ What a run reports, and how the page hears it:
    - **A capped run calls no model.** A test shows a run refused, with no model call, once a person's
      cap or the total cap is reached, on the stand-in with prices set.
    - **An uninvited sign-in is refused**, and nothing is stored for it.
-   - **The API refuses its stand-ins in Container Apps.** A test shows it refusing to start with
-     either stand-in when the Container Apps variable is set.
+   - **The stand-ins cannot reach the deployed site.** One test shows the stand-in sign-in refused
+     with a paid model, and one shows either stand-in refused when the Container Apps variable is set.
    - **The steps come before the result.** A test reads the stream's step events before its result.
    - **The API's other tests stay in the fast part**, on `InMemoryCharacterStore` for each person,
      put in through the test host as the stand-in model is. One owner-filter test runs on Postgres.
    - **The browser tests run on Postgres.** Playwright starts a Postgres container for its API, on
-     the stand-in model and the stand-in sign-in. A browser test signs in, makes a character, signs
+     the stand-in model and the stand-in sign-in, and removes the container itself when it ends,
+     because stopping `docker run` on Windows leaves the container running. A browser test signs in, makes a character, signs
      out, signs in again and finds it.
    - **The deployed check is the owner's.** A script the owner runs signs in on the deployed site as a
      test account the owner made, and lists its saves with no model call. No agent types that
      account's password.
    - **The replay and roll-again tests pass on the unchanged fixtures.**
 
-10. **Ten PRs, in this order.** A restructure and a behavior change never share a PR (ROADMAP.md).
+10. **Eleven PRs, in this order.** A restructure and a behavior change never share a PR (ROADMAP.md).
 
     | # | PR | Kind | Its check |
     | --- | --- | --- | --- |
     | 1 | This record | Docs | The owner's review |
-    | 2 | `CharacterRun` as the interview's run | Restructure | Replay and roll-again unchanged. The equality test compares two runs built the same way |
-    | 3 | The run's report. The 12 trace lines through `IRunReport`, and `Console.Error` banned in the core | Restructure | Replay and roll-again unchanged, and a recorded run's stderr identical |
-    | 4 | The Postgres store, the AppHost's Postgres, and the API on it | Behavior | `CharacterStoreTests` and the numbering test on Postgres |
-    | 5 | Sign-in. External ID, the invite list, a store per person, interview owners, the stand-in sign-in and its refusal, the keys in the database, the pages' sign-in states | Behavior | The two-person, uninvited and refusal tests, each guard shown failing. The browser test. The owner's sign-in (*needs the owner's eyes*) |
-    | 6 | The monthly caps in dollars | Behavior | The cap tests, with no model call |
-    | 7 | The roll as a stream, and the wait screen's steps | Behavior | The stream test and the browser test. The steps' wording (*needs the owner's eyes*) |
-    | 8 | The first deploy, by hand. The Container Apps environment, the pages in the API's container, one copy at most, the owner's guide to the accounts | Behavior | The owner's deployed check |
-    | 9 | GitHub Actions. Checks on each PR, and a deploy on each merge | Behavior | A PR shows its checks, and a merge deploys |
-    | 10 | The copy of the owner's 16 saves, the first paid run by a friend, the close-out | Behavior | The copy's test. The friend's run (*needs the owner's eyes*) |
+    | 2 | GitHub Actions checks on each PR, on Linux | Tooling | A PR shows its checks, and the free suites pass on Linux |
+    | 3 | `CharacterRun` as the interview's run | Restructure | Replay and roll-again unchanged. The equality test compares two runs built the same way |
+    | 4 | The run's report. The trace lines through `IRunReport`, and `Console.Error` banned in the core | Restructure | Replay and roll-again unchanged, and a recorded run's stderr identical |
+    | 5 | The Postgres store, the AppHost's Postgres, and the API on it | Behavior | `CharacterStoreTests` and the numbering test on Postgres |
+    | 6 | Sign-in. External ID, the invite list, a store per person, interview owners, the stand-in sign-in and its two locks, the keys in the database, the pages' sign-in states | Behavior | The two-person, uninvited and refusal tests, each guard shown failing. The browser test. The owner's sign-in (*needs the owner's eyes*) |
+    | 7 | The monthly caps in dollars | Behavior | The cap tests, with no model call |
+    | 8 | The roll as a stream, and the wait screen's steps | Behavior | The stream test and the browser test. The steps' wording (*needs the owner's eyes*) |
+    | 9 | The first deploy, by hand. The Container Apps environment, the pages in the API's container, one copy at most, the owner's guide to the accounts and the tools | Behavior | The owner's deployed check |
+    | 10 | GitHub Actions deploys each merge to master | Behavior | A merge deploys, and a branch other than master cannot |
+    | 11 | The copy of the owner's 16 saves, the first paid run by a friend, the close-out | Behavior | The copy's test. The friend's run, and the OpenAI billing page after a week (*needs the owner's eyes*) |
 
 ## Why
 
@@ -343,8 +369,9 @@ What a run reports, and how the page hears it:
   cap next. A closed outcome makes every way a step ends visible in its type.
 - **One report seam.** Friends' runs get logs that can be told apart, and the page gets the steps
   that really happen rather than a guessed animation (principle-experience-first).
-- **The restructures first.** PRs 2 and 3 move code with the replay as the proof, so the behavior
-  PRs build on a base that is known to be good (principle-sequence-verifiable-units).
+- **The checks, then the restructures, first.** PR 2 makes every later PR prove itself on Linux.
+  PRs 3 and 4 move code with the replay as the proof, so the behavior PRs build on a base that is
+  known to be good (principle-sequence-verifiable-units).
 - **One deploy by hand, then the pipeline.** The first deploy is where Azure's surprises turn up.
   The pipeline then automates a deploy that is known to work.
 
@@ -355,10 +382,11 @@ Each has a default, so the build can start.
 - **The friends' model.** Default: gpt-6-luna, the console's default, through the API's model
   setting and its two prices. Settle it before a friend's first paid run. A new model needs its
   prices changed with it.
-- **Whether the API stays running when idle.** Default: Container Apps scales it to zero, which the
-  free grant covers. The cost is a slow first click after a quiet spell, and an interview left idle
-  past the scale-in delay is forgotten. Keeping one copy running costs a few dollars a month (not
-  measured). PR 8 measures both.
+- **Whether the API stays running when idle.** Default: one copy stays running. Scaling to zero is
+  cheaper, but a restart then forgets every interview and draft left idle past the scale-in delay
+  (about five minutes, not checked). A friend who reads a sheet that long and then saves gets a
+  404, and the character is lost. PR 9 measures what one running copy costs, which I guess at a few
+  dollars a month.
 - **The wait screen's words for each step.** *Needs the owner's eyes.*
 - **Turning off sign-up for strangers in the tenant.** Default: not set. The invite list is the
   rule.
@@ -366,21 +394,27 @@ Each has a default, so the build can start.
 ## Consequences
 
 - **AGENTS.md changes in the PR that makes each line true.**
-  - In PR 3, "Dice, the clock, traces and skill text are not ports" says that traces go through the
+  - In PR 2, "Build and run" says that each PR runs the free suites on GitHub.
+  - In PR 4, "Dice, the clock, traces and skill text are not ports" says that traces go through the
     run's report, a seam as `IToolSource` is. The core's rule becomes "The core never writes to the
     console or reads stdin".
-  - In PR 4, "Build and run" says that `dotnet test`, `npm test` and the AppHost need Docker
+  - In PR 5, "Build and run" says that `dotnet test`, `npm test` and the AppHost need Docker
     running, that the first run pulls the Postgres image, and that the fast part is
     `--filter "Category!=Process&Category!=Database"`. "My saves" says that `characters.json` is
     the console's, and that the site's saves are in Postgres.
-  - In PR 5, the free run sets the stand-in sign-in.
-  - In PR 8 and PR 9, "Ceremony matches risk" gains deploying. Until PR 9, an agent asks before each
-    deploy, with the command. From PR 9, a merge to master deploys.
-- **ADR-014, amended.** Decision 4's traces go through the run's report, not `Console.Error`, and
-  the API's report is where `ILogger` comes in. In the Consequences, "Each friend gets a
+  - In PR 6, the free run sets the stand-in sign-in.
+  - In PR 9 and PR 10, "Ceremony matches risk" gains deploying. Until PR 10, an agent asks before
+    each deploy, with the command. From PR 10, a merge to master deploys.
+- **ADR-014, amended.** Decision 3's static `CharacterRun` becomes an object, `Ask` loses its
+  provider, and the members that trace gain the report. Decision 4's traces go through the run's
+  report, not `Console.Error`, and the API's report is where `ILogger` comes in. Decision 7's
+  "`Console.Error` stays allowed" ends, because the core no longer writes to the console. In the Consequences, "Each friend gets a
   `SpendingCap`" becomes the three caps in decision 4. "Traces stay on `Console.Error`" no longer
   holds after PR 3, and PR #86 retired "`ChatOptions` is changed by `AgentLoop`".
-- **ADR-017, amended.** In decision 3, `rollAndWrite` gains its step callback.
+- **ADR-016, amended.** In decision 4, the run prints the dice line, and `Program.cs` handles the
+  run's `Refused` outcome where it caught `RollRefusedException`.
+- **ADR-017, amended.** Decision 2's `npm test` also needs Docker. In decision 3, `rollAndWrite`
+  gains its step callback.
 - **ADR-019, amended.**
   - Its context's "No Docker was needed" no longer holds, because the AppHost starts Postgres.
   - Decision 2's "no new type" gives way to `CharacterRun`. `ReadAsync` and the four members on
@@ -391,18 +425,29 @@ Each has a default, so the build can start.
   - In decision 8, `rollAndWrite`'s signature changes.
   - Decision 9's AppHost gains Postgres, the Container Apps environment and
     `PublishWithContainerFiles`.
+  - Decision 4's fault table holds until the roll's first event. After it, a fault is a `failed`
+    event.
+  - Decision 7's stand-in model gains the stand-in sign-in, and neither starts in Container Apps.
+  - In decision 10, the API's tests use an in-memory store for each person, and the browser tests
+    a Postgres container.
   - Its consequences "The API's log mixes two interviews at once" and "Epic 6 inherits" are met
-    here.
+    here. Its consequence that an agent runs the AppHost with `NPCFORGE_CHARACTERS` set no longer
+    holds for the API, which reads Postgres.
 - **The epic's open choices are answered here**, except the model, which stays under "Left to the
   owner".
 - **Running costs.** About $5 a month for the first year on a new free account, mostly the
   registry, then about $20 to $25 a month for the database and the registry, an estimate. Model
   spend stops at the caps.
-- **The tests have never run off the owner's machine.** The first CI runs on Linux may find
+- **The site calls a paid model from its first deploy.** The API refuses the stand-in model in
+  Container Apps, so the first deploy carries the site's key, behind the three caps and the hard
+  limit. That changes ROADMAP.md's task order, which deploys before a paid model is switched on.
+- **Two items from `docs/design/epic-12-api-needs.md` stay as they are.** The top bar's count still
+  costs a list, and a choice the page's table does not know is still shown as sent.
+- **The tests have never run off the owner's machine.** PR 2's first runs on Linux may find
   something that works only on Windows.
 - **A restart still forgets every interview**, and so does scaling to zero. The page shows its
   failure state with the scene kept, as now.
-- **The verify skill changes with PRs 4 and 5.** `api start` and `apphost start` need Docker and the
+- **The verify skill changes with PRs 5 and 6.** `api start` and `apphost start` need Docker and the
   stand-in sign-in.
-- **The console does not change for the owner**, apart from what PR 2 and PR 3 move behind the
+- **The console does not change for the owner**, apart from what PR 3 and PR 4 move behind the
   same bytes.

@@ -1,7 +1,7 @@
 # ADR-019: The website calls the core through `NpcForge.Api`, with shared adapters and an Aspire AppHost
 
 - **Status:** accepted. Amended 2026-11-18: decision 9's Aspire version is 13.6.5, not 13.4.2
-  (ADR-020). Amended 2026-11-27: decisions 2, 3, 5, 6, 8 and 9, one line of the context and two
+  (ADR-020). Amended 2026-11-27: decisions 2 to 10, one line of the context and three
   consequences are amended by ADR-021.
 - **Date:** 2026-11-16
 - **Supersedes:** no record whole. It amends ADR-014 (the projects, where the adapters live, which
