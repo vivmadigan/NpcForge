@@ -18,10 +18,10 @@ Decision, Why, Consequences.
 | `AgentLoop.RunAsync` | Takes `List<ChatMessage>`; `ChatOptions` comes in through the constructor | The caller builds the history, with the skill at index 0; the loop never changes |
 | Skills | `SKILL.md` files in the repo, read by the app into a system message | Works with both providers; a vendor's server-side skills would tie the app to one |
 | OpenAI endpoint | Responses, not Chat Completions | Chat Completions rejects function tools on reasoning models. [Lesson 001](../lessons/001-openai-responses-endpoint.md) |
-| Traces | stderr, one prefix per source: `[app]`, `[skill]`, `[loop]`, `[tool]`, `[interview]`, and the lab's `[lab]` and `[score]` | Stdout is the answer. [ADR-016](ADR-016-console-calls-the-core.md) |
+| Traces | stderr, one prefix per source: `[app]`, `[skill]`, `[loop]`, `[tool]`, `[interview]`, and the lab's `[lab]` and `[score]`. From epic 6 the core sends them through the run's report, and the API logs them under each interview | Stdout is the answer. [ADR-016](ADR-016-console-calls-the-core.md); the report from [ADR-021](ADR-021-friends-use-the-site-on-azure.md) |
 | Structure | One core, `NpcForge.Core`, holds every shared rule; `NpcForge.Adapters` holds what the front ends share from outside; two ports, `IChatClient` and `ICharacterStore`, with one store per person, so the core names no owner | [ADR-014](ADR-014-one-core-called-in-process.md), as built in [ADR-016](ADR-016-console-calls-the-core.md); the adapters and the API from [ADR-019](ADR-019-the-website-calls-the-core-through-an-api.md) |
 | Occupation | Supplied like the setting, default `"innkeeper"`, not rolled | [ADR-002](ADR-002-occupation-in-the-brief.md) |
-| Storage | One JSON file behind `ICharacterStore`; a run saves only when the GM types `save` | [ADR-003](ADR-003-saved-character-is-brief-and-text.md), its "every run saved" superseded by [ADR-013](ADR-013-saving-is-a-choice.md); numbering in [ADR-015](ADR-015-store-numbers-and-guards.md) |
+| Storage | One JSON file behind `ICharacterStore`; a run saves only when the GM types `save`. The website's saves are in Postgres, one shelf per person, from epic 6 | [ADR-003](ADR-003-saved-character-is-brief-and-text.md), its "every run saved" superseded by [ADR-013](ADR-013-saving-is-a-choice.md); numbering in [ADR-015](ADR-015-store-numbers-and-guards.md); Postgres from [ADR-021](ADR-021-friends-use-the-site-on-azure.md) |
 | Tests | Free: fake models, the real dice and tools, no network. The pages have their own Playwright suite, which starts the API; `dotnet test` never starts Node | Anything that costs money is not a test. [ADR-017](ADR-017-front-end-toolchain-and-seam.md) adds the pages' suite |
 | Recording paid runs | One file per run in `docs/runs/`, with the code committed before the run; the `[skill]` line carries a fingerprint | [docs/runs/README.md](../runs/README.md) |
 | Replay | A recorded run replays the whole app for free, compared request by request; re-recorded only after a behavior change, never for a restructure | [ADR-005](ADR-005-replay-a-recorded-run.md), amended twice |
@@ -34,6 +34,10 @@ Decision, Why, Consequences.
 | The front end | A Vite, React and TypeScript app in `NpcForge.Web/`; pages get data only from `src/api.ts` | [ADR-017](ADR-017-front-end-toolchain-and-seam.md), amended by [ADR-019](ADR-019-the-website-calls-the-core-through-an-api.md) |
 | The website's confirmation | The scene and a few sentences the page writes; no page shows the brief | [ADR-018](ADR-018-website-confirmation-in-sentences.md), amending ADR-007, ADR-010 and ADR-017 for the website only |
 | The website's API | `NpcForge.Api`, one route per function of `src/api.ts`, one `Forge` holding each interview in memory, and an Aspire AppHost | [ADR-019](ADR-019-the-website-calls-the-core-through-an-api.md), amending ADR-014, ADR-017 and ADR-018; Aspire pinned to 13.6.5 by [ADR-020](ADR-020-aspire-pinned-to-13-6-5.md) |
+| Hosting and deploying | Azure Container Apps with Azure's Postgres Flexible Server, both from the AppHost; deployed by `aspire deploy`, once by hand, then by GitHub Actions on each merge to master | [ADR-021](ADR-021-friends-use-the-site-on-azure.md) |
+| Sign-in | Microsoft Entra External ID, signed in by the API with a cookie; an invite list of email addresses | [ADR-021](ADR-021-friends-use-the-site-on-azure.md) |
+| Spending caps | 200,000 tokens a run; $2 a person and $10 in total each UTC month, counted in dollars; a separate OpenAI project with a hard limit behind them | [ADR-021](ADR-021-friends-use-the-site-on-azure.md) |
+| The run | One `CharacterRun` per interview holds the dice, the token cap and the options, returns one outcome per step, and reports through one seam | [ADR-021](ADR-021-friends-use-the-site-on-azure.md), amending ADR-019 decision 2 |
 
 ## Records
 
@@ -56,6 +60,7 @@ Decision, Why, Consequences.
 - [ADR-018 The website's confirmation is the scene and a few sentences, written by the page from what the scene settled](ADR-018-website-confirmation-in-sentences.md) — accepted 2026-11-15; amends ADR-007, ADR-010 and ADR-017 for the website only; the epic that sends the entries, and what holds `BriefField` to the core, amended by ADR-019
 - [ADR-019 The website calls the core through `NpcForge.Api`, with shared adapters and an Aspire AppHost](ADR-019-the-website-calls-the-core-through-an-api.md) — accepted 2026-11-16; amends ADR-014, ADR-017 and ADR-018; the Aspire version in decision 9 amended by ADR-020
 - [ADR-020 Aspire is pinned to 13.6.5, not the 13.4.2 the spike ran](ADR-020-aspire-pinned-to-13-6-5.md) — accepted 2026-11-18; amends ADR-019 decision 9
+- [ADR-021 Friends use the site on Azure, through one run that owns its cap and reports its steps](ADR-021-friends-use-the-site-on-azure.md) — accepted 2026-11-27; amends ADR-014, ADR-017 and ADR-019
 
 ADR-004 was reserved for the server layers by a plan that no longer exists, and was never written.
 Older records mention plan versions and `PLAN.md`; those are in git at commit `cd20b60`.
