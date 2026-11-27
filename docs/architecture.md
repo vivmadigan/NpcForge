@@ -129,10 +129,9 @@ holds `briefFields` in `src/api.ts` equal to `Dice.Fields`.
 `Forge` is one singleton holding every interview and kept draft in memory; nothing expires, so a
 restart turns the page's ids into 404s. An interview holds its `SceneDraft`, one `Dice`, one
 `SpendingCap` and a gate that lets one request at a time work on it, because the dice and the cap are
-not safe across threads. Each model-calling step gets options of its own from `ModelOptions.New`
-("The loop"). It runs `SceneInterview.ReadAsync` and
-`CharacterRun.RollAndWriteAsync` as the console does, and `ForgeApiTests` holds every request it sends
-a model equal to the console's for one seed. A kept draft holds the task of its first save, so a
+not safe across threads. Its options come from `ModelOptions.New`, as the console's do. It runs
+`SceneInterview.ReadAsync` and `CharacterRun.RollAndWriteAsync` as the console does, and
+`ForgeApiTests` holds every request it sends a model equal to the console's for one seed. A kept draft holds the task of its first save, so a
 double click saves once; a save that faulted is forgotten, so a retry can try again.
 
 Its settings are in `ForgeSettings` and `SavesPath`, and AGENTS.md "Build and run" says how a free
@@ -224,9 +223,9 @@ Roll, save, load and list are plain methods the app calls (`Dice.Roll`, and `ICh
   malformed.
 - **The turn cap is not optional.** Out of turns (`maxTurns`; the namer and the interview set their
   own), it throws.
-- **The loop sets its tools on the options it is given** (`options.Tools`), so every loop needs
-  options of its own: the namer runs on a copy, the console's interview gets a copy, and the API
-  builds new options for each step.
+- **The loop sets its tools on a copy of the options it is given**, so the caller's options come
+  back as they went in, and one set serves the interview, the namer and the writer
+  (`AgentLoopTests`). The lab still copies them per variant, for its temperature.
 
 `IToolSource` is the seam to where tools come from (`ConsoleTool` in the app, `FakeToolSource` in tests).
 `IChatClient` from Microsoft.Extensions.AI is the seam to the vendor, and `ModelClients.Create` is
@@ -261,8 +260,7 @@ caller's bug, not the GM's slip.
 ADR-009 decision 4. `Namer.RunAsync` runs before the writer, inside `ChatAgent.WriteAsync`, unless the
 `WriterInput` already carries a name (the lab's variants do). It runs `AgentLoop` with the `namer`
 skill, a first message that holds the race, the gender, the name dice in words and the scene, and one
-console tool, `give_name(syllables, family)`, for example `["Kes", "sa"], "Vale"`. It runs on a copy
-of the options, so the writer's tool list does not change.
+console tool, `give_name(syllables, family)`, for example `["Kes", "sa"], "Vale"`.
 
 - **The check** is `NameCheck.Check`, pure, on the call's arguments, each rule with its own
   `NameRejection` and reason. Letters ignore case as ordinal text, so a dotless `ı` is not `I`.

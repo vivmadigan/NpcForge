@@ -110,7 +110,6 @@ public sealed class Forge(ModelChoice model, int? seed, ICharacterStore store)
                 return Problems.Of(StatusCodes.Status409Conflict, "A question is still open",
                     $"Answer every question before rolling. {open.Name} has no answer.");
 
-            // Options of their own for this roll, so nothing one step puts in them reaches the next.
             var ask = new Ask(interview.Draft.RollArguments(), interview.Draft.Scene, model.Provider);
             var draft = await CharacterRun.RollAndWriteAsync(interview.Cap, ModelOptions.New(model.Model), interview.Dice, ask, ct);
 

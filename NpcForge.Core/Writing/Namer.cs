@@ -35,8 +35,7 @@ public static class Namer
         var giveName = new GiveName(dice);
         try
         {
-            // A copy of the options, so give_name never reaches the writer's tool list.
-            await new AgentLoop(client, giveName.Tool(), options.Clone(), MaxTurns).RunAsync(history, ct);
+            await new AgentLoop(client, giveName.Tool(), options, MaxTurns).RunAsync(history, ct);
         }
         catch (TurnCapReachedException)
         {

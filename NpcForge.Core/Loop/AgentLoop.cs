@@ -15,13 +15,15 @@ namespace NpcForge
         public async Task<string> RunAsync(List<ChatMessage> history, CancellationToken ct)
         {
             // Ask the source what exists instead of knowing. Step 5 swapped the fake for MCP here, and
-            // ADR-014 swapped MCP for ConsoleTool, with no change to the loop.
-            options.Tools = [.. await tools.ListAsync(ct)];
+            // ADR-014 swapped MCP for ConsoleTool, with no change to the loop. Set on a copy, so the
+            // caller's options come back as they went in and one set serves every loop of a run.
+            var request = options.Clone();
+            request.Tools = [.. await tools.ListAsync(ct)];
 
             // One pass per model turn. The cap is not optional: a confused model loops until stopped.
             for (var turn = 0; turn < maxTurns; turn++)
             {
-                var response = await model.GetResponseAsync(history, options, ct);
+                var response = await model.GetResponseAsync(history, request, ct);
                 history.AddRange(response.Messages);          // the assistant's turn goes in as-is
 
                 // Text and tool requests arrive together. The requests are the only signal;
